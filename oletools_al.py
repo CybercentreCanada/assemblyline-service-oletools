@@ -6,7 +6,7 @@ from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.al.common.heuristics import Heuristic
 from assemblyline.al.common.result import Result, ResultSection, SCORE, TAG_TYPE, TAG_WEIGHT, TAG_USAGE, TEXT_FORMAT
 from assemblyline.al.service.base import ServiceBase
-from assemblyline.al.service.oletools_al.stream_parser import Ole10Native, PowerPointDoc
+from al_services.alsvc_oletools.stream_parser import Ole10Native, PowerPointDoc
 import os
 import re
 import traceback
