@@ -10,10 +10,11 @@ XML documents using the Python library py-oletools
 The Oletools service will report the following information for each file when present:
 
 1. Macros (AL tag: TECHNIQUE_MACROS):
-    * SHA256 (AL tag: OLE_MACRO_SHA256)
-    * Suspicious strings (AL tak: OLE_MACRO_SUSPICIOUS_STRINGS)
-    * Network indicators
-    * Contents extraction
+    * SHA256 (AL tag: OLE_MACRO_SHA256);
+    * Suspicious strings (AL tak: OLE_MACRO_SUSPICIOUS_STRINGS);
+    * Network indicators.
 
 2. Embedded document streams
-    * Name
+    * Name.
+
+Contents extraction for both VBA script in macros and embedded streams is performed by the service.
