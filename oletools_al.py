@@ -51,15 +51,17 @@ class Oletools(ServiceBase):
                           "Microsoft OLE and XML documents using the Python library py-oletools."
     SERVICE_ENABLED = True
     SERVICE_VERSION = '3'
-    SERVICE_REVISION = ServiceBase.parse_revision('$Id: f341b00396083e0390bd978fc1b44daa75756a7c $')
+    SERVICE_REVISION = ServiceBase.parse_revision('$Id$')
     SERVICE_CPU_CORES = 0.5
     SERVICE_RAM_MB = 1024
 
     MAX_STRINGDUMP_CHARS = 500
-    MAX_STRING_SCORE = 25
+    MAX_STRING_SCORE = SCORE.VHIGH
     MAX_MACRO_SECTIONS = 3
-    MIN_MACRO_SECTION_SCORE = 25
-    ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet',)  # in addition to those from olevba.py
+    MIN_MACRO_SECTION_SCORE = SCORE.MED
+
+    # in addition to those from olevba.py
+    ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
     def __init__(self, cfg=None):
         super(Oletools, self).__init__(cfg)
