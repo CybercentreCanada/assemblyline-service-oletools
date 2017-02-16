@@ -102,7 +102,7 @@ class Oletools(ServiceBase):
         file_contents = request.get()
 
         try:
-            self.check_for_macros(filename=filename, file_contents=file_contents)
+            self.check_for_macros(filename, file_contents, request.sha256)
             self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
@@ -219,7 +219,7 @@ class Oletools(ServiceBase):
         if xml_string_res.score > 0:
             self.ole_result.add_section(xml_string_res)
 
-    def check_for_macros(self, filename, file_contents):
+    def check_for_macros(self, filename, file_contents, request_hash):
         # noinspection PyBroadException
         try:
             vba_parser = VBA_Parser(filename=filename, data=file_contents)
@@ -231,18 +231,21 @@ class Oletools(ServiceBase):
                                             weight=TAG_WEIGHT.LOW,
                                             usage=TAG_USAGE.IDENTIFICATION)
                     allmacros = []
-                    all_vba = ''
+                    all_vba = []
 
                     try:
                         for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
-                            all_vba += vba_code + '\n'
-                            if vba_code.strip() != '':
-                                vba_code = vba_code.strip()
-                                vba_code_sha256 = hashlib.sha256(vba_code).hexdigest()
-                                macro_section = self.macro_section_builder(vba_code)
-                                toplevel_score = self.calculate_nested_scores(macro_section)
+                            if vba_code.strip() == '':
+                                continue
+                            vba_code_sha256 = hashlib.sha256(vba_code).hexdigest()
+                            if vba_code_sha256 == request_hash:
+                                continue
 
-                                allmacros.append(Macro(vba_code, vba_code_sha256, macro_section, toplevel_score))
+                            all_vba.append(vba_code)
+                            macro_section = self.macro_section_builder(vba_code)
+                            toplevel_score = self.calculate_nested_scores(macro_section)
+
+                            allmacros.append(Macro(vba_code, vba_code_sha256, macro_section, toplevel_score))
                     except Exception as e:
                         self.log.debug("OleVBA VBA_Parser.extract_macros failed: {}".format(str(e)))
                         section = ResultSection(SCORE.NULL, "OleVBA : Error extracting macros")
@@ -271,7 +274,11 @@ class Oletools(ServiceBase):
                     # Create extracted file for all VBA script.
                     if len(all_vba) > 0:
                         vba_file_path = ""
+                        all_vba = "\n".join(all_vba)
                         vba_all_sha256 = hashlib.sha256(all_vba).hexdigest()
+                        if vba_all_sha256 == request_hash:
+                            return
+
                         try:
                             vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
                             with open(vba_file_path, 'w') as fh:
