@@ -15,6 +15,8 @@ from operator import attrgetter
 import zipfile
 import zlib
 import email
+import json
+import gzip
 
 VBA_Parser = None
 VBA_Scanner = None
@@ -54,6 +56,10 @@ class Oletools(ServiceBase):
     SERVICE_REVISION = ServiceBase.parse_revision('$Id$')
     SERVICE_CPU_CORES = 0.5
     SERVICE_RAM_MB = 1024
+    SERVICE_DEFAULT_CONFIG = {
+        'MACRO_SCORE_MAX_FILE_SIZE': 5 * 1024**2,
+        'MACRO_SCORE_MIN_ALERT': 0.6
+    }
 
     MAX_STRINGDUMP_CHARS = 500
     MAX_STRING_SCORE = SCORE.VHIGH
@@ -75,6 +81,12 @@ class Oletools(ServiceBase):
         self.domain_re = re.compile('^((?:(?:[a-zA-Z0-9\-]+)\.)+[a-zA-Z]{2,5})')
         self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[^\s]+')
 
+        self.word_chains = None
+        self.macro_skip_words = None
+        self.macro_words_re = re.compile("[a-z]{3,}")
+        self.macro_score_max_size = cfg.get('MACRO_SCORE_MAX_FILE_SIZE', None)
+        self.macro_score_min_alert = cfg.get('MACRO_SCORE_MIN_ALERT', 0.6)
+
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
         from oletools.olevba import VBA_Parser, VBA_Scanner
@@ -86,6 +98,22 @@ class Oletools(ServiceBase):
 
     def start(self):
         self.log.debug("Service started")
+
+        chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
+        with gzip.open(chain_path) as fh:
+            self.word_chains = json.load(fh)
+
+        for k, v in self.word_chains.items():
+            self.word_chains[k] = set(v)
+
+        # Don't reward use of common keywords
+        self.macro_skip_words = {'var', 'unescape', 'exec', 'for', 'while', 'array', 'object',
+                                 'length', 'len', 'substr', 'substring', 'new', 'unicode', 'name', 'base',
+                                 'dim', 'set', 'public', 'end', 'getobject', 'createobject', 'content',
+                                 'regexp', 'date', 'false', 'true', 'none', 'break', 'continue', 'ubound',
+                                 'none', 'undefined', 'activexobject', 'document', 'attribute', 'shell',
+                                 'thisdocument', 'rem', 'string', 'byte', 'integer', 'int', 'function',
+                                 'text', 'next', 'private', 'click', 'change'}
 
     def get_tool_version(self):
         return self.SERVICE_VERSION
@@ -219,6 +247,41 @@ class Oletools(ServiceBase):
         if xml_string_res.score > 0:
             self.ole_result.add_section(xml_string_res)
 
+    # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
+    # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
+    # are common in malicious macros.
+    def flag_macro(self, macro_text):
+        if len(macro_text) > self.macro_score_max_size:
+            return False
+
+        macro_text = macro_text.lower()
+        score = 0.0
+
+        word_count = 0
+        byte_count = 0
+
+        for m_cw in self.macro_words_re.finditer(macro_text):
+            cw = m_cw.group(0)
+            word_count += 1
+            byte_count += len(cw)
+            if cw in self.macro_skip_words:
+                continue
+            prefix = cw[0]
+            tc = 0
+            for i in xrange(1, len(cw) - 1):
+                c = cw[i:i + 2]
+                if c in self.word_chains.get(prefix, []):
+                    tc += 1
+                prefix = cw[i]
+
+            score += tc / float(len(cw) - 2)
+
+        if byte_count < 128 or word_count < 32:
+            # these numbers are arbitrary, but if the sample is too short the score is worthless
+            return False
+
+        return (score / word_count) < self.macro_score_min_alert
+
     def check_for_macros(self, filename, file_contents, request_hash):
         # noinspection PyBroadException
         try:
@@ -322,7 +385,6 @@ class Oletools(ServiceBase):
             req_deob = True
             dump_title += " [deobfuscated]"
 
-        analyzed_code = self.deobfuscator(vba_code)
         if len(analyzed_code) > self.MAX_STRINGDUMP_CHARS:
             dump_title += " - Displaying only the first %s characters." % self.MAX_STRINGDUMP_CHARS
             dump_subsection = ResultSection(SCORE.NULL, dump_title, body_format=TEXT_FORMAT.MEMORY_DUMP)
@@ -341,6 +403,10 @@ class Oletools(ServiceBase):
         if score_subsection:
             macro_section.add_section(score_subsection)
             macro_section.add_section(dump_subsection)
+
+        # Flag macros
+        if self.flag_macro(analyzed_code):
+            macro_section.add_section(ResultSection(SCORE.HIGH, "Macro may be packed or obfuscated."))
 
         return macro_section
 
