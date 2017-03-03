@@ -664,6 +664,14 @@ class Oletools(ServiceBase):
         streams = []
         for dir_entry in listdir:
             streams.append('/'.join(dir_entry))
+
+        if "\x05HwpSummaryInformation" in streams:
+            decompress = True
+        else:
+            decompress = False
+
+        decompress_macros = []
+
         for stream in streams:
             self.log.debug("Extracting stream: {}".format(stream))
             data = ole.openstream(stream).getvalue()
@@ -677,6 +685,12 @@ class Oletools(ServiceBase):
                     if self.process_powerpoint_stream(data, streams_section) is True:
                         continue
 
+                if decompress:
+                    try:
+                        data = zlib.decompress(data, -15)
+                    except zlib.error:
+                        pass
+
                 streams_section.add_line(safe_str(stream))
                 # Only write all streams with deep scan.
                 stream_name = '{}.ole_stream'.format(hashlib.sha256(data).hexdigest())
@@ -685,10 +699,22 @@ class Oletools(ServiceBase):
                     with open(stream_path, 'w') as fh:
                         fh.write(data)
                     self.request.add_extracted(stream_path, "Embedded OLE Stream.", stream)
+                    if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                        decompress_macros.append(data)
 
             except Exception as e:
                 self.log.error("Error adding extracted stream {}: {}".format(stream, e))
                 continue
+        if decompress_macros:
+            macros = "\n".join(decompress_macros)
+            stream_name = '{}.macros'.format(hashlib.sha256(macros).hexdigest())
+            stream_path = os.path.join(self.working_directory, stream_name)
+            with open(stream_path, 'w') as fh:
+                fh.write(macros)
+
+            self.request.add_extracted(stream_path, "Combined macros.", "all_macros.ps")
+            return True
+        return False
 
     # noinspection PyBroadException
     def extract_streams(self, file_name, file_contents):
@@ -724,16 +750,20 @@ class Oletools(ServiceBase):
                     ole2s[file_name] = olefile2.OleFileIO(file_name)
                     ole_filenames.add(file_name)
 
+            decompressed_macros = False
             for ole_filename in ole_filenames:
                 try:
-                    self.process_ole_stream(oles[ole_filename], streams_res)
+                    decompressed_macros |= self.process_ole_stream(oles[ole_filename], streams_res)
                 except Exception:
                     if ole_filename not in ole2s:
                         continue
                     try:
-                        self.process_ole_stream(ole2s[ole_filename], streams_res)
+                        decompressed_macros |= self.process_ole_stream(ole2s[ole_filename], streams_res)
                     except:
                         continue
+
+            if decompressed_macros:
+                streams_res.score = SCORE.HIGH
 
             for _, offset, rtfobject in rtf_iter_objects(file_contents):
                 rtfobject_name = hex(offset) + '.rtfobj'
