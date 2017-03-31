@@ -87,6 +87,9 @@ class Oletools(ServiceBase):
         self.macro_score_max_size = cfg.get('MACRO_SCORE_MAX_FILE_SIZE', None)
         self.macro_score_min_alert = cfg.get('MACRO_SCORE_MIN_ALERT', 0.6)
 
+        self.all_macros = None
+        self.all_vba = None
+
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
         from oletools.olevba import VBA_Parser, VBA_Scanner
@@ -113,7 +116,9 @@ class Oletools(ServiceBase):
                                  'regexp', 'date', 'false', 'true', 'none', 'break', 'continue', 'ubound',
                                  'none', 'undefined', 'activexobject', 'document', 'attribute', 'shell',
                                  'thisdocument', 'rem', 'string', 'byte', 'integer', 'int', 'function',
-                                 'text', 'next', 'private', 'click', 'change'}
+                                 'text', 'next', 'private', 'click', 'change', 'createtextfile', 'savetofile',
+                                 'responsebody', 'opentextfile', 'resume', 'open', 'environment', 'write', 'close',
+                                 'error', 'else', 'number', 'chr', 'sub', 'loop'}
 
     def get_tool_version(self):
         return self.SERVICE_VERSION
@@ -125,6 +130,9 @@ class Oletools(ServiceBase):
         self.request = request
         self.scored_macro_uri = False
 
+        self.all_macros = []
+        self.all_vba = []
+
         path = request.download()
         filename = os.path.basename(path)
         file_contents = request.get()
@@ -134,6 +142,7 @@ class Oletools(ServiceBase):
             self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
+            self.create_macro_sections(request.sha256)
         except Exception as e:
             self.log.error("We have encountered a critical error: {}".format(e))
 
@@ -143,6 +152,9 @@ class Oletools(ServiceBase):
 
         if score_check == 0:
             request.result = Result()
+
+        self.all_macros = None
+        self.all_vba = None
 
     def check_for_indicators(self, filename):
         # noinspection PyBroadException
@@ -251,7 +263,7 @@ class Oletools(ServiceBase):
     # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
     # are common in malicious macros.
     def flag_macro(self, macro_text):
-        if len(macro_text) > self.macro_score_max_size:
+        if self.macro_score_max_size is not None and len(macro_text) > self.macro_score_max_size:
             return False
 
         macro_text = macro_text.lower()
@@ -282,6 +294,52 @@ class Oletools(ServiceBase):
 
         return (score / word_count) < self.macro_score_min_alert
 
+    def create_macro_sections(self, request_hash):
+        # noinspection PyBroadException
+        try:
+            filtered_macros = []
+            if len(self.all_macros) > 0:
+                # noinspection PyBroadException
+                try:
+                    # first sort all analyzed macros by their relative score, highest first
+                    self.all_macros.sort(key=attrgetter('macro_score'), reverse=True)
+
+                    # then only keep, theoretically, the most interesting ones
+                    filtered_macros = self.all_macros[0:min(len(self.all_macros), self.MAX_MACRO_SECTIONS)]
+                except:
+                    self.log.debug("Sort and filtering of macro scores failed, "
+                                   "reverting to full list of extracted macros")
+                    filtered_macros = self.all_macros
+            else:
+                self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
+
+            for macro in filtered_macros:
+                if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
+                    self.ole_result.add_section(macro.macro_section)
+
+            # Create extracted file for all VBA script.
+            if len(self.all_vba) > 0:
+                vba_file_path = ""
+                all_vba = "\n".join(self.all_vba)
+                vba_all_sha256 = hashlib.sha256(all_vba).hexdigest()
+                if vba_all_sha256 == request_hash:
+                    return
+
+                try:
+                    vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
+                    with open(vba_file_path, 'w') as fh:
+                        fh.write(all_vba)
+
+                    self.request.add_extracted(vba_file_path, "vba_code",
+                                               "all_vba_%s.vba" % vba_all_sha256[:7])
+                except Exception as e:
+                    self.log.error("Error while adding extracted"
+                                   " macro: {}: {}".format(vba_file_path, str(e)))
+        except Exception as e:
+            self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed: {}".format(e))
+            section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
+            self.ole_result.add_section(section)
+
     def check_for_macros(self, filename, file_contents, request_hash):
         # noinspection PyBroadException
         try:
@@ -293,8 +351,6 @@ class Oletools(ServiceBase):
                                             "Contains VBA Macro(s)",
                                             weight=TAG_WEIGHT.LOW,
                                             usage=TAG_USAGE.IDENTIFICATION)
-                    allmacros = []
-                    all_vba = []
 
                     try:
                         for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
@@ -304,54 +360,15 @@ class Oletools(ServiceBase):
                             if vba_code_sha256 == request_hash:
                                 continue
 
-                            all_vba.append(vba_code)
+                            self.all_vba.append(vba_code)
                             macro_section = self.macro_section_builder(vba_code)
                             toplevel_score = self.calculate_nested_scores(macro_section)
 
-                            allmacros.append(Macro(vba_code, vba_code_sha256, macro_section, toplevel_score))
+                            self.all_macros.append(Macro(vba_code, vba_code_sha256, macro_section, toplevel_score))
                     except Exception as e:
                         self.log.debug("OleVBA VBA_Parser.extract_macros failed: {}".format(str(e)))
                         section = ResultSection(SCORE.NULL, "OleVBA : Error extracting macros")
                         self.ole_result.add_section(section)
-
-                    filtered_macros = []
-                    if len(allmacros) > 0:
-                        # noinspection PyBroadException
-                        try:
-                            # first sort all analyzed macros by their relative score, highest first
-                            allmacros.sort(key=attrgetter('macro_score'), reverse=True)
-
-                            # then only keep, theoretically, the most interesting ones
-                            filtered_macros = allmacros[0:min(len(allmacros), self.MAX_MACRO_SECTIONS)]
-                        except:
-                            self.log.debug("Sort and filtering of macro scores failed, "
-                                           "reverting to full list of extracted macros")
-                            filtered_macros = allmacros
-                    else:
-                        self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
-
-                    for macro in filtered_macros:
-                        if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
-                            self.ole_result.add_section(macro.macro_section)
-
-                    # Create extracted file for all VBA script.
-                    if len(all_vba) > 0:
-                        vba_file_path = ""
-                        all_vba = "\n".join(all_vba)
-                        vba_all_sha256 = hashlib.sha256(all_vba).hexdigest()
-                        if vba_all_sha256 == request_hash:
-                            return
-
-                        try:
-                            vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
-                            with open(vba_file_path, 'w') as fh:
-                                fh.write(all_vba)
-
-                            self.request.add_extracted(vba_file_path, "vba_code",
-                                                       "all_vba_%s.vba" % vba_all_sha256[:7])
-                        except Exception as e:
-                            self.log.error("Error while adding extracted"
-                                           " macro: {}: {}".format(vba_file_path, str(e)))
 
             except Exception as e:
                 self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed: {}".format(e))
@@ -620,6 +637,26 @@ class Oletools(ServiceBase):
             )
             streams_section.add_line(stream_desc)
             self.request.add_extracted(ole10_stream_file, "Embedded OLE Stream", stream_name)
+
+            # handle embedded native macros
+            if ole10native.label.endswith(".vbs") or \
+                    ole10native.command.endswith(".vbs") or \
+                    ole10native.filename.endswith(".vbs"):
+
+                self.ole_result.add_tag(TAG_TYPE.TECHNIQUE_MACROS,
+                                        "Contains Embedded VBA Macro(s)",
+                                        weight=TAG_WEIGHT.LOW,
+                                        usage=TAG_USAGE.IDENTIFICATION)
+
+                self.all_vba.append(ole10native.native_data)
+                macro_section = self.macro_section_builder(ole10native.native_data)
+                toplevel_score = self.calculate_nested_scores(macro_section)
+
+                self.all_macros.append(Macro(ole10native.native_data,
+                                             hashlib.sha256(ole10native.native_data).hexdigest(),
+                                             macro_section,
+                                             toplevel_score))
+
             return True
         except Exception as e:
             self.log.debug("Failed to parse Ole10Native stream: {}".format(e))
