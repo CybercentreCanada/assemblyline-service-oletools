@@ -46,6 +46,11 @@ class Oletools(ServiceBase):
                                        /Attached template specified in xml relationships. This can be used
                                        for malicious purposes.
                                        """))
+    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office/ole",
+                                dedent("""\
+                                       /File contains both old OLE format and new ODF format. This can be
+                                        used to obfuscate malicious content.
+                                       """))
 
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
@@ -762,8 +767,11 @@ class Oletools(ServiceBase):
             ole2s = {}
             ole_filenames = set()
 
+            is_zip = False
+            is_ole = False
             # Get the OLEs
             if zipfile.is_zipfile(file_name):
+                is_zip = True
                 z = zipfile.ZipFile(file_name)
                 for f in z.namelist():
                     bin_data = z.open(f).read()
@@ -778,14 +786,19 @@ class Oletools(ServiceBase):
                         ole2s[f] = olefile2.OleFileIO(bin_fname)
                         ole_filenames.add(f)
                 z.close()
-            else:
-                if olefile.isOleFile(file_name):
-                    oles[file_name] = olefile.OleFileIO(file_name)
-                    ole_filenames.add(file_name)
 
-                if olefile2.isOleFile(file_name):
-                    ole2s[file_name] = olefile2.OleFileIO(file_name)
-                    ole_filenames.add(file_name)
+            if olefile.isOleFile(file_name):
+                is_ole = True
+                oles[file_name] = olefile.OleFileIO(file_name)
+                ole_filenames.add(file_name)
+
+            elif olefile2.isOleFile(file_name):
+                is_ole = True
+                ole2s[file_name] = olefile2.OleFileIO(file_name)
+                ole_filenames.add(file_name)
+
+            if is_zip and is_ole:
+                streams_res.report_heuristics(Oletools.AL_Oletools_002)
 
             decompressed_macros = False
             for ole_filename in ole_filenames:
