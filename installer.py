@@ -9,7 +9,7 @@ def install(alsi):
     local_path = os.path.join('/tmp', ole_tgz)
     remote_path = 'oletools/' + ole_tgz
     alsi.fetch_package(remote_path, local_path)
-    alsi.runcmd('sudo pip install ' + local_path, piped_stdio=False)
+    alsi.runcmd('sudo -H pip install ' + local_path, piped_stdio=False)
     alsi.milestone('Completed Oletools install.')
 
 if __name__ == '__main__':
