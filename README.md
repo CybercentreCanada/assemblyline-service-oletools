@@ -17,4 +17,4 @@ The Oletools service will report the following information for each file when pr
 2. Embedded document streams
     * Name.
 
-Contents extraction for both VBA script in macros and embedded streams is performed by the service.
+Extraction for both VBA scripts in macros and embedded streams is performed by the service.
