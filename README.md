@@ -3,7 +3,7 @@
 This Assemblyline service extracts metadata and network information, and reports anomalies in Microsoft OLE and 
 XML documents using the Python library py-oletools
 
-**NOTE**: This service does not require you to buy any licence and is preinstalled and working after a default installation
+**NOTE**: This service does not require you to buy a licence and is preinstalled and working after a default installation
 
 ## Execution
 
@@ -17,4 +17,4 @@ The Oletools service will report the following information for each file when pr
 2. Embedded document streams
     * Name.
 
-Contents extraction for both VBA script in macros and embedded streams is performed by the service.
+Extraction for both VBA scripts in macros and embedded streams is performed by the service.
