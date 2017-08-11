@@ -379,7 +379,6 @@ class Oletools(ServiceBase):
 
                 b64index = 0
                 for b64k, b64l in b64results.iteritems():
-                    print b64l
                     xml_b64_res.score = 10
                     b64index += 1
                     sub_b64_res = (ResultSection(SCORE.NULL, title_text="Result {0} in file {1}"
