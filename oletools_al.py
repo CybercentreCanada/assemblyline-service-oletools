@@ -307,7 +307,10 @@ class Oletools(ServiceBase):
                                     if " http://schemas.openxmlformats.org" not in asc_asc \
                                             and "schemas.microsoft.com" not in asc_asc \
                                             and "www.w3.org" not in asc_asc \
-                                            and "http://purl.org" not in asc_asc:
+                                            and "http://purl.org" not in asc_asc \
+                                            and ("stdole2.tlb" not in asc_asc and "vbaProject.bin" in f) \
+                                            and ("VBE7.DLL" not in asc_asc and "vbaProject.bin" in f) \
+                                            and ("MSO.DLL" not in asc_asc and "vbaProject.bin" in f):
                                         xml_ioc_res.add_line("Found %s string: %s in file %s}"
                                                              % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
                                         xml_ioc_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
@@ -317,7 +320,10 @@ class Oletools(ServiceBase):
                                         if "schemas.openxmlformats.org" not in v \
                                                 and "schemas.microsoft.com" not in v \
                                                 and "www.w3.org" not in v \
-                                                and "http://purl.org" not in v:
+                                                and "http://purl.org" not in v \
+                                                and ("stdole2.tlb" not in v and "vbaProject.bin" in f) \
+                                                and ("VBE7.DLL" not in v and "vbaProject.bin" in f) \
+                                                and ("MSO.DLL" not in v and "vbaProject.bin" in f):
                                             xml_ioc_res.add_line("Found %s string: %s in file %s"
                                                                  % (TAG_TYPE[ty].replace("_", " "), v, f))
                                             xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
