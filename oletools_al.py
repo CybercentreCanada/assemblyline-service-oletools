@@ -277,7 +277,7 @@ class Oletools(ServiceBase):
 
     def check_xml_strings(self, path):
         xml_target_res = ResultSection(score=SCORE.NULL,
-                                       title_text="Attached Template Targets in XML")
+                                       title_text="Attached External Template Targets in XML")
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
         try:
@@ -285,7 +285,7 @@ class Oletools(ServiceBase):
             uris = []
             zip_uris = []
             b64results = {}
-            b64_extracted = []
+            b64_extracted = set()
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
@@ -329,14 +329,14 @@ class Oletools(ServiceBase):
                                             xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
 
                     # Base64
-                    b64_matches = []
+                    b64_matches = set()
                     for b64_tuple in re.findall('(([\x20]{0,2}[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
                                                 data):
                         b64 = b64_tuple[0].replace('\n', '').replace('\r', '').replace(' ', '')
                         uniq_char = ''.join(set(b64))
                         if len(uniq_char) > 6:
                             if len(b64) >= 16 and len(b64) % 4 == 0:
-                                b64_matches.append(b64)
+                                b64_matches.add(b64)
                         """
                         Using some selected code from 'base64dump.py' by Didier Stevens@https://DidierStevens.com
                         """
@@ -370,7 +370,7 @@ class Oletools(ServiceBase):
                                                                           "See extracted files.]" .format(f), "", ""]
 
                                                 b64_extract = True
-                                                b64_extracted.append(sha256hash)
+                                                b64_extracted.add(sha256hash)
                                                 break
                                 if not b64_extract:
                                     if all(ord(c) < 128 for c in base64data):
