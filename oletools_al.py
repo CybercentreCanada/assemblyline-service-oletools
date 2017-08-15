@@ -300,7 +300,6 @@ class Oletools(ServiceBase):
                     if patterns:
                         st_value = patterns.ioc_match(data, bogon_ip=True)
                         if len(st_value) > 0:
-                            xml_ioc_res.score = 10
                             for ty, val in st_value.iteritems():
                                 if val == "":
                                     asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
@@ -311,6 +310,7 @@ class Oletools(ServiceBase):
                                             and ("stdole2.tlb" not in asc_asc and "vbaProject.bin" in f) \
                                             and ("VBE7.DLL" not in asc_asc and "vbaProject.bin" in f) \
                                             and ("MSO.DLL" not in asc_asc and "vbaProject.bin" in f):
+                                        xml_ioc_res.score += 1
                                         xml_ioc_res.add_line("Found %s string: %s in file %s}"
                                                              % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
                                         xml_ioc_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
@@ -385,7 +385,7 @@ class Oletools(ServiceBase):
 
                 b64index = 0
                 for b64k, b64l in b64results.iteritems():
-                    xml_b64_res.score = 10
+                    xml_b64_res.score = 100
                     b64index += 1
                     sub_b64_res = (ResultSection(SCORE.NULL, title_text="Result {0} in file {1}"
                                                  .format(b64index, f), parent=xml_b64_res))
@@ -398,9 +398,9 @@ class Oletools(ServiceBase):
                     subb_b64_res.add_line('{}'.format(b64l[2]))
                     if b64l[3] != "":
                         if patterns:
-                            st_value = patterns.ioc_match(data, bogon_ip=True)
+                            st_value = patterns.ioc_match(b64l[3], bogon_ip=True)
                             if len(st_value) > 0:
-                                xml_ioc_res.score = 1
+                                xml_b64_res.score += 1
                                 for ty, val in st_value.iteritems():
                                     if val == "":
                                         asc_asc = unicodedata.normalize('NFKC', val).encode\
