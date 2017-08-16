@@ -276,8 +276,7 @@ class Oletools(ServiceBase):
         return scorable
 
     def check_xml_strings(self, path):
-        xml_target_res = ResultSection(score=SCORE.NULL,
-                                       title_text="Attached External Template Targets in XML")
+        xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
         try:
@@ -303,7 +302,7 @@ class Oletools(ServiceBase):
                             for ty, val in st_value.iteritems():
                                 if val == "":
                                     asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                                    if " http://schemas.openxmlformats.org" not in asc_asc \
+                                    if "schemas.openxmlformats.org" not in asc_asc \
                                             and "schemas.microsoft.com" not in asc_asc \
                                             and "www.w3.org" not in asc_asc \
                                             and "http://purl.org" not in asc_asc \
@@ -324,8 +323,8 @@ class Oletools(ServiceBase):
                                                 and ("stdole2.tlb" not in v and "vbaProject.bin" in f) \
                                                 and ("VBE7.DLL" not in v and "vbaProject.bin" in f) \
                                                 and ("MSO.DLL" not in v and "vbaProject.bin" in f):
-                                            xml_ioc_res.add_line("Found %s string: %s in file %s"
-                                                                 % (TAG_TYPE[ty].replace("_", " "), v, f))
+                                            xml_ioc_res.score += 1
+                                            xml_ioc_res.add_line("Found %s string: %s in file %s" % (TAG_TYPE[ty].replace("_", " "), v, f))
                                             xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
 
                     # Base64
