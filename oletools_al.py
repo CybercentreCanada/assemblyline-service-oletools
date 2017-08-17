@@ -371,7 +371,7 @@ class Oletools(ServiceBase):
                                                 b64_extract = True
                                                 b64_extracted.add(sha256hash)
                                                 break
-                                if not b64_extract:
+                                if not b64_extract and len(base64data) > 30:
                                     if all(ord(c) < 128 for c in base64data):
                                         asc_b64 = self.ascii_dump(base64data)
                                         # If data has less then 7 uniq chars then ignore
