@@ -286,16 +286,16 @@ class Oletools(ServiceBase):
             b64results = {}
             b64_extracted = set()
             if zipfile.is_zipfile(path):
+                try:
+                    patterns = PatternMatch()
+                except:
+                    patterns = None
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
                     data = z.open(f).read()
                     zip_uris.extend(template_re.findall(data))
                     # Use FrankenStrings modules to find other strings of interest
                     # Plain IOCs
-                    try:
-                        patterns = PatternMatch()
-                    except:
-                        patterns = None
                     if patterns:
                         st_value = patterns.ioc_match(data, bogon_ip=True)
                         if len(st_value) > 0:
@@ -306,9 +306,9 @@ class Oletools(ServiceBase):
                                             and "schemas.microsoft.com" not in asc_asc \
                                             and "www.w3.org" not in asc_asc \
                                             and "http://purl.org" not in asc_asc \
-                                            and ("stdole2.tlb" not in asc_asc and "vbaProject.bin" in f) \
-                                            and ("VBE7.DLL" not in asc_asc and "vbaProject.bin" in f) \
-                                            and ("MSO.DLL" not in asc_asc and "vbaProject.bin" in f):
+                                            and not asc_asc.endwsith("stdole2.tlb") \
+                                            and not asc_asc.endswith("VBE7.DLL") \
+                                            and not asc_asc.endswith("MSO.DLL"):
                                         xml_ioc_res.score += 1
                                         xml_ioc_res.add_line("Found %s string: %s in file %s}"
                                                              % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
@@ -320,11 +320,12 @@ class Oletools(ServiceBase):
                                                 and "schemas.microsoft.com" not in v \
                                                 and "www.w3.org" not in v \
                                                 and "http://purl.org" not in v \
-                                                and ("stdole2.tlb" not in v and "vbaProject.bin" in f) \
-                                                and ("VBE7.DLL" not in v and "vbaProject.bin" in f) \
-                                                and ("MSO.DLL" not in v and "vbaProject.bin" in f):
+                                                and not v.endwsith("stdole2.tlb") \
+                                                and not v.endswith("VBE7.DLL") \
+                                                and not v.endswith("MSO.DLL"):
                                             xml_ioc_res.score += 1
-                                            xml_ioc_res.add_line("Found %s string: %s in file %s" % (TAG_TYPE[ty].replace("_", " "), v, f))
+                                            xml_ioc_res.add_line("Found %s string: %s in file %s"
+                                                                 % (TAG_TYPE[ty].replace("_", " "), v, f))
                                             xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
 
                     # Base64
@@ -371,7 +372,7 @@ class Oletools(ServiceBase):
                                                 b64_extract = True
                                                 b64_extracted.add(sha256hash)
                                                 break
-                                if not b64_extract:
+                                if not b64_extract and len(base64data) > 30:
                                     if all(ord(c) < 128 for c in base64data):
                                         asc_b64 = self.ascii_dump(base64data)
                                         # If data has less then 7 uniq chars then ignore
