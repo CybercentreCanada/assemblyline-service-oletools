@@ -760,12 +760,10 @@ class Oletools(ServiceBase):
 
     # noinspection PyBroadException
     def extract_streams(self, file_name, file_contents):
+        oles = {}
         try:
             streams_res = ResultSection(score=SCORE.INFO,
                                         title_text="Embedded document stream(s)")
-            oles = {}
-            ole2s = {}
-            ole_filenames = set()
 
             is_zip = False
             is_ole = False
@@ -774,6 +772,8 @@ class Oletools(ServiceBase):
                 is_zip = True
                 z = zipfile.ZipFile(file_name)
                 for f in z.namelist():
+                    if f in oles:
+                        continue
                     bin_data = z.open(f).read()
                     bin_fname = os.path.join(self.working_directory,
                                              "{}.tmp".format(hashlib.sha256(bin_data).hexdigest()))
@@ -781,36 +781,27 @@ class Oletools(ServiceBase):
                         bin_fh.write(bin_data)
                     if olefile.isOleFile(bin_fname):
                         oles[f] = olefile.OleFileIO(bin_fname)
-                        ole_filenames.add(f)
-                    if olefile2.isOleFile(bin_fname):
-                        ole2s[f] = olefile2.OleFileIO(bin_fname)
-                        ole_filenames.add(f)
+                    elif olefile2.isOleFile(bin_fname):
+                        oles[f] = olefile2.OleFileIO(bin_fname)
                 z.close()
 
             if olefile.isOleFile(file_name):
                 is_ole = True
                 oles[file_name] = olefile.OleFileIO(file_name)
-                ole_filenames.add(file_name)
 
             elif olefile2.isOleFile(file_name):
                 is_ole = True
-                ole2s[file_name] = olefile2.OleFileIO(file_name)
-                ole_filenames.add(file_name)
+                oles[file_name] = olefile2.OleFileIO(file_name)
 
             if is_zip and is_ole:
                 streams_res.report_heuristics(Oletools.AL_Oletools_002)
 
             decompressed_macros = False
-            for ole_filename in ole_filenames:
+            for ole_filename in oles.iterkeys():
                 try:
                     decompressed_macros |= self.process_ole_stream(oles[ole_filename], streams_res)
                 except Exception:
-                    if ole_filename not in ole2s:
-                        continue
-                    try:
-                        decompressed_macros |= self.process_ole_stream(ole2s[ole_filename], streams_res)
-                    except:
-                        continue
+                    continue
 
             if decompressed_macros:
                 streams_res.score = SCORE.HIGH
@@ -826,5 +817,13 @@ class Oletools(ServiceBase):
 
             if len(streams_res.body) > 0:
                 self.ole_result.add_section(streams_res)
+
         except Exception:
             self.log.debug("Error extracting streams: {}".format(traceback.format_exc(limit=2)))
+
+        finally:
+            for fd in oles.itervalues():
+                try:
+                    fd.close()
+                except:
+                    pass
