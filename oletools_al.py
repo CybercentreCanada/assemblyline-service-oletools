@@ -17,6 +17,8 @@ import zlib
 import email
 import json
 import gzip
+import unicodedata
+import binascii
 
 VBA_Parser = None
 VBA_Scanner = None
@@ -94,6 +96,11 @@ class Oletools(ServiceBase):
 
         self.all_macros = None
         self.all_vba = None
+        self.filetypes = ['application',
+                          'exec',
+                          'image',
+                          'text',
+                          ]
 
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
@@ -101,8 +108,15 @@ class Oletools(ServiceBase):
         from oletools.oleid import OleID, Indicator
         from oletools.thirdparty.olefile import olefile, olefile2
         from oletools.rtfobj import rtf_iter_objects
+        import magic
+        try:
+            from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
+            global PatternMatch
+        except ImportError:
+            pass
         global VBA_Parser, VBA_Scanner
         global OleID, Indicator, olefile, olefile2, rtf_iter_objects
+        global magic
 
     def start(self):
         self.log.debug("Service started")
@@ -127,6 +141,33 @@ class Oletools(ServiceBase):
 
     def get_tool_version(self):
         return self.SERVICE_VERSION
+
+    # CIC: Call If Callable
+    @staticmethod
+    def cic(expression):
+        """
+        From 'base64dump.py' by Didier Stevens@https://DidierStevens.com
+        """
+        if callable(expression):
+            return expression()
+        else:
+            return expression
+
+    # IFF: IF Function
+    @classmethod
+    def iff(cls, expression, value_true, value_false):
+        """
+        From 'base64dump.py' by Didier Stevens@https://DidierStevens.com
+        """
+        if expression:
+            return cls.cic(value_true)
+        else:
+            return cls.cic(value_false)
+
+    # Ascii Dump
+    @classmethod
+    def ascii_dump(cls, data):
+        return ''.join([cls.iff(ord(b) >= 32, b, '.') for b in data])
 
     def execute(self, request):
         self.task = request.task
@@ -235,17 +276,140 @@ class Oletools(ServiceBase):
         return scorable
 
     def check_xml_strings(self, path):
-        xml_string_res = ResultSection(score=SCORE.NULL,
-                                       title_text="Attached Template Targets in XML")
+        xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
+        xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
+        xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
         try:
             template_re = re.compile(r'/attachedTemplate"\s+[Tt]arget="((?!file)[^"]+)"\s+[Tt]argetMode="External"')
             uris = []
             zip_uris = []
+            b64results = {}
+            b64_extracted = set()
             if zipfile.is_zipfile(path):
+                try:
+                    patterns = PatternMatch()
+                except:
+                    patterns = None
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
                     data = z.open(f).read()
                     zip_uris.extend(template_re.findall(data))
+                    # Use FrankenStrings modules to find other strings of interest
+                    # Plain IOCs
+                    if patterns:
+                        st_value = patterns.ioc_match(data, bogon_ip=True)
+                        if len(st_value) > 0:
+                            for ty, val in st_value.iteritems():
+                                if val == "":
+                                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
+                                    if "schemas.openxmlformats.org" not in asc_asc \
+                                            and "schemas.microsoft.com" not in asc_asc \
+                                            and "www.w3.org" not in asc_asc \
+                                            and "http://purl.org" not in asc_asc \
+                                            and not asc_asc.endwsith("stdole2.tlb") \
+                                            and not asc_asc.endswith("VBE7.DLL") \
+                                            and not asc_asc.endswith("MSO.DLL"):
+                                        xml_ioc_res.score += 1
+                                        xml_ioc_res.add_line("Found %s string: %s in file %s}"
+                                                             % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
+                                        xml_ioc_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
+                                else:
+                                    ulis = list(set(val))
+                                    for v in ulis:
+                                        if "schemas.openxmlformats.org" not in v \
+                                                and "schemas.microsoft.com" not in v \
+                                                and "www.w3.org" not in v \
+                                                and "http://purl.org" not in v \
+                                                and not v.endwsith("stdole2.tlb") \
+                                                and not v.endswith("VBE7.DLL") \
+                                                and not v.endswith("MSO.DLL"):
+                                            xml_ioc_res.score += 1
+                                            xml_ioc_res.add_line("Found %s string: %s in file %s"
+                                                                 % (TAG_TYPE[ty].replace("_", " "), v, f))
+                                            xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
+
+                    # Base64
+                    b64_matches = set()
+                    for b64_tuple in re.findall('(([\x20]{0,2}[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
+                                                data):
+                        b64 = b64_tuple[0].replace('\n', '').replace('\r', '').replace(' ', '')
+                        uniq_char = ''.join(set(b64))
+                        if len(uniq_char) > 6:
+                            if len(b64) >= 16 and len(b64) % 4 == 0:
+                                b64_matches.add(b64)
+                        """
+                        Using some selected code from 'base64dump.py' by Didier Stevens@https://DidierStevens.com
+                        """
+                        for b64_string in b64_matches:
+                            try:
+                                b64_extract = False
+                                base64data = binascii.a2b_base64(b64_string)
+                                sha256hash = hashlib.sha256(base64data).hexdigest()
+                                if sha256hash in b64_extracted:
+                                    continue
+                                # Search for embedded files of interest
+                                if 500 < len(base64data) < 8000000:
+                                    m = magic.Magic(mime=True)
+                                    ftype = m.from_buffer(base64data)
+                                    if 'octet-stream' not in ftype:
+                                        for ft in self.filetypes:
+                                            if ft in ftype:
+                                                b64_file_path = os.path.join(self.working_directory,
+                                                                             "{}_b64_decoded"
+                                                                             .format(sha256hash[0:10]))
+                                                self.request.add_extracted(b64_file_path,
+                                                                           "Extracted b64 file during "
+                                                                           "OLETools analysis.")
+                                                with open(b64_file_path, 'wb') as b64_file:
+                                                    b64_file.write(base64data)
+                                                    self.log.debug("Submitted dropped file for analysis: {}"
+                                                                   .format(b64_file_path))
+
+                                                b64results[sha256hash] = [len(b64_string), b64_string[0:50],
+                                                                          "[Possible base64 file contents in {}. "
+                                                                          "See extracted files.]" .format(f), "", ""]
+
+                                                b64_extract = True
+                                                b64_extracted.add(sha256hash)
+                                                break
+                                if not b64_extract and len(base64data) > 30:
+                                    if all(ord(c) < 128 for c in base64data):
+                                        asc_b64 = self.ascii_dump(base64data)
+                                        # If data has less then 7 uniq chars then ignore
+                                        uniq_char = ''.join(set(asc_b64))
+                                        if len(uniq_char) > 6:
+                                            b64results[sha256hash] = [len(b64_string), b64_string[0:50], asc_b64,
+                                                                      base64data, "{}" .format(f)]
+                            except:
+                                pass
+
+                b64index = 0
+                for b64k, b64l in b64results.iteritems():
+                    xml_b64_res.score = 100
+                    b64index += 1
+                    sub_b64_res = (ResultSection(SCORE.NULL, title_text="Result {0} in file {1}"
+                                                 .format(b64index, f), parent=xml_b64_res))
+                    sub_b64_res.add_line('BASE64 TEXT SIZE: {}'.format(b64l[0]))
+                    sub_b64_res.add_line('BASE64 SAMPLE TEXT: {}[........]'.format(b64l[1]))
+                    sub_b64_res.add_line('DECODED SHA256: {}'.format(b64k))
+                    subb_b64_res = (ResultSection(SCORE.NULL, title_text="DECODED ASCII DUMP:",
+                                                  body_format=TEXT_FORMAT.MEMORY_DUMP,
+                                                  parent=sub_b64_res))
+                    subb_b64_res.add_line('{}'.format(b64l[2]))
+                    if b64l[3] != "":
+                        if patterns:
+                            st_value = patterns.ioc_match(b64l[3], bogon_ip=True)
+                            if len(st_value) > 0:
+                                xml_b64_res.score += 1
+                                for ty, val in st_value.iteritems():
+                                    if val == "":
+                                        asc_asc = unicodedata.normalize('NFKC', val).encode\
+                                            ('ascii', 'ignore')
+                                        xml_b64_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
+                                    else:
+                                        ulis = list(set(val))
+                                        for v in ulis:
+                                            xml_b64_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
                 z.close()
                 for uri in zip_uris:
                     if self.parse_uri(uri):
@@ -254,15 +418,19 @@ class Oletools(ServiceBase):
                 uris = list(set(uris))
                 # If there are domains or IPs, report them
                 if uris:
-                    xml_string_res.score = 500
-                    xml_string_res.add_lines(uris)
-                    xml_string_res.report_heuristics(Oletools.AL_Oletools_001)
+                    xml_target_res.score = 500
+                    xml_target_res.add_lines(uris)
+                    xml_target_res.report_heuristics(Oletools.AL_Oletools_001)
 
         except Exception as e:
             self.log.debug("Failed to analyze XML: {}".format(e))
 
-        if xml_string_res.score > 0:
-            self.ole_result.add_section(xml_string_res)
+        if xml_target_res.score > 0:
+            self.ole_result.add_section(xml_target_res)
+        if xml_ioc_res.score > 0:
+            self.ole_result.add_section(xml_ioc_res)
+        if xml_b64_res.score > 0:
+            self.ole_result.add_section(xml_b64_res)
 
     # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
     # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
