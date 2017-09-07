@@ -306,7 +306,7 @@ class Oletools(ServiceBase):
                                             and "schemas.microsoft.com" not in asc_asc \
                                             and "www.w3.org" not in asc_asc \
                                             and "http://purl.org" not in asc_asc \
-                                            and not asc_asc.endwsith("stdole2.tlb") \
+                                            and not asc_asc.endswith("stdole2.tlb") \
                                             and not asc_asc.endswith("VBE7.DLL") \
                                             and not asc_asc.endswith("MSO.DLL"):
                                         xml_ioc_res.score += 1
@@ -320,7 +320,7 @@ class Oletools(ServiceBase):
                                                 and "schemas.microsoft.com" not in v \
                                                 and "www.w3.org" not in v \
                                                 and "http://purl.org" not in v \
-                                                and not v.endwsith("stdole2.tlb") \
+                                                and not v.endswith("stdole2.tlb") \
                                                 and not v.endswith("VBE7.DLL") \
                                                 and not v.endswith("MSO.DLL"):
                                             xml_ioc_res.score += 1
