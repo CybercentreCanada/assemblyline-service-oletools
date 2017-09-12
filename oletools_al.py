@@ -53,6 +53,10 @@ class Oletools(ServiceBase):
                                        /File contains both old OLE format and new ODF format. This can be
                                         used to obfuscate malicious content.
                                        """))
+    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office/ole",
+                                dedent("""\
+                                       /File contains parts which are massive. Could not scan entire document.
+                                       """))
 
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
@@ -295,6 +299,8 @@ class Oletools(ServiceBase):
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
+                        xml_ioc_res.report_heuristics(Oletools.AL_Oletools_003)
+                        xml_ioc_res.score = min(xml_ioc_res.score, 1)
                     zip_uris.extend(template_re.findall(data))
                     # Use FrankenStrings modules to find other strings of interest
                     # Plain IOCs
