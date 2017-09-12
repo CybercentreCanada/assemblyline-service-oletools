@@ -293,6 +293,8 @@ class Oletools(ServiceBase):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
                     data = z.open(f).read()
+                    if len(data) > 500000:
+                        data = data[:500000]
                     zip_uris.extend(template_re.findall(data))
                     # Use FrankenStrings modules to find other strings of interest
                     # Plain IOCs
