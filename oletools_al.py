@@ -383,12 +383,28 @@ class Oletools(ServiceBase):
                                                 break
                                 if not b64_extract and len(base64data) > 30:
                                     if all(ord(c) < 128 for c in base64data):
-                                        asc_b64 = self.ascii_dump(base64data)
+                                        check_utf16 = base64data.decode('utf-16').encode('ascii', 'ignore')
+                                        if check_utf16 != "":
+                                            asc_b64 = check_utf16
+                                        else:
+                                            asc_b64 = self.ascii_dump(base64data)
                                         # If data has less then 7 uniq chars then ignore
                                         uniq_char = ''.join(set(asc_b64))
                                         if len(uniq_char) > 6:
+                                            if patterns:
+                                                st_value = patterns.ioc_match(asc_b64, bogon_ip=True)
+                                                if len(st_value) > 0:
+                                                    for ty, val in st_value.iteritems():
+                                                        if val == "":
+                                                            asc_asc = unicodedata.normalize('NFKC', val)\
+                                                                .encode('ascii', 'ignore')
+                                                            xml_ioc_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
+                                                        else:
+                                                            ulis = list(set(val))
+                                                            for v in ulis:
+                                                                xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
                                             b64results[sha256hash] = [len(b64_string), b64_string[0:50], asc_b64,
-                                                                      base64data, "{}" .format(f)]
+                                                                          base64data, "{}" .format(f)]
                             except:
                                 pass
 
