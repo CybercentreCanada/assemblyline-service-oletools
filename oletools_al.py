@@ -308,7 +308,7 @@ class Oletools(ServiceBase):
                         pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
                                     "www.w3.org"]
                         pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE7.DLL"]
-                        pat_whitelist = ['Manager', "microsoft.com"]
+                        pat_whitelist = ['Management', 'Manager', "microsoft.com"]
 
                         st_value = patterns.ioc_match(data, bogon_ip=True)
                         if len(st_value) > 0:
