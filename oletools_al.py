@@ -305,18 +305,21 @@ class Oletools(ServiceBase):
                     # Use FrankenStrings modules to find other strings of interest
                     # Plain IOCs
                     if patterns:
+                        pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
+                                    "www.w3.org"]
+                        pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL", "VBE7.DLL"]
+                        pat_whitelist = ['Management', 'Manager', "microsoft.com"]
+
                         st_value = patterns.ioc_match(data, bogon_ip=True)
                         if len(st_value) > 0:
                             for ty, val in st_value.iteritems():
                                 if val == "":
                                     asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                                    if "schemas.openxmlformats.org" not in asc_asc \
-                                            and "schemas.microsoft.com" not in asc_asc \
-                                            and "www.w3.org" not in asc_asc \
-                                            and "http://purl.org" not in asc_asc \
-                                            and not asc_asc.endswith("stdole2.tlb") \
-                                            and not asc_asc.endswith("VBE7.DLL") \
-                                            and not asc_asc.endswith("MSO.DLL"):
+                                    if any(x in asc_asc for x in pat_strs) \
+                                            or asc_asc.endswith(tuple(pat_ends)) \
+                                            or asc_asc in pat_whitelist:
+                                        continue
+                                    else:
                                         xml_ioc_res.score += 1
                                         xml_ioc_res.add_line("Found %s string: %s in file %s}"
                                                              % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
@@ -324,13 +327,11 @@ class Oletools(ServiceBase):
                                 else:
                                     ulis = list(set(val))
                                     for v in ulis:
-                                        if "schemas.openxmlformats.org" not in v \
-                                                and "schemas.microsoft.com" not in v \
-                                                and "www.w3.org" not in v \
-                                                and "http://purl.org" not in v \
-                                                and not v.endswith("stdole2.tlb") \
-                                                and not v.endswith("VBE7.DLL") \
-                                                and not v.endswith("MSO.DLL"):
+                                        if any(x in v for x in pat_strs) \
+                                                or v.endswith(tuple(pat_ends)) \
+                                                or v in pat_whitelist:
+                                            continue
+                                        else:
                                             xml_ioc_res.score += 1
                                             xml_ioc_res.add_line("Found %s string: %s in file %s"
                                                                  % (TAG_TYPE[ty].replace("_", " "), v, f))
@@ -382,12 +383,28 @@ class Oletools(ServiceBase):
                                                 break
                                 if not b64_extract and len(base64data) > 30:
                                     if all(ord(c) < 128 for c in base64data):
-                                        asc_b64 = self.ascii_dump(base64data)
+                                        check_utf16 = base64data.decode('utf-16').encode('ascii', 'ignore')
+                                        if check_utf16 != "":
+                                            asc_b64 = check_utf16
+                                        else:
+                                            asc_b64 = self.ascii_dump(base64data)
                                         # If data has less then 7 uniq chars then ignore
                                         uniq_char = ''.join(set(asc_b64))
                                         if len(uniq_char) > 6:
+                                            if patterns:
+                                                st_value = patterns.ioc_match(asc_b64, bogon_ip=True)
+                                                if len(st_value) > 0:
+                                                    for ty, val in st_value.iteritems():
+                                                        if val == "":
+                                                            asc_asc = unicodedata.normalize('NFKC', val)\
+                                                                .encode('ascii', 'ignore')
+                                                            xml_ioc_res.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
+                                                        else:
+                                                            ulis = list(set(val))
+                                                            for v in ulis:
+                                                                xml_ioc_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
                                             b64results[sha256hash] = [len(b64_string), b64_string[0:50], asc_b64,
-                                                                      base64data, "{}" .format(f)]
+                                                                          base64data, "{}" .format(f)]
                             except:
                                 pass
 
