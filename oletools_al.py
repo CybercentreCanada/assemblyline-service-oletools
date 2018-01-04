@@ -284,7 +284,7 @@ class Oletools(ServiceBase):
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
         try:
-            template_re = re.compile(r'/(attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}[Tt]argetMode="External"', re.DOTALL)
+            template_re = re.compile(r'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}[Tt]argetMode="External"', re.DOTALL)
             uris = []
             zip_uris = []
             b64results = {}
