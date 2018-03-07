@@ -90,7 +90,7 @@ class Oletools(ServiceBase):
             r'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
         )
         self.domain_re = re.compile('^((?:(?:[a-zA-Z0-9\-]+)\.)+[a-zA-Z]{2,5})')
-        self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[^\s]+')
+        self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+')
 
         self.word_chains = None
         self.macro_skip_words = None
