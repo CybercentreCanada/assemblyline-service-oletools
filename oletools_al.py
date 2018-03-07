@@ -769,7 +769,7 @@ class Oletools(ServiceBase):
                         desc_ip = self.ip_re.match(description)
                         puri, duri = self.parse_uri(description)
                         if puri:
-                            subsection.add_line("{}: {}".format(keyword, puri))
+                            subsection.add_line("{}: {}".format(keyword, duri))
                             scored_macro_uri = True
                         elif desc_ip:
                             ip_str = desc_ip.group(1)
