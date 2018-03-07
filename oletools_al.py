@@ -236,13 +236,13 @@ class Oletools(ServiceBase):
     def parse_uri(self, check_uri):
         m = self.uri_re.match(check_uri)
         if m is None:
-            return False
+            return False, ""
         else:
             full_uri = m.group(0)
 
         proto, uri = full_uri.split('://', 1)
         if proto == 'file':
-            return False
+            return False, ""
 
         scorable = False
         if "http://purl.org/" not in full_uri and \
@@ -277,7 +277,7 @@ class Oletools(ServiceBase):
                                         TAG_WEIGHT.HIGH,
                                         usage=TAG_USAGE.CORRELATION)
 
-        return scorable
+        return scorable, m.group(0)
 
     def check_xml_strings(self, path):
         xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
@@ -437,8 +437,9 @@ class Oletools(ServiceBase):
                                             xml_b64_res.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
                 z.close()
                 for uri in zip_uris:
-                    if self.parse_uri(uri):
-                        uris.append(uri)
+                    puri, duri = self.parse_uri(uri)
+                    if puri:
+                        uris.append(duri)
 
                 uris = list(set(uris))
                 # If there are domains or IPs, report them
@@ -765,9 +766,10 @@ class Oletools(ServiceBase):
                         # olevba seems to have swapped the keyword for description during iocs extraction
                         # this holds true until at least version 0.27
 
-                        subsection.add_line("{}: {}".format(keyword, description))
                         desc_ip = self.ip_re.match(description)
-                        if self.parse_uri(description) is True:
+                        puri, duri = self.parse_uri(description)
+                        if puri:
+                            subsection.add_line("{}: {}".format(keyword, puri))
                             scored_macro_uri = True
                         elif desc_ip:
                             ip_str = desc_ip.group(1)
@@ -777,6 +779,8 @@ class Oletools(ServiceBase):
                                                    ip_str,
                                                    TAG_WEIGHT.HIGH,
                                                    usage=TAG_USAGE.CORRELATION)
+                        else:
+                            subsection.add_line("{}: {}".format(keyword, description))
                     score_section.add_section(subsection)
                     if scored_macro_uri and self.scored_macro_uri is False:
                         self.scored_macro_uri = True
