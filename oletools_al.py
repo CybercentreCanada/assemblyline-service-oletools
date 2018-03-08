@@ -285,13 +285,13 @@ class Oletools(ServiceBase):
             b64results = {}
             b64_extracted = set()
             if zipfile.is_zipfile(path):
-                extract_xml = False
                 try:
                     patterns = PatternMatch()
                 except:
                     patterns = None
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
+                    extract_xml = False
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
