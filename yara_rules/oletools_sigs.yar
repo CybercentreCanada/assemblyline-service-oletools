@@ -34,7 +34,7 @@ rule mraptor_oletools {
         $sus_execute = /\b(FollowHyperlink|CreateThread|ShellExecute)\b/
 
     condition:
-        ((2 of ($cs*) or $macros or al_tag contains "vba")) and (any of ($sus*) or ($auto and (any of ($write*) or any of ($execute*))))
+        ((2 of ($cs*) or $macros or al_tag contains "vbs")) and (any of ($sus*) or ($auto and (any of ($write*) or any of ($execute*))))
  }
 
 rule powershell_download {
@@ -99,5 +99,5 @@ rule VBA_external_connections {
         $ex9reg = /http[s]?:\/\//
 
     condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vba") and any of ($ex*)
+        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($ex*)
 }
