@@ -142,34 +142,3 @@ rule VBA_CallByName
     condition:
         ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($s*)
 }
-
-rule VBA_Shell
-{
-    meta:
-        rule_group = "technique"
-        technique = "Run or shell object"
-
-        description = "Run or shell object"
-        id = "CSE_910004"
-        organisation = "CSE"
-        poc = "malware_dev@cse"
-        rule_version = "1"
-        yara_version = "3.6"
-        source = "Didier Stevens (github)"
-
-        al_status = "DEPLOYED"
-        al_score = "500"
-
-    strings:
-        //Detects common VBA strings
-        $cs1 = "CreateObject"  nocase
-        $cs2 = "WScript"  nocase
-        $cs3 = "End Sub" fullword  nocase
-        $cs4 = /Sub Auto[_]?Open/  nocase
-        $macros = "Attribute VB_"
-        //Suspicious strings
-        $s1 = ".Run" nocase
-        $s2 = "Shell" nocase fullword
-    condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($s*)
-}
