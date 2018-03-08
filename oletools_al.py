@@ -338,9 +338,9 @@ class Oletools(ServiceBase):
                     # Base64
                     b64_matches = set()
                     b64_ascii_content = []
-                    for b64_tuple in re.findall('(([\x20]{0,2}[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
+                    for b64_tuple in re.findall('([\x20](?:[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
                                                 data):
-                        b64 = b64_tuple[0].replace('\n', '').replace('\r', '').replace(' ', '')
+                        b64 = b64_tuple.replace('\n', '').replace('\r', '').replace(' ', '')
                         uniq_char = ''.join(set(b64))
                         if len(uniq_char) > 6:
                             if len(b64) >= 16 and len(b64) % 4 == 0:
@@ -452,7 +452,7 @@ class Oletools(ServiceBase):
                             self.log.error("Error while adding extracted"
                                            " b64 content: {}: {}".format(b64_file_path, str(e)))
 
-                    if extract_xml:
+                    if extract_xml and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         xml_file_path = os.path.join(self.working_directory, xml_sha256)
                         try:
