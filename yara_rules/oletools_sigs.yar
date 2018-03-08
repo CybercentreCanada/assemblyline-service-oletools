@@ -101,3 +101,75 @@ rule VBA_external_connections {
     condition:
         ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($ex*)
 }
+
+/*
+  MODIFIED BY CSE
+  Version 0.0.1 2017/03/05
+  Source code put in public domain by Didier Stevens, no Copyright
+  https://DidierStevens.com
+  Use at your own risk
+  These are YARA rules to detect VBA code that might be malware.
+  History:
+    2017/03/05: start
+*/
+
+rule VBA_CallByName
+{
+    meta:
+        rule_group = "technique"
+        technique = "CallbyName Function"
+
+        description = "Executes a method of an object, or sets or returns a property of an object"
+        id = "CSE_910003"
+        organisation = "CSE"
+        poc = "malware_dev@cse"
+        rule_version = "1"
+        yara_version = "3.6"
+        source = "Didier Stevens (github)"
+
+        al_status = "DEPLOYED"
+        al_score = "500"
+
+    strings:
+        //Detects common VBA strings
+        $cs1 = "CreateObject"  nocase
+        $cs2 = "WScript"  nocase
+        $cs3 = "End Sub" fullword  nocase
+        $cs4 = /Sub Auto[_]?Open/  nocase
+        $macros = "Attribute VB_"
+        // Suspicious Function
+        $a = "CallByName" nocase fullword
+    condition:
+        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($*)
+}
+
+rule VBA_Shell
+{
+    meta:
+        rule_group = "technique"
+        technique = "Run Shell object"
+
+        description = "Run shell object"
+        id = "CSE_910004"
+        organisation = "CSE"
+        poc = "malware_dev@cse"
+        rule_version = "1"
+        yara_version = "3.6"
+        source = "Didier Stevens (github)"
+
+        al_status = "DEPLOYED"
+        al_score = "500"
+
+    strings:
+        //Detects common VBA strings
+        $cs1 = "CreateObject"  nocase
+        $cs2 = "WScript"  nocase
+        $cs3 = "End Sub" fullword  nocase
+        $cs4 = /Sub Auto[_]?Open/  nocase
+        $macros = "Attribute VB_"
+        //Suspicious strings
+        $a = ".Run" nocase
+        $b = "Shell" nocase fullword
+    condition:
+        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($*)
+}
