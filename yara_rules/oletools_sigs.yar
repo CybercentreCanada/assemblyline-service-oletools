@@ -138,9 +138,9 @@ rule VBA_CallByName
         $cs4 = /Sub Auto[_]?Open/  nocase
         $macros = "Attribute VB_"
         // Suspicious Function
-        $a = "CallByName" nocase fullword
+        $s = "CallByName" nocase fullword
     condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($*)
+        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($s*)
 }
 
 rule VBA_Shell
@@ -168,8 +168,8 @@ rule VBA_Shell
         $cs4 = /Sub Auto[_]?Open/  nocase
         $macros = "Attribute VB_"
         //Suspicious strings
-        $a = ".Run" nocase
-        $b = "Shell" nocase fullword
+        $s1 = ".Run" nocase
+        $s2 = "Shell" nocase fullword
     condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($*)
+        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($s*)
 }
