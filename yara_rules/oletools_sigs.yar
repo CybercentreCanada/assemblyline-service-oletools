@@ -147,9 +147,9 @@ rule VBA_Shell
 {
     meta:
         rule_group = "technique"
-        technique = "Run Shell object"
+        technique = "Run or shell object"
 
-        description = "Run shell object"
+        description = "Run or shell object"
         id = "CSE_910004"
         organisation = "CSE"
         poc = "malware_dev@cse"
