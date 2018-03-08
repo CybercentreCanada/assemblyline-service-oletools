@@ -338,9 +338,9 @@ class Oletools(ServiceBase):
                     # Base64
                     b64_matches = set()
                     b64_ascii_content = []
-                    for b64_tuple in re.findall('([\x20](?:[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
+                    for b64_match in re.findall('([\x20](?:[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
                                                 data):
-                        b64 = b64_tuple.replace('\n', '').replace('\r', '').replace(' ', '')
+                        b64 = b64_match.replace('\n', '').replace('\r', '').replace(' ', '')
                         uniq_char = ''.join(set(b64))
                         if len(uniq_char) > 6:
                             if len(b64) >= 16 and len(b64) % 4 == 0:
