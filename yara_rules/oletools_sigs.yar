@@ -55,9 +55,11 @@ rule powershell_download {
     strings:
         $pwrsh = "powershell" nocase
         $web1 = "Invoke-WebRequest" nocase
-        $web2 = "System.Net.WebClient" nocase
-        $web3 = "DownloadFile" nocase
-		$web4 = "BitsTransfer" nocase
+        $web2 = "Net.WebClient" nocase
+        $web3 = "Net.WebRequest"
+        $web4 = "DownloadFile" nocase
+        $web5 = "DownloadString"
+		$web6 = "BitsTransfer" nocase
 
     condition:
         $pwrsh and any of ($web*)
