@@ -280,8 +280,8 @@ class Oletools(ServiceBase):
                'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
 
         if ty == 'FILE_NAME':
-            fname, fext = val.rsplit('\.', 1)
-            if not fext in foi:
+            fname, fext = val.rsplit('.', 1)
+            if not fext.upper() in foi:
                 return False
             if fname.startswith("oleObject"):
                 return False
