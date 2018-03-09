@@ -21,4 +21,4 @@ The Oletools service will report the following information for each file when pr
     * FrankenStrings Patterns module results
     * Base64 encoded content
 
-Extraction for both VBA scripts in macros, embedded streams and suspicious is performed by the service.
+Extraction for both VBA scripts in macros, embedded streams and suspicious xml is performed by the service.
