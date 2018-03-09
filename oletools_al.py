@@ -274,16 +274,36 @@ class Oletools(ServiceBase):
 
         return scorable, m.group(0)
 
+    def decide_extract(self, ty, val):
+
+        foi = ['APK', 'APP', 'BAT', 'BIN', 'CLASS', 'CMD', 'DAT', 'DLL', 'EXE', 'JAR', 'JS', 'JSE', 'LNK', 'MSI',
+               'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
+
+        if ty == 'FILE_NAME':
+            fname, fext = val.rsplit('\.', 1)
+            if not fext in foi:
+                return False
+            if fname.startswith("oleObject"):
+                return False
+
+        if ty == 'PESTUDIO_BLACKLIST_STRING':
+            if val == 'http':
+                return False
+
+        return True
+
     def check_xml_strings(self, path):
         xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
         try:
-            template_re = re.compile(r'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}[Tt]argetMode="External"', re.DOTALL)
+            template_re = re.compile(r'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
+                                     r'[Tt]argetMode="External"', re.DOTALL)
             uris = []
             zip_uris = []
             b64results = {}
             b64_extracted = set()
+            xml_extracted = set()
             if zipfile.is_zipfile(path):
                 try:
                     patterns = PatternMatch()
@@ -303,7 +323,8 @@ class Oletools(ServiceBase):
                     if patterns:
                         pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
                                     "www.w3.org"]
-                        pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL", "VBE7.DLL"]
+                        pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
+                                    "VBE7.DLL"]
                         pat_whitelist = ['Management', 'Manager', "microsoft.com"]
 
                         st_value = patterns.ioc_match(data, bogon_ip=True)
@@ -316,7 +337,7 @@ class Oletools(ServiceBase):
                                             or asc_asc in pat_whitelist:
                                         continue
                                     else:
-                                        extract_xml = True
+                                        extract_xml = self.decide_extract(ty, asc_asc)
                                         xml_ioc_res.score += 1
                                         xml_ioc_res.add_line("Found %s string: %s in file %s}"
                                                              % (TAG_TYPE[ty].replace("_", " "), asc_asc, f))
@@ -329,7 +350,7 @@ class Oletools(ServiceBase):
                                                 or v in pat_whitelist:
                                             continue
                                         else:
-                                            extract_xml = True
+                                            extract_xml = self.decide_extract(ty, v)
                                             xml_ioc_res.score += 1
                                             xml_ioc_res.add_line("Found %s string: %s in file %s"
                                                                  % (TAG_TYPE[ty].replace("_", " "), v, f))
@@ -454,16 +475,18 @@ class Oletools(ServiceBase):
 
                     if extract_xml and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
                         xml_sha256 = hashlib.sha256(data).hexdigest()
-                        xml_file_path = os.path.join(self.working_directory, xml_sha256)
-                        try:
-                            with open(xml_file_path, 'wb') as fh:
-                                fh.write(data)
+                        if xml_sha256 not in xml_extracted:
+                            xml_file_path = os.path.join(self.working_directory, xml_sha256)
+                            try:
+                                with open(xml_file_path, 'wb') as fh:
+                                    fh.write(data)
 
-                            self.request.add_extracted(xml_file_path, "xml file {} contents" .format(f),
-                                                       "{}.xml" .format(xml_sha256))
-                        except Exception as e:
-                            self.log.error("Error while adding extracted"
-                                           " xml content: {}: {}".format(xml_file_path, str(e)))
+                                self.request.add_extracted(xml_file_path, "xml file {} contents" .format(f),
+                                                           "{}.xml" .format(xml_sha256))
+                                xml_extracted.add(xml_sha256)
+                            except Exception as e:
+                                self.log.error("Error while adding extracted"
+                                               " xml content: {}: {}".format(xml_file_path, str(e)))
 
                 z.close()
 
