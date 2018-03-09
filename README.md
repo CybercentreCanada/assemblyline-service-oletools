@@ -14,7 +14,11 @@ The Oletools service will report the following information for each file when pr
     * Suspicious strings (AL tak: OLE_MACRO_SUSPICIOUS_STRINGS);
     * Network indicators.
 
-2. Embedded document streams
+2. Embedded document streams:
     * Name.
 
-Extraction for both VBA scripts in macros and embedded streams is performed by the service.
+3. Suspicious XML:
+    * FrankenStrings Patterns module results
+    * Base64 encoded content
+
+Extraction for both VBA scripts in macros, embedded streams and suspicious is performed by the service.
