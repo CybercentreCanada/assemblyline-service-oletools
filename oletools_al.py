@@ -294,8 +294,8 @@ class Oletools(ServiceBase):
 
     def check_xml_strings(self, path):
         xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
-        xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in XML:")
-        xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in XML:")
+        xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs in zipped content:")
+        xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 in zipped content:")
         try:
             template_re = re.compile(r'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      r'[Tt]argetMode="External"', re.DOTALL)
@@ -315,7 +315,6 @@ class Oletools(ServiceBase):
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
-                        xml_ioc_res.report_heuristics(Oletools.AL_Oletools_003)
                         xml_ioc_res.score = min(xml_ioc_res.score, 1)
                     zip_uris.extend(template_re.findall(data))
                     # Use FrankenStrings modules to find other strings of interest
@@ -465,7 +464,7 @@ class Oletools(ServiceBase):
                         try:
                             with open(b64_file_path, 'wb') as fh:
                                 fh.write(all_b64)
-                            self.request.add_extracted(b64_file_path, "b64 for xml file {}" .format(f),
+                            self.request.add_extracted(b64_file_path, "b64 for zipped file {}" .format(f),
                                                        "all_b64_{}.txt" .format(b64_all_sha256[:7]))
                         except Exception as e:
                             self.log.error("Error while adding extracted"
@@ -479,12 +478,12 @@ class Oletools(ServiceBase):
                                 with open(xml_file_path, 'wb') as fh:
                                     fh.write(data)
 
-                                self.request.add_extracted(xml_file_path, "xml file {} contents" .format(f),
-                                                           "{}.xml" .format(xml_sha256))
+                                self.request.add_extracted(xml_file_path, "zipped file {} contents" .format(f),
+                                                           "{}" .format(xml_sha256))
                                 xml_extracted.add(xml_sha256)
                             except Exception as e:
                                 self.log.error("Error while adding extracted"
-                                               " xml content: {}: {}".format(xml_file_path, str(e)))
+                                               " content: {}: {}".format(xml_file_path, str(e)))
 
                 z.close()
 
@@ -498,10 +497,9 @@ class Oletools(ServiceBase):
                 if uris:
                     xml_target_res.score = 500
                     xml_target_res.add_lines(uris)
-                    xml_target_res.report_heuristics(Oletools.AL_Oletools_001)
 
         except Exception as e:
-            self.log.debug("Failed to analyze XML: {}".format(e))
+            self.log.debug("Failed to analyze zipped file: {}".format(e))
 
         if xml_target_res.score > 0:
             self.ole_result.add_section(xml_target_res)
