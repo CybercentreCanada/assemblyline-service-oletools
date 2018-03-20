@@ -3,7 +3,6 @@ from textwrap import dedent
 
 from assemblyline.common.charset import safe_str
 from assemblyline.common.iprange import is_ip_reserved
-from assemblyline.al.common.heuristics import Heuristic
 from assemblyline.al.common.result import Result, ResultSection, SCORE, TAG_TYPE, TAG_WEIGHT, TAG_USAGE, TEXT_FORMAT
 from assemblyline.al.service.base import ServiceBase
 from al_services.alsvc_oletools.stream_parser import Ole10Native, PowerPointDoc
@@ -43,21 +42,6 @@ class Macro(object):
 
 
 class Oletools(ServiceBase):
-    AL_Oletools_001 = Heuristic("AL_Oletools_001", "Attached Document Template", "document/office/ole",
-                                dedent("""\
-                                       /Attached template specified in xml relationships. This can be used
-                                       for malicious purposes.
-                                       """))
-    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office/ole",
-                                dedent("""\
-                                       /File contains both old OLE format and new ODF format. This can be
-                                        used to obfuscate malicious content.
-                                       """))
-    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office/ole",
-                                dedent("""\
-                                       /File contains parts which are massive. Could not scan entire document.
-                                       """))
-
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
@@ -1039,9 +1023,6 @@ class Oletools(ServiceBase):
             elif olefile2.isOleFile(file_name):
                 is_ole = True
                 oles[file_name] = olefile2.OleFileIO(file_name)
-
-            if is_zip and is_ole:
-                streams_res.report_heuristics(Oletools.AL_Oletools_002)
 
             decompressed_macros = False
             for ole_filename in oles.iterkeys():
