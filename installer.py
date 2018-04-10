@@ -5,7 +5,7 @@ import os
 
 def install(alsi):
     alsi.milestone('Starting Oletools install..')
-    ole_tgz = 'oletools-0.45.tar.gz'
+    ole_tgz = 'oletools-0.52.tar.gz'
     local_path = os.path.join('/tmp', ole_tgz)
     remote_path = 'oletools/' + ole_tgz
     alsi.fetch_package(remote_path, local_path)
