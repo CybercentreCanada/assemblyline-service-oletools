@@ -2,8 +2,10 @@
 from textwrap import dedent
 
 from assemblyline.common.charset import safe_str
+from assemblyline.common.exceptions import NonRecoverableError
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.al.common.result import Result, ResultSection, SCORE, TAG_TYPE, TAG_WEIGHT, TAG_USAGE, TEXT_FORMAT
+from assemblyline.al.install import SiteInstaller
 from assemblyline.al.service.base import ServiceBase
 from al_services.alsvc_oletools.stream_parser import Ole10Native, PowerPointDoc
 import os
@@ -66,6 +68,7 @@ class Oletools(ServiceBase):
     def __init__(self, cfg=None):
         super(Oletools, self).__init__(cfg)
         self._oletools_version = ''
+        self.supported_ole_version = "0.52"
         self.request = None
         self.task = None
         self.ole_result = None
@@ -162,6 +165,14 @@ class Oletools(ServiceBase):
         return ''.join([cls.iff(ord(b) >= 32, b, '.') for b in data])
 
     def execute(self, request):
+        # Check version and exit when latest supported version is not installed
+        si = SiteInstaller()
+        if not si.check_version("oletools", self.supported_ole_version):
+            raise NonRecoverableError("Oletools version out of date (requires {}). Reinstall service on worker(s) "
+                                      "with /opt/al/assemblyline/al/install/reinstall_service.py Oletools"
+                                      .format(self.supported_ole_version))
+
+
         self.task = request.task
         request.result = Result()
         self.ole_result = request.result
