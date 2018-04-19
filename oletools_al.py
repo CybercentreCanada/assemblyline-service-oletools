@@ -95,7 +95,7 @@ class Oletools(ServiceBase):
         from oletools.thirdparty import xxxswf
         from oletools.thirdparty.olefile import olefile
         from oletools.rtfobj import rtf_iter_objects
-        from oletools import msodd
+        from oletools import msodde
         from io import BytesIO
         import magic
         try:
