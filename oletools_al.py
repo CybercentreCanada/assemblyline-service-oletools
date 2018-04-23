@@ -4,6 +4,7 @@ from textwrap import dedent
 from assemblyline.common.charset import safe_str
 from assemblyline.common.exceptions import NonRecoverableError
 from assemblyline.common.iprange import is_ip_reserved
+from assemblyline.al.common.heuristics import Heuristic
 from assemblyline.al.common.result import Result, ResultSection, SCORE, TAG_TYPE, TAG_WEIGHT, TAG_USAGE, TEXT_FORMAT
 from assemblyline.al.install import SiteInstaller
 from assemblyline.al.service.base import ServiceBase
@@ -43,6 +44,20 @@ class Macro(object):
 
 
 class Oletools(ServiceBase):
+    # AL_Oletools_001 = Heuristic("AL_Oletools_001", "Attached Document Template", "document/office/ole",
+    #                             dedent("""\
+    #                                    /Attached template specified in xml relationships. This can be used
+    #                                    for malicious purposes.
+    #                                    """))
+    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office/ole",
+                                dedent("""\
+                                       /File contains both old OLE format and new ODF format. This can be
+                                        used to obfuscate malicious content.
+                                       """))
+    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office/ole",
+                                dedent("""\
+                                       /File contains parts which are massive. Could not scan entire document.
+                                       """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
@@ -87,6 +102,7 @@ class Oletools(ServiceBase):
 
         self.all_macros = None
         self.all_vba = None
+        self.heurs = set()
 
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
@@ -197,10 +213,13 @@ class Oletools(ServiceBase):
             self.check_for_macros(filename, file_contents, request.sha256)
             self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
-            self.extract_streams(path, file_contents)
+            self.extract_streams(path)
             self.create_macro_sections(request.sha256)
         except Exception as e:
             self.log.error("We have encountered a critical error: {}".format(e))
+
+        for h in self.heurs:
+            request.result.report_heuristic(h)
 
         score_check = 0
         for section in self.ole_result.sections:
@@ -329,6 +348,7 @@ class Oletools(ServiceBase):
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
+                        self.heurs.add(Oletools.AL_Oletools_003)
                         xml_ioc_res.score = min(xml_ioc_res.score, 1)
                     zip_uris.extend(template_re.findall(data))
                     # Use FrankenStrings modules to find other strings of interest
@@ -551,6 +571,7 @@ class Oletools(ServiceBase):
             return None
 
     def extract_swf_objects(self, f):
+        swf_found = False
         # Taken from oletools.thirdparty.xxpyswf disneyland module
         # def disneyland(f, filename, options):
         retfindSWF = xxxswf.findSWF(f)
@@ -568,6 +589,8 @@ class Oletools(ServiceBase):
             with open(swf_path, 'wb') as fh:
                 fh.write(swf)
             self.request.add_extracted(swf_path, text="Flash file extracted during sample analysis")
+            swf_found = True
+        return swf_found
 
     # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
     # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
@@ -1144,7 +1167,7 @@ class Oletools(ServiceBase):
         return False
 
     # noinspection PyBroadException
-    def extract_streams(self, file_name, file_contents):
+    def extract_streams(self, file_name):
         oles = {}
         try:
             streams_res = ResultSection(score=SCORE.INFO,
@@ -1172,6 +1195,9 @@ class Oletools(ServiceBase):
                 is_ole = True
                 oles[file_name] = olefile.OleFileIO(file_name)
 
+            if is_zip and is_ole:
+                self.heurs.add(Oletools.AL_Oletools_002)
+
             # Find flash objects in OLE
             for ole_filename in oles.iterkeys():
                 for direntry in oles[ole_filename].direntries:
@@ -1180,7 +1206,11 @@ class Oletools(ServiceBase):
                         # check if data contains the SWF magic: FWS or CWS
                         thedata = fio.getvalue()
                         if b'FWS' in thedata or b'CWS' in thedata:
-                            self.extract_swf_objects(fio)
+                            swf_found = self.extract_swf_objects(fio)
+                            if swf_found:
+                                swf_sec = ResultSection(SCORE.LOW,
+                                                        "Flash objects detected in sample, see extracted files")
+                                streams_res.add_section(swf_sec)
 
             decompressed_macros = False
             for ole_filename in oles.iterkeys():
@@ -1203,9 +1233,12 @@ class Oletools(ServiceBase):
                 # Find flash objects in RTF
                 if b'FWS' in rtfobject or b'CWS' in rtfobject:
                     f = BytesIO(rtfobject)
-                    self.extract_swf_objects(f)
+                    swf_found = self.extract_swf_objects(f)
+                    if swf_found:
+                        swf_sec = ResultSection(SCORE.LOW, "Flash objects detected in sample, see extracted files")
+                        streams_res.add_section(swf_sec)
 
-            if len(streams_res.body) > 0:
+            if len(streams_res.body) > 0 or len(streams_res.subsections) > 0:
                 self.ole_result.add_section(streams_res)
 
         except Exception as e:
