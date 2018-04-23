@@ -94,7 +94,7 @@ class Oletools(ServiceBase):
         si = SiteInstaller()
         if not si.check_version("oletools", self.supported_ole_version):
             raise NonRecoverableError("Oletools version out of date (requires {}). Reinstall service on worker(s) "
-                                      "with /opt/al/assemblyline/al/install/reinstall_service.py Oletools"
+                                      "with /opt/al/pkg/assemblyline/al/install/reinstall_service.py Oletools"
                                       .format(self.supported_ole_version))
 
         from oletools.olevba import VBA_Parser, VBA_Scanner
