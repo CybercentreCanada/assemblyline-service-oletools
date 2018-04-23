@@ -90,6 +90,13 @@ class Oletools(ServiceBase):
 
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
+        # Check version and exit when latest supported version is not installed
+        si = SiteInstaller()
+        if not si.check_version("oletools", self.supported_ole_version):
+            raise NonRecoverableError("Oletools version out of date (requires {}). Reinstall service on worker(s) "
+                                      "with /opt/al/assemblyline/al/install/reinstall_service.py Oletools"
+                                      .format(self.supported_ole_version))
+
         from oletools.olevba import VBA_Parser, VBA_Scanner
         from oletools.oleid import OleID, Indicator
         from oletools.thirdparty import xxxswf
@@ -110,6 +117,7 @@ class Oletools(ServiceBase):
         global BytesIO
 
     def start(self):
+
         self.log.debug("Service started")
 
         from oletools.olevba import __version__ as olevba_version
@@ -168,13 +176,6 @@ class Oletools(ServiceBase):
         return ''.join([cls.iff(ord(b) >= 32, b, '.') for b in data])
 
     def execute(self, request):
-        # Check version and exit when latest supported version is not installed
-        si = SiteInstaller()
-        if not si.check_version("oletools", self.supported_ole_version):
-            raise NonRecoverableError("Oletools version out of date (requires {}). Reinstall service on worker(s) "
-                                      "with /opt/al/assemblyline/al/install/reinstall_service.py Oletools"
-                                      .format(self.supported_ole_version))
-
 
         self.task = request.task
         request.result = Result()
