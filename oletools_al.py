@@ -1141,10 +1141,10 @@ class Oletools(ServiceBase):
                     except zlib.error:
                         pass
 
-                streams_section.add_line(safe_str(stream))
                 # Only write all streams with deep scan.
-                stream_name = '{}.ole_stream'.format(hashlib.sha256(data).hexdigest())
                 if self.request.deep_scan:
+                    streams_section.add_line(safe_str(stream))
+                    stream_name = '{}.ole_stream'.format(hashlib.sha256(data).hexdigest())
                     stream_path = os.path.join(self.working_directory, stream_name)
                     with open(stream_path, 'w') as fh:
                         fh.write(data)
@@ -1170,7 +1170,7 @@ class Oletools(ServiceBase):
     def extract_streams(self, file_name):
         oles = {}
         try:
-            streams_res = ResultSection(score=SCORE.INFO,
+            streams_res = ResultSection(score=SCORE.NULL,
                                         title_text="Embedded document stream(s)")
 
             is_zip = False
