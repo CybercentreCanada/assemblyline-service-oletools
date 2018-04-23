@@ -1162,7 +1162,7 @@ class Oletools(ServiceBase):
             if decompressed_macros:
                 streams_res.score = SCORE.HIGH
 
-            for _, offset, rtfobject in rtf_iter_objects(file_contents):
+            for _, offset, rtfobject in rtf_iter_objects(file_name):
                 rtfobject_name = hex(offset) + '.rtfobj'
                 extracted_obj = os.path.join(self.working_directory, rtfobject_name)
                 with open(extracted_obj, 'wb') as fh:
