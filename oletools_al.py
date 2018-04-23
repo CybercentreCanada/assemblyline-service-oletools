@@ -99,12 +99,13 @@ class Oletools(ServiceBase):
 
         from oletools.olevba import VBA_Parser, VBA_Scanner
         from oletools.oleid import OleID, Indicator
-        from oletools.thirdparty import xxxswf
+        from oletools.thirdparty.xxxswf import xxxswf
         from oletools.thirdparty.olefile import olefile
         from oletools.rtfobj import rtf_iter_objects
         from oletools import msodde
         from io import BytesIO
         import magic
+        import struct
         try:
             from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
             global PatternMatch
@@ -114,6 +115,7 @@ class Oletools(ServiceBase):
         global OleID, Indicator, olefile, rtf_iter_objects, xxxswf
         global msodde
         global magic
+        global struct
         global BytesIO
 
     def start(self):
@@ -520,17 +522,45 @@ class Oletools(ServiceBase):
         if xml_b64_res.score > 0:
             self.ole_result.add_section(xml_b64_res)
 
+    @staticmethod
+    def verifySWF(f, x):
+        # Slightly modified code taken from oletools.thirdparty.xxpyswf verifySWF
+        # Start of SWF
+        f.seek(x)
+        # Read Header
+        header = f.read(3)
+        # Read Version
+        version = struct.unpack('<b', f.read(1))[0]
+        # Read SWF Size
+        size = struct.unpack('<i', f.read(4))[0]
+        # Start of SWF
+        f.seek(x)
+        if version > 40 or not isinstance(size, int) or header not in ['CWS', 'FWS']:
+            return None
+        try:
+            if header == 'FWS':
+                swf_data = f.read(size)
+            elif header == 'CWS':
+                f.read(3)
+                swf_data = 'FWS' + f.read(5) + zlib.decompress(f.read())
+            else:
+                #TODO: zws -- requires lzma in python 2.7
+                return None
+            return swf_data
+        except Exception as e:
+            return None
+
     def extract_swf_objects(self, f):
-        # Taken from oletools.thirdpart.xxpyswf disneyland module
+        # Taken from oletools.thirdparty.xxpyswf disneyland module
         # def disneyland(f, filename, options):
-        retfindSWF =  xxxswf.findSWF(f)
+        retfindSWF = xxxswf.findSWF(f)
         f.seek(0)
         # for each SWF in file
         for idx, x in enumerate(retfindSWF):
             f.seek(x)
             h = f.read(1)
             f.seek(x)
-            swf = xxxswf.verifySWF(f, x)
+            swf = self.verifySWF(f, x)
             if swf == None:
                 continue
             swf_md5 = hashlib.sha256(swf).hexdigest()
@@ -1143,14 +1173,14 @@ class Oletools(ServiceBase):
                 oles[file_name] = olefile.OleFileIO(file_name)
 
             # Find flash objects in OLE
-            if is_ole:
-                for direntry in oles[file_name]:
+            for ole_filename in oles.iterkeys():
+                for direntry in oles[ole_filename].direntries:
                     if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
-                        f = oles[file_name]._open(direntry.isectStart, direntry.size)
+                        fio = oles[ole_filename]._open(direntry.isectStart, direntry.size)
                         # check if data contains the SWF magic: FWS or CWS
-                        thedata = f.getvalue()
+                        thedata = fio.getvalue()
                         if b'FWS' in thedata or b'CWS' in thedata:
-                            self.extract_swf_objects(thedata)
+                            self.extract_swf_objects(fio)
 
             decompressed_macros = False
             for ole_filename in oles.iterkeys():
@@ -1178,7 +1208,7 @@ class Oletools(ServiceBase):
             if len(streams_res.body) > 0:
                 self.ole_result.add_section(streams_res)
 
-        except Exception:
+        except Exception as e:
             self.log.debug("Error extracting streams: {}".format(traceback.format_exc(limit=2)))
 
         finally:
