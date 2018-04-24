@@ -93,6 +93,9 @@ class Oletools(ServiceBase):
         )
         self.domain_re = re.compile('^((?:(?:[a-zA-Z0-9\-]+)\.)+[a-zA-Z]{2,5})')
         self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+')
+        self.re_executable_extensions = re.compile(r"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE|VB|JSE|JS"
+                                                   r"|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR|HTA|CPL|CLASS|JAR|PS1XML|PS1"
+                                                   r"|PS2XML|PS2|PSC1|PSC2|SCF|LNK|INF|REG)\b")
 
         self.word_chains = None
         self.macro_skip_words = None
@@ -117,8 +120,8 @@ class Oletools(ServiceBase):
         from oletools.oleid import OleID, Indicator
         from oletools.thirdparty.xxxswf import xxxswf
         from oletools.thirdparty.olefile import olefile
-        from oletools.rtfobj import rtf_iter_objects
-        from oletools import msodde
+        import oletools.rtfobj as rtfparse
+        from oletools import msodde, oleobj
         from io import BytesIO
         import magic
         import struct
@@ -128,8 +131,10 @@ class Oletools(ServiceBase):
         except ImportError:
             pass
         global VBA_Parser, VBA_Scanner
-        global OleID, Indicator, olefile, rtf_iter_objects, xxxswf
-        global msodde
+        global OleID, Indicator
+        global olefile, xxxswf
+        global rtfparse
+        global msodde, oleobj
         global magic
         global struct
         global BytesIO
@@ -213,7 +218,7 @@ class Oletools(ServiceBase):
             self.check_for_macros(filename, file_contents, request.sha256)
             self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
-            self.extract_streams(path)
+            self.extract_streams(path, file_contents)
             self.create_macro_sections(request.sha256)
         except Exception as e:
             self.log.error("We have encountered a critical error: {}".format(e))
@@ -541,6 +546,29 @@ class Oletools(ServiceBase):
             self.ole_result.add_section(xml_ioc_res)
         if xml_b64_res.score > 0:
             self.ole_result.add_section(xml_b64_res)
+
+    @staticmethod
+    def sanitize_filename(filename, replacement='_', max_length=200):
+        """From rtfoby.py"""
+        """compute basename of filename. Replaces all non-whitelisted characters.
+           The returned filename is always a basename of the file."""
+        basepath = os.path.basename(filename).strip()
+        sane_fname = re.sub(r'[^\w\.\- ]', replacement, basepath)
+
+        while ".." in sane_fname:
+            sane_fname = sane_fname.replace('..', '.')
+
+        while "  " in sane_fname:
+            sane_fname = sane_fname.replace('  ', ' ')
+
+        if not len(filename):
+            sane_fname = 'NONAME'
+
+        # limit filename length
+        if max_length:
+            sane_fname = sane_fname[:max_length]
+
+        return sane_fname
 
     @staticmethod
     def verifySWF(f, x):
@@ -1167,15 +1195,15 @@ class Oletools(ServiceBase):
         return False
 
     # noinspection PyBroadException
-    def extract_streams(self, file_name):
+    def extract_streams(self, file_name, file_contents):
+
         oles = {}
         try:
             streams_res = ResultSection(score=SCORE.NULL,
                                         title_text="Embedded document stream(s)")
-
             is_zip = False
             is_ole = False
-            # Get the OLEs
+            # Get the OLEs from PK package
             if zipfile.is_zipfile(file_name):
                 is_zip = True
                 z = zipfile.ZipFile(file_name)
@@ -1198,18 +1226,18 @@ class Oletools(ServiceBase):
             if is_zip and is_ole:
                 self.heurs.add(Oletools.AL_Oletools_002)
 
-            # Find flash objects in OLE
             for ole_filename in oles.iterkeys():
                 for direntry in oles[ole_filename].direntries:
                     if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
                         fio = oles[ole_filename]._open(direntry.isectStart, direntry.size)
                         # check if data contains the SWF magic: FWS or CWS
                         thedata = fio.getvalue()
+                        # Find flash objects in OLE
                         if b'FWS' in thedata or b'CWS' in thedata:
                             swf_found = self.extract_swf_objects(fio)
                             if swf_found:
                                 swf_sec = ResultSection(SCORE.LOW,
-                                                        "Flash objects detected in sample, see extracted files")
+                                                        "Flash objects detected in OLE, see extracted files")
                                 streams_res.add_section(swf_sec)
 
             decompressed_macros = False
@@ -1222,21 +1250,128 @@ class Oletools(ServiceBase):
             if decompressed_macros:
                 streams_res.score = SCORE.HIGH
 
-            for _, offset, rtfobject in rtf_iter_objects(file_name):
-                rtfobject_name = hex(offset) + '.rtfobj'
-                extracted_obj = os.path.join(self.working_directory, rtfobject_name)
-                with open(extracted_obj, 'wb') as fh:
-                    fh.write(rtfobject)
-                self.request.add_extracted(extracted_obj,
-                                           'Embedded RTF Object at offset %s' % hex(offset),
-                                           rtfobject_name)
-                # Find flash objects in RTF
-                if b'FWS' in rtfobject or b'CWS' in rtfobject:
-                    f = BytesIO(rtfobject)
-                    swf_found = self.extract_swf_objects(f)
-                    if swf_found:
-                        swf_sec = ResultSection(SCORE.LOW, "Flash objects detected in sample, see extracted files")
-                        streams_res.add_section(swf_sec)
+            # Depricated - but version 0.45 works on some files that new code does not!
+            # for _, offset, rtfobject in rtfparse.rtf_iter_objects(file_name):
+            #     rtfobject_name = hex(offset) + '.rtfobj'
+            #     extracted_obj = os.path.join(self.working_directory, rtfobject_name)
+            #     with open(extracted_obj, 'wb') as fh:
+            #         fh.write(rtfobject)
+            #     self.request.add_extracted(extracted_obj,
+            #                                'Embedded RTF Object at offset %s' % hex(offset),
+            #                                rtfobject_name)
+            #     # Find flash objects in RTF
+            #     if b'FWS' in rtfobject or b'CWS' in rtfobject:
+            #         f = BytesIO(rtfobject)
+            #         swf_found = self.extract_swf_objects(f)
+            #         if swf_found:
+            #             swf_sec = ResultSection(SCORE.LOW, "Flash objects detected in sample, see extracted files")
+            #             streams_res.add_section(swf_sec)
+
+            # RTF Package
+            rtfp = rtfparse.RtfObjParser(file_contents)
+            rtfp.parse()
+            embedded = []
+            linked = []
+            unknown= []
+            for rtfobj in rtfp.objects:
+                res_txt = ""
+                res_alert = ""
+                if rtfobj.is_ole:
+                    res_txt += 'format_id: %d ' % rtfobj.format_id
+                    res_txt += 'class name: %r\n' % rtfobj.class_name
+                    # if the object is linked and not embedded, data_size=None:
+                    if rtfobj.oledata_size is None:
+                        res_txt += 'data size: N/A\n'
+                    else:
+                        res_txt += 'data size: %d\n' % rtfobj.oledata_size
+                    if rtfobj.is_package:
+                        res_txt = 'Filename: %r\n' % rtfobj.filename
+                        res_txt += 'Source path: %r\n' % rtfobj.src_path
+                        res_txt += 'Temp path = %r\n' % rtfobj.temp_path
+
+                        # check if the file extension is executable:
+                        _, ext = os.path.splitext(rtfobj.filename)
+
+                        if self.re_executable_extensions.match(ext):
+                            res_alert += 'EXECUTABLE FILE'
+
+                    else:
+                        res_txt += 'Not an OLE Package'
+                    # Detect OLE2Link exploit
+                    # http://www.kb.cert.org/vuls/id/921560
+                    if rtfobj.class_name == 'OLE2Link':
+                        res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
+                else:
+                    res_txt = 'Not a well-formed OLE object'
+
+                if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
+                    embedded.append((res_txt, res_alert))
+                elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
+                    linked.append((res_txt, res_alert))
+                else:
+                    unknown.append((res_txt, res_alert))
+
+            if len(embedded) > 0:
+                emb_sec = ResultSection(SCORE.LOW, "Embedded Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    emb_sec.add_line(txt)
+                    if alert != "":
+                        emb_sec.score = 1000
+                        emb_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(emb_sec)
+            if len(linked) > 0:
+                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    lik_sec.add_line(txt)
+                    if alert != "":
+                        lik_sec.score = 1000
+                        lik_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(lik_sec)
+            if len(unknown) > 0:
+                unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    unk_sec.add_line(txt)
+                    if alert != "":
+                        unk_sec.score = 1000
+                        unk_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(unk_sec)
+
+            objects = rtfp.objects
+
+            for rtfobj in objects:
+                i = objects.index(rtfobj)
+                if rtfobj.is_package:
+                    if rtfobj.filename:
+                        fname = '%s' % (self.sanitize_filename(rtfobj.filename))
+                    else:
+                        fname = 'object_%08X.noname' % (rtfobj.start)
+                    extracted_obj = os.path.join(self.working_directory, fname)
+                    with open(extracted_obj, 'wb') as fh:
+                        fh.write(rtfobj.olepkgdata)
+                    self.request.add_extracted(extracted_obj, 'OLE Package in object #%d:' % i)
+
+                # When format_id=TYPE_LINKED, oledata_size=None
+                elif rtfobj.is_ole and rtfobj.oledata_size is not None:
+                    # set a file extension according to the class name:
+                    class_name = rtfobj.class_name.lower()
+                    if class_name.startswith(b'word'):
+                        ext = 'doc'
+                    elif class_name.startswith(b'package'):
+                        ext = 'package'
+                    else:
+                        ext = 'bin'
+                    fname = 'object_%08X.%s' % (rtfobj.start, ext)
+                    extracted_obj = os.path.join(self.working_directory, fname)
+                    with open(extracted_obj, 'wb') as fh:
+                        fh.write(rtfobj.oledata)
+                    self.request.add_extracted(extracted_obj, 'Embedded in OLE object #%d:' % i)
+
+                else:
+                    fname = 'object_%08X.raw' % (rtfobj.start)
+                    extracted_obj = os.path.join(self.working_directory, fname)
+                    with open(extracted_obj, 'wb') as fh:
+                        fh.write(rtfobj.rawdata)
+                    self.request.add_extracted(extracted_obj, 'Raw data in object #%d:' % i)
 
             if len(streams_res.body) > 0 or len(streams_res.subsections) > 0:
                 self.ole_result.add_section(streams_res)
