@@ -1180,9 +1180,22 @@ class Oletools(ServiceBase):
                     if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                         decompress_macros.append(data)
 
+                if stream.entry_type == olefile.STGTY_STREAM:
+                    fio = ole._open(stream.isectStart, stream.size)
+                    # check if data contains the SWF magic: FWS or CWS
+                    thedata = fio.getvalue()
+                    # Find flash objects in OLE
+                    if b'FWS' in thedata or b'CWS' in thedata:
+                        swf_found = self.extract_swf_objects(fio)
+                        if swf_found:
+                            swf_sec = ResultSection(SCORE.LOW,
+                                                    "Flash objects detected in OLE, see extracted files")
+                            streams_section.add_section(swf_sec)
+
             except Exception as e:
                 self.log.error("Error adding extracted stream {}: {}".format(stream, e))
                 continue
+
         if decompress_macros:
             macros = "\n".join(decompress_macros)
             stream_name = '{}.macros'.format(hashlib.sha256(macros).hexdigest())
@@ -1226,20 +1239,6 @@ class Oletools(ServiceBase):
             if is_zip and is_ole:
                 self.heurs.add(Oletools.AL_Oletools_002)
 
-            for ole_filename in oles.iterkeys():
-                for direntry in oles[ole_filename].direntries:
-                    if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
-                        fio = oles[ole_filename]._open(direntry.isectStart, direntry.size)
-                        # check if data contains the SWF magic: FWS or CWS
-                        thedata = fio.getvalue()
-                        # Find flash objects in OLE
-                        if b'FWS' in thedata or b'CWS' in thedata:
-                            swf_found = self.extract_swf_objects(fio)
-                            if swf_found:
-                                swf_sec = ResultSection(SCORE.LOW,
-                                                        "Flash objects detected in OLE, see extracted files")
-                                streams_res.add_section(swf_sec)
-
             decompressed_macros = False
             for ole_filename in oles.iterkeys():
                 try:
@@ -1250,29 +1249,13 @@ class Oletools(ServiceBase):
             if decompressed_macros:
                 streams_res.score = SCORE.HIGH
 
-            # Depricated - but version 0.45 works on some files that new code does not!
-            # for _, offset, rtfobject in rtfparse.rtf_iter_objects(file_name):
-            #     rtfobject_name = hex(offset) + '.rtfobj'
-            #     extracted_obj = os.path.join(self.working_directory, rtfobject_name)
-            #     with open(extracted_obj, 'wb') as fh:
-            #         fh.write(rtfobject)
-            #     self.request.add_extracted(extracted_obj,
-            #                                'Embedded RTF Object at offset %s' % hex(offset),
-            #                                rtfobject_name)
-            #     # Find flash objects in RTF
-            #     if b'FWS' in rtfobject or b'CWS' in rtfobject:
-            #         f = BytesIO(rtfobject)
-            #         swf_found = self.extract_swf_objects(f)
-            #         if swf_found:
-            #             swf_sec = ResultSection(SCORE.LOW, "Flash objects detected in sample, see extracted files")
-            #             streams_res.add_section(swf_sec)
-
             # RTF Package
             rtfp = rtfparse.RtfObjParser(file_contents)
             rtfp.parse()
             embedded = []
             linked = []
             unknown= []
+            # RTF objdata
             for rtfobj in rtfp.objects:
                 res_txt = ""
                 res_alert = ""
@@ -1338,6 +1321,7 @@ class Oletools(ServiceBase):
 
             objects = rtfp.objects
 
+            # Objdata in RTF documents
             for rtfobj in objects:
                 i = objects.index(rtfobj)
                 if rtfobj.is_package:
