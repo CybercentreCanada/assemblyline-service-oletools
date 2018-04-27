@@ -97,6 +97,7 @@ class Oletools(ServiceBase):
                                                    r"|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR|HTA|CPL|CLASS|JAR|PS1XML|PS1"
                                                    r"|PS2XML|PS2|PSC1|PSC2|SCF|LNK|INF|REG)\b")
 
+        self.re_vbs_hex = re.compile(r'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}')
         self.word_chains = None
         self.macro_skip_words = None
         self.macro_words_re = re.compile("[a-z]{3,}")
@@ -106,6 +107,18 @@ class Oletools(ServiceBase):
         self.all_macros = None
         self.all_vba = None
         self.heurs = set()
+        self.suspicious_strings = [
+            # In maldoc.yara from decalage2/oledump-contrib/blob/master/
+            (re.compile(r"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
+             "|IsBadWritePtr|LoadLibrary|ReadFile|SetFilePointer|ShellExecute|URLDownloadToFile|VirtualAlloc|WinExec"
+             "|WriteFile)"), "use of suspicious system function"),
+            # EXE
+            (re.compile(r'This program cannot be run in DOS mode', re.M), "embedded executable"),
+            (re.compile(r'(?s)MZ.{32,1024}PE\000\000'), "embedded executable"),
+            # Javascript
+            (re.compile(r'(function\(|\beval[ \t]*\(|new[ \t]+ActiveXObject\(|xfa\.((resolve|create)Node|datasets|form)|'
+             '\.oneOfChild)'), "embedded javascript"),
+        ]
 
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
@@ -230,7 +243,7 @@ class Oletools(ServiceBase):
         for section in self.ole_result.sections:
             score_check += self.calculate_nested_scores(section)
 
-        if score_check == 0:
+        if score_check == 0 and not request.deep_scan:
             request.result = Result()
 
         self.all_macros = None
@@ -619,6 +632,23 @@ class Oletools(ServiceBase):
             self.request.add_extracted(swf_path, text="Flash file extracted during sample analysis")
             swf_found = True
         return swf_found
+
+    def extract_vb_hex(self, encodedchunk):
+        decoded = ''
+        try:
+            while encodedchunk != '':
+                decoded += binascii.a2b_hex(encodedchunk[2:4])
+                encodedchunk = encodedchunk[4:]
+        except Exception:
+            # If it fails, assuming not a real byte sequence
+            return  False
+        hex_md5 = hashlib.sha256(decoded).hexdigest()
+        hex_path = os.path.join(self.working_directory, '{}.hex.decoded'.format(hex_md5))
+        with open(hex_path, 'wb') as fh:
+            fh.write(decoded)
+        self.request.add_extracted(hex_path, text="Flash file extracted during sample analysis")
+
+        return True
 
     # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
     # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
@@ -1064,6 +1094,8 @@ class Oletools(ServiceBase):
             self.ole_result.add_section(mime_res)
 
     def process_ole10native(self, stream_name, data, streams_section):
+        suspicious = False
+        sus_sec = ResultSection(SCORE.NULL, "Suspicious streams content:")
         try:
             ole10native = Ole10Native(data)
 
@@ -1077,7 +1109,7 @@ class Oletools(ServiceBase):
                 stream_name, ole10native.label, ole10native.filename, ole10native.native_data_size
             )
             streams_section.add_line(stream_desc)
-            self.request.add_extracted(ole10_stream_file, "Embedded OLE Stream", stream_name)
+            self.request.add_extracted(ole10_stream_file, "Embedded OLE Stream {}" .format(stream_name))
 
             # handle embedded native macros
             if ole10native.label.endswith(".vbs") or \
@@ -1097,6 +1129,23 @@ class Oletools(ServiceBase):
                                              hashlib.sha256(ole10native.native_data).hexdigest(),
                                              macro_section,
                                              toplevel_score))
+            else:
+                # Look for suspicious strings
+                for pattern, desc in self.suspicious_strings:
+                    matched = re.search(pattern, ole10native.native_data)
+                    if matched:
+                        suspicious = True
+                        if 'javascript' in desc:
+                            sus_sec.score += 500
+                        if 'executable' in desc:
+                            sus_sec.score += 500
+                        else:
+                            sus_sec.score += 100
+                        sus_sec.add_line("'{}' string found in stream {}, indicating {}"
+                                         .format(safe_str(matched.group(0)), ole10native.filename, desc))
+
+            if suspicious:
+                streams_section.add_section(suspicious)
 
             return True
         except Exception as e:
@@ -1139,77 +1188,137 @@ class Oletools(ServiceBase):
 
     def process_ole_stream(self, ole, streams_section):
         listdir = ole.listdir()
-        streams = []
+
+        decompress = False
         for dir_entry in listdir:
-            streams.append('/'.join(dir_entry))
-
-        if "\x05HwpSummaryInformation" in streams:
-            decompress = True
-        else:
-            decompress = False
-
+            if "\x05HwpSummaryInformation" in dir_entry:
+                decompress = True
         decompress_macros = []
 
-        for stream in streams:
-            self.log.debug("Extracting stream: {}".format(stream))
-            data = ole.openstream(stream).getvalue()
-            try:
+        exstr_sec = None
+        if self.request.deep_scan:
+            exstr_sec = ResultSection(SCORE.NULL, "Extracted Ole streams:", body_format=TEXT_FORMAT.MEMORY_DUMP)
+        ole10_res = False
+        ole10_sec = ResultSection(SCORE.NULL, "Extracted Ole10Native streams:", body_format=TEXT_FORMAT.MEMORY_DUMP)
+        pwrpnt_res = False
+        pwrpnt_sec = ResultSection(SCORE.NULL, "Extracted Powerpoint streams:", body_format=TEXT_FORMAT.MEMORY_DUMP)
+        swf_res = False
+        swf_sec = ResultSection(SCORE.LOW, "Flash objects detected in OLE stream:", body_format=TEXT_FORMAT.MEMORY_DUMP)
+        hex_res = False
+        hex_sec = ResultSection(SCORE.VHIGH, "VB hex notation:")
+        sus_res = False
+        sus_sec = ResultSection(SCORE.NULL, "Suspicious stream content:")
 
-                if "Ole10Native" in stream:
-                    if self.process_ole10native(stream, data, streams_section) is True:
-                        continue
+        for direntry in ole.direntries:
+            extract_stream = False
+            if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
+                stream = safe_str(direntry.name)
+                self.log.debug("Extracting stream: {}".format(stream))
+                fio = ole._open(direntry.isectStart, direntry.size)
+                data = fio.getvalue()
+                stm_sha = hashlib.sha256(data).hexdigest()
+                try:
 
-                elif "PowerPoint Document" in stream:
-                    if self.process_powerpoint_stream(data, streams_section) is True:
-                        continue
+                    if "Ole10Native" in stream:
+                        if self.process_ole10native(stream, data, ole10_sec) is True:
+                            ole10_res = True
+                            continue
 
-                if decompress:
-                    try:
-                        data = zlib.decompress(data, -15)
-                    except zlib.error:
-                        pass
+                    elif "PowerPoint Document" in stream:
+                        if self.process_powerpoint_stream(data, pwrpnt_sec) is True:
+                            pwrpnt_res = True
+                            continue
 
-                # Only write all streams with deep scan.
-                if self.request.deep_scan:
-                    streams_section.add_line(safe_str(stream))
-                    stream_name = '{}.ole_stream'.format(hashlib.sha256(data).hexdigest())
-                    stream_path = os.path.join(self.working_directory, stream_name)
-                    with open(stream_path, 'w') as fh:
-                        fh.write(data)
-                    self.request.add_extracted(stream_path, "Embedded OLE Stream.", stream)
-                    if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
-                        decompress_macros.append(data)
+                    if decompress:
+                        try:
+                            data = zlib.decompress(data, -15)
+                        except zlib.error:
+                            pass
 
-                if stream.entry_type == olefile.STGTY_STREAM:
-                    fio = ole._open(stream.isectStart, stream.size)
-                    # check if data contains the SWF magic: FWS or CWS
-                    thedata = fio.getvalue()
-                    # Find flash objects in OLE
-                    if b'FWS' in thedata or b'CWS' in thedata:
+                    # Find flash objects in streams
+                    if b'FWS' in data or b'CWS' in data:
                         swf_found = self.extract_swf_objects(fio)
                         if swf_found:
-                            swf_sec = ResultSection(SCORE.LOW,
-                                                    "Flash objects detected in OLE, see extracted files")
-                            streams_section.add_section(swf_sec)
+                            extract_stream = True
+                            swf_res = True
+                            swf_sec.add_line("Flash object detected in OLE stream {}" .format(stream))
 
-            except Exception as e:
-                self.log.error("Error adding extracted stream {}: {}".format(stream, e))
-                continue
+                    # Find hex encoded chunks
+                    for vbshex in re.findall(self.re_vbs_hex, data):
+                        decoded = self.extract_vb_hex(vbshex)
+                        if decoded:
+                            extract_stream = True
+                            hex_res = True
+                            hex_sec.add_line("Found large chunk of VBA hex notation in stream {}".format(stream))
+
+                    # Find suspicious strings
+                    # Look for suspicious strings
+                    for pattern, desc in self.suspicious_strings:
+                        matched =  re.search(pattern, data)
+                        if matched:
+                            if "_VBA_PROJECT" not in stream:
+                                extract_stream = True
+                                sus_res = True
+                                if 'javascript' in desc:
+                                    sus_sec.score += 500
+                                if 'executable' in desc:
+                                    sus_sec.score += 500
+                                else:
+                                    sus_sec.score += 100
+                                sus_sec.add_line("'{}' string found in stream {}, indicating {}"
+                                                 .format(safe_str(matched.group(0)), stream, desc))
+
+                    # All streams are extracted with deep scan (see below)
+                    if extract_stream and not self.request.deep_scan:
+                        stream_name = '{}.ole_stream'.format(stm_sha)
+                        stream_path = os.path.join(self.working_directory, stream_name)
+                        with open(stream_path, 'w') as fh:
+                            fh.write(data)
+                        self.request.add_extracted(stream_path, "Embedded OLE Stream {}." .format(stream))
+                        if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                            decompress_macros.append(data)
+
+                    # Only write all streams with deep scan.
+                    if self.request.deep_scan:
+                        exstr_sec.add_line("Stream Name:{}, SHA256: {}" .format(stream, stm_sha))
+                        stream_name = '{}.ole_stream'.format(stm_sha)
+                        stream_path = os.path.join(self.working_directory, stream_name)
+                        with open(stream_path, 'w') as fh:
+                            fh.write(data)
+                        self.request.add_extracted(stream_path, "Embedded OLE Stream {}." .format(stream))
+                        if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                            decompress_macros.append(data)
+
+                except Exception as e:
+                    self.log.error("Error adding extracted stream {}:\t{}".format(stream, e))
+                    continue
+
+        if exstr_sec:
+            streams_section.add_section(exstr_sec)
+        if ole10_res:
+            streams_section.add_section(ole10_sec)
+        if pwrpnt_res:
+            streams_section.add_section(pwrpnt_res)
+        if swf_res:
+            streams_section.add_section(swf_sec)
+        if hex_res:
+            streams_section.add_section(hex_sec)
+        if sus_res:
+            streams_section.add_section(sus_sec)
 
         if decompress_macros:
+            # HWP Files
+            dmac_sec = ResultSection(SCORE.HIGH, "Compressed macros found, see extracted files")
+            streams_section.add_section(dmac_sec)
             macros = "\n".join(decompress_macros)
             stream_name = '{}.macros'.format(hashlib.sha256(macros).hexdigest())
             stream_path = os.path.join(self.working_directory, stream_name)
             with open(stream_path, 'w') as fh:
                 fh.write(macros)
-
             self.request.add_extracted(stream_path, "Combined macros.", "all_macros.ps")
-            return True
-        return False
 
     # noinspection PyBroadException
     def extract_streams(self, file_name, file_contents):
-
         oles = {}
         try:
             streams_res = ResultSection(score=SCORE.NULL,
@@ -1239,15 +1348,11 @@ class Oletools(ServiceBase):
             if is_zip and is_ole:
                 self.heurs.add(Oletools.AL_Oletools_002)
 
-            decompressed_macros = False
             for ole_filename in oles.iterkeys():
                 try:
-                    decompressed_macros |= self.process_ole_stream(oles[ole_filename], streams_res)
-                except Exception:
-                    continue
-
-            if decompressed_macros:
-                streams_res.score = SCORE.HIGH
+                    self.process_ole_stream(oles[ole_filename], streams_res)
+                except Exception as e:
+                    self.log.error("Error extracting streams: {}".format(traceback.format_exc(limit=2)))
 
             # RTF Package
             rtfp = rtfparse.RtfObjParser(file_contents)
