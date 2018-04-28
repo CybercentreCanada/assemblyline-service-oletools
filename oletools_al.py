@@ -1400,7 +1400,7 @@ class Oletools(ServiceBase):
                     unknown.append((res_txt, res_alert))
 
             if len(embedded) > 0:
-                emb_sec = ResultSection(SCORE.LOW, "Embedded Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                emb_sec = ResultSection(SCORE.LOW, "Embedded Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
                 for txt, alert in embedded:
                     emb_sec.add_line(txt)
                     if alert != "":
@@ -1408,7 +1408,7 @@ class Oletools(ServiceBase):
                         emb_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(emb_sec)
             if len(linked) > 0:
-                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
                 for txt, alert in embedded:
                     lik_sec.add_line(txt)
                     if alert != "":
@@ -1416,7 +1416,7 @@ class Oletools(ServiceBase):
                         lik_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(lik_sec)
             if len(unknown) > 0:
-                unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", TEXT_FORMAT.MEMORY_DUMP)
+                unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
                 for txt, alert in embedded:
                     unk_sec.add_line(txt)
                     if alert != "":
