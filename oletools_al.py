@@ -1298,7 +1298,7 @@ class Oletools(ServiceBase):
         if ole10_res:
             streams_section.add_section(ole10_sec)
         if pwrpnt_res:
-            streams_section.add_section(pwrpnt_res)
+            streams_section.add_section(pwrpnt_sec)
         if swf_res:
             streams_section.add_section(swf_sec)
         if hex_res:
