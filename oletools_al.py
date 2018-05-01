@@ -217,6 +217,7 @@ class Oletools(ServiceBase):
         request.result = Result()
         self.ole_result = request.result
         self.request = request
+        self.sha = request.sha256
         self.scored_macro_uri = False
 
         self.all_macros = []
@@ -743,7 +744,7 @@ class Oletools(ServiceBase):
             self.process_dde_links(links_text, self.ole_result)
 
         except Exception as exc:
-            self.log.warn("msodde parsing failed: {}".format(str(exc)))
+            self.log.warn("msodde parsing for file {} failed: {}".format(self.sha, str(exc)))
             section = ResultSection(SCORE.NULL, "msodde : Error parsing document")
             self.ole_result.add_section(section)
 
