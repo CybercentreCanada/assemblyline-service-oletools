@@ -95,7 +95,7 @@ class Oletools(ServiceBase):
         self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+')
         self.re_executable_extensions = re.compile(r"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE|VB|JSE|JS"
                                                    r"|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR|HTA|CPL|CLASS|JAR|PS1XML|PS1"
-                                                   r"|PS2XML|PS2|PSC1|PSC2|SCF|LNK|INF|REG)\b")
+                                                   r"|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b")
 
         self.re_vbs_hex = re.compile(r'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}')
         self.word_chains = None
@@ -1256,7 +1256,7 @@ class Oletools(ServiceBase):
                     # Find suspicious strings
                     # Look for suspicious strings
                     for pattern, desc in self.suspicious_strings:
-                        matched =  re.search(pattern, data)
+                        matched = re.search(pattern, data)
                         if matched:
                             if "_VBA_PROJECT" not in stream:
                                 extract_stream = True
@@ -1325,6 +1325,7 @@ class Oletools(ServiceBase):
         try:
             streams_res = ResultSection(score=SCORE.NULL,
                                         title_text="Embedded document stream(s)")
+            sep = "-----------------------------------------"
             is_zip = False
             is_ole = False
             # Get the OLEs from PK package
@@ -1377,13 +1378,13 @@ class Oletools(ServiceBase):
                     if rtfobj.is_package:
                         res_txt = 'Filename: %r\n' % rtfobj.filename
                         res_txt += 'Source path: %r\n' % rtfobj.src_path
-                        res_txt += 'Temp path = %r\n' % rtfobj.temp_path
+                        res_txt += 'Temp path = %r' % rtfobj.temp_path
 
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtfobj.filename)
 
                         if self.re_executable_extensions.match(ext):
-                            res_alert += 'EXECUTABLE FILE'
+                            res_alert += 'CODE/EXECUTABLE FILE'
 
                     else:
                         res_txt += 'Not an OLE Package'
@@ -1402,8 +1403,9 @@ class Oletools(ServiceBase):
                     unknown.append((res_txt, res_alert))
 
             if len(embedded) > 0:
-                emb_sec = ResultSection(SCORE.LOW, "Embedded Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
+                emb_sec = ResultSection(SCORE.LOW, "RTF Embedded Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
                 for txt, alert in embedded:
+                    emb_sec.add_line(sep)
                     emb_sec.add_line(txt)
                     if alert != "":
                         emb_sec.score = 1000
