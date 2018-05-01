@@ -743,8 +743,9 @@ class Oletools(ServiceBase):
                 return
             self.process_dde_links(links_text, self.ole_result)
 
+        # Unicode and other errors common for msodde when parsing samples, do not log under warning
         except Exception as exc:
-            self.log.warn("msodde parsing for file {} failed: {}".format(self.sha, str(exc)))
+            self.log.debug("msodde parsing for file {} failed: {}".format(self.sha, str(exc)))
             section = ResultSection(SCORE.NULL, "msodde : Error parsing document")
             self.ole_result.add_section(section)
 
