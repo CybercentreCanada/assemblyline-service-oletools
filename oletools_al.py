@@ -1211,6 +1211,7 @@ class Oletools(ServiceBase):
         sus_res = False
         sus_sec = ResultSection(SCORE.NULL, "Suspicious stream content:")
 
+        ole_dir_examined = set()
         for direntry in ole.direntries:
             extract_stream = False
             if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
@@ -1219,6 +1220,10 @@ class Oletools(ServiceBase):
                 fio = ole._open(direntry.isectStart, direntry.size)
                 data = fio.getvalue()
                 stm_sha = hashlib.sha256(data).hexdigest()
+                # Only process unique content
+                if stm_sha in ole_dir_examined:
+                    continue
+                ole_dir_examined.add(stm_sha)
                 try:
 
                     if "Ole10Native" in stream:
