@@ -235,7 +235,7 @@ class Oletools(ServiceBase):
             self.extract_streams(path, file_contents)
             self.create_macro_sections(request.sha256)
         except Exception as e:
-            self.log.error("We have encountered a critical error: {}".format(e))
+            self.log.error("We have encountered a critical error for sample {}: {}".format(self.sha, e))
 
         for h in self.heurs:
             request.result.report_heuristic(h)
@@ -276,7 +276,7 @@ class Oletools(ServiceBase):
                         section.add_line(indicator.description)
                     self.ole_result.add_section(section)
         except:
-            self.log.debug("OleID analysis failed")
+            self.log.debug("OleID analysis failed for sample {}" .format(self.sha))
 
     # Returns True if the URI should score
     # noinspection PyUnusedLocal
@@ -441,8 +441,7 @@ class Oletools(ServiceBase):
                                                                "OLETools analysis.")
                                     with open(b64_file_path, 'wb') as b64_file:
                                         b64_file.write(base64data)
-                                        self.log.debug("Submitted dropped file for analysis: {}"
-                                                       .format(b64_file_path))
+                                        self.log.debug("Submitted dropped file for analysis: {}" .format(b64_file_path))
 
                                     b64results[sha256hash] = [len(b64_string), b64_string[0:50],
                                                               "[Possible base64 file contents in {}. "
@@ -521,7 +520,7 @@ class Oletools(ServiceBase):
                                                        "all_b64_{}.txt" .format(b64_all_sha256[:7]))
                         except Exception as e:
                             self.log.error("Error while adding extracted"
-                                           " b64 content: {}: {}".format(b64_file_path, str(e)))
+                                           " b64 content {} for sample {}: {}".format(b64_file_path, self.sha, str(e)))
 
                     if extract_xml and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
                         xml_sha256 = hashlib.sha256(data).hexdigest()
@@ -536,7 +535,7 @@ class Oletools(ServiceBase):
                                 xml_extracted.add(xml_sha256)
                             except Exception as e:
                                 self.log.error("Error while adding extracted"
-                                               " content: {}: {}".format(xml_file_path, str(e)))
+                                               " content {} for sample {}: {}".format(xml_file_path, self.sha, str(e)))
 
                 z.close()
 
@@ -552,7 +551,7 @@ class Oletools(ServiceBase):
                     xml_target_res.add_lines(uris)
 
         except Exception as e:
-            self.log.debug("Failed to analyze zipped file: {}".format(e))
+            self.log.debug("Failed to analyze zipped file for sample {}: {}".format(self.sha, e))
 
         if xml_target_res.score > 0:
             self.ole_result.add_section(xml_target_res)
@@ -699,8 +698,8 @@ class Oletools(ServiceBase):
                     # then only keep, theoretically, the most interesting ones
                     filtered_macros = self.all_macros[0:min(len(self.all_macros), self.MAX_MACRO_SECTIONS)]
                 except:
-                    self.log.debug("Sort and filtering of macro scores failed, "
-                                   "reverting to full list of extracted macros")
+                    self.log.debug("Sort and filtering of macro scores failed for sample {}, "
+                                   "reverting to full list of extracted macros" .format(self.sha))
                     filtered_macros = self.all_macros
             else:
                 self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
@@ -726,9 +725,9 @@ class Oletools(ServiceBase):
                                                "all_vba_%s.vba" % vba_all_sha256[:7])
                 except Exception as e:
                     self.log.error("Error while adding extracted"
-                                   " macro: {}: {}".format(vba_file_path, str(e)))
+                                   " macro {} for sample {}: {}".format(vba_file_path, self.sha, str(e)))
         except Exception as e:
-            self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed: {}".format(e))
+            self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
             section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
             self.ole_result.add_section(section)
 
@@ -745,7 +744,7 @@ class Oletools(ServiceBase):
 
         # Unicode and other errors common for msodde when parsing samples, do not log under warning
         except Exception as exc:
-            self.log.debug("msodde parsing for file {} failed: {}".format(self.sha, str(exc)))
+            self.log.debug("msodde parsing for sample {} failed: {}".format(self.sha, str(exc)))
             section = ResultSection(SCORE.NULL, "msodde : Error parsing document")
             self.ole_result.add_section(section)
 
@@ -836,16 +835,18 @@ class Oletools(ServiceBase):
 
                             self.all_macros.append(Macro(vba_code, vba_code_sha256, macro_section, toplevel_score))
                     except Exception as e:
-                        self.log.debug("OleVBA VBA_Parser.extract_macros failed: {}".format(str(e)))
+                        self.log.debug("OleVBA VBA_Parser.extract_macros failed for sample {}: {}"
+                                       .format(self.sha, str(e)))
                         section = ResultSection(SCORE.NULL, "OleVBA : Error extracting macros")
                         self.ole_result.add_section(section)
 
             except Exception as e:
-                self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed: {}".format(e))
+                self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
                 section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
                 self.ole_result.add_section(section)
         except:
-            self.log.debug("OleVBA VBA_Parser constructor failed, may not be a supported OLE document")
+            self.log.debug("OleVBA VBA_Parser constructor failed for sample {}, may not be a supported OLE document"
+                           .format(self.sha))
 
     def calculate_nested_scores(self, section):
         score = section.score
@@ -900,7 +901,7 @@ class Oletools(ServiceBase):
     # TODO: deobfuscator is very primitive; visual inspection and dynamic analysis will often be most useful
     # TODO: may want to eventually pull this out into a Deobfuscation helper that supports multi-languages
     def deobfuscator(self, text):
-        self.log.debug("Deobfuscation running")
+        #self.log.debug("Deobfuscation running")
         deobf = text
         # noinspection PyBroadException
         try:
@@ -978,7 +979,7 @@ class Oletools(ServiceBase):
             deobf = re.sub('" & "', '', deobf)
 
         except:
-            self.log.debug("Deobfuscator regex failure, reverting to original text")
+            self.log.debug("Deobfuscator regex failure for sample {}, reverting to original text" .format(self.sha))
             deobf = text
 
         return deobf
@@ -986,7 +987,7 @@ class Oletools(ServiceBase):
     #  note: we manually add up the score_section.score value here so that it is usable before the service finishes
     #        otherwise it is not calculated until finalize() is called on the top-level ResultSection
     def macro_scorer(self, text):
-        self.log.debug("Macro scorer running")
+        #self.log.debug("Macro scorer running")
         score_section = None
 
         try:
@@ -1060,7 +1061,7 @@ class Oletools(ServiceBase):
                         self.ole_result.add_section(scored_uri_section)
 
         except Exception as e:
-            self.log.debug("OleVBA VBA_Scanner constructor failed: {}".format(str(e)))
+            self.log.debug("OleVBA VBA_Scanner constructor failed for sample {}: {}".format(self.sha, str(e)))
 
         return score_section
 
@@ -1088,9 +1089,9 @@ class Oletools(ServiceBase):
                             mime_res.add_line(part_filename)
                             self.request.add_extracted(part_path, "ActiveMime x-mso from multipart/related.")
                         except Exception as e:
-                            self.log.error("Error submitting extracted file: {}".format(e))
+                            self.log.error("Error submitting extracted file for sample {}: {}".format(self.sha, e))
                     except Exception as e:
-                        self.log.debug("Could not decompress ActiveMime part: {}".format(e))
+                        self.log.debug("Could not decompress ActiveMime part for sample {}: {}".format(self.sha, e))
 
         if len(mime_res.body) > 0:
             self.ole_result.add_section(mime_res)
@@ -1151,7 +1152,7 @@ class Oletools(ServiceBase):
 
             return True
         except Exception as e:
-            self.log.debug("Failed to parse Ole10Native stream: {}".format(e))
+            self.log.debug("Failed to parse Ole10Native stream for sample {}: {}".format(self.sha, e))
             return False
 
     def process_powerpoint_stream(self, data, streams_section):
@@ -1185,7 +1186,7 @@ class Oletools(ServiceBase):
                                                )
             return True
         except Exception as e:
-            self.log.error("Failed to parse PowerPoint Document stream: {}".format(e))
+            self.log.error("Failed to parse PowerPoint Document stream for sample {}: {}".format(self.sha, e))
             return False
 
     def process_ole_stream(self, ole, streams_section):
@@ -1216,7 +1217,7 @@ class Oletools(ServiceBase):
             extract_stream = False
             if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
                 stream = safe_str(direntry.name)
-                self.log.debug("Extracting stream: {}".format(stream))
+                self.log.debug("Extracting stream for sample {}: {}".format(self.sha, stream))
                 fio = ole._open(direntry.isectStart, direntry.size)
                 data = fio.getvalue()
                 stm_sha = hashlib.sha256(data).hexdigest()
@@ -1297,7 +1298,7 @@ class Oletools(ServiceBase):
                             decompress_macros.append(data)
 
                 except Exception as e:
-                    self.log.error("Error adding extracted stream {}:\t{}".format(stream, e))
+                    self.log.error("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
                     continue
 
         if exstr_sec:
@@ -1359,8 +1360,9 @@ class Oletools(ServiceBase):
             for ole_filename in oles.iterkeys():
                 try:
                     self.process_ole_stream(oles[ole_filename], streams_res)
-                except Exception as e:
-                    self.log.error("Error extracting streams: {}".format(traceback.format_exc(limit=2)))
+                except Exception:
+                    self.log.error("Error extracting streams for sample {}: {}".format(self.sha,
+                                                                                       traceback.format_exc(limit=2)))
 
             # RTF Package
             rtfp = rtfparse.RtfObjParser(file_contents)
@@ -1474,8 +1476,8 @@ class Oletools(ServiceBase):
             if len(streams_res.body) > 0 or len(streams_res.subsections) > 0:
                 self.ole_result.add_section(streams_res)
 
-        except Exception as e:
-            self.log.debug("Error extracting streams: {}".format(traceback.format_exc(limit=2)))
+        except Exception:
+            self.log.debug("Error extracting streams for sample {}: {}".format(self.sha, traceback.format_exc(limit=2)))
 
         finally:
             for fd in oles.itervalues():
