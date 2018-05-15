@@ -1217,7 +1217,7 @@ class Oletools(ServiceBase):
             extract_stream = False
             if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
                 stream = safe_str(direntry.name)
-                self.log.debug("Extracting stream for sample {}: {}".format(self.sha, stream))
+                self.log.debug("Extracting stream {} for sample {}".format(stream, self.sha))
                 fio = ole._open(direntry.isectStart, direntry.size)
                 data = fio.getvalue()
                 stm_sha = hashlib.sha256(data).hexdigest()
