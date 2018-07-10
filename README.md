@@ -14,8 +14,9 @@ The Oletools service will report the following information for each file when pr
     * Suspicious strings (AL tak: OLE_MACRO_SUSPICIOUS_STRINGS);
     * Network indicators.
 
-2. Embedded document streams:
-    * Name.
+2. Embedded document streams and OLE information:
+    * Name and metadata (author, company, last saved time, etc)
+    * CLSIDs (flag known malicious)
 
 3. Suspicious XML:
     * FrankenStrings Patterns module results
