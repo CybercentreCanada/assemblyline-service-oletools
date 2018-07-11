@@ -11,7 +11,7 @@ The Oletools service will report the following information for each file when pr
 
 1. Macros (AL tag: TECHNIQUE_MACROS):
     * SHA256 (AL tag: OLE_MACRO_SHA256);
-    * Suspicious strings (AL tak: OLE_MACRO_SUSPICIOUS_STRINGS);
+    * Suspicious strings (AL tag: OLE_MACRO_SUSPICIOUS_STRINGS);
     * Network indicators.
 
 2. Embedded document streams and OLE information:
