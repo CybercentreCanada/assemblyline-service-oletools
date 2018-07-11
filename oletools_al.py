@@ -1213,7 +1213,7 @@ class Oletools(ServiceBase):
         summeta_sec = ResultSection(SCORE.NULL, "Properties from the SummaryInformation Stream:", parent=meta_sec)
         for prop in meta.SUMMARY_ATTRIBS:
             value = getattr(meta, prop)
-            if value is not None:
+            if value is not None and value not in ['"', "'", ""]:
                 summeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
                 # Add Tags
                 if prop in ole_tags:
@@ -1222,7 +1222,7 @@ class Oletools(ServiceBase):
                                     parent=meta_sec)
         for prop in meta.DOCSUM_ATTRIBS:
             value = getattr(meta, prop)
-            if value is not None:
+            if value is not None and value not in ['"', "'", ""]:
                 docmeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
                 # Add Tags
                 if prop in ole_tags:
