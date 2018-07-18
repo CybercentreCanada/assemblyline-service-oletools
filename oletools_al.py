@@ -1233,8 +1233,8 @@ class Oletools(ServiceBase):
         # CLSIDS: Report, tag and flag known malicious
         clsid_sec = ResultSection(SCORE.NULL, "CLSIDs:")
         ole_clsid = ole.root.clsid
-        if ole_clsid is not None:
-            self.ole_result.add_tag(TAG_TYPE["OLE_CLSID"], "{}".format(ole_clsid), TAG_WEIGHT.LOW)
+        if ole_clsid is not None and ole_clsid not in ['"', "'", ""]:
+            self.ole_result.add_tag(TAG_TYPE["OLE_CLSID"], "{}".format(safe_str(ole_clsid)), TAG_WEIGHT.LOW)
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
             if 'CVE' in clsid_desc:
