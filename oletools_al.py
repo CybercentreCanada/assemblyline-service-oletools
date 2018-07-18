@@ -1238,7 +1238,7 @@ class Oletools(ServiceBase):
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
             if 'CVE' in clsid_desc:
-                clsid.score = 500
+                clsid_sec.score = 500
                 mal_msg = " FLAGGED MALICIOUS"
             clsid_sec.add_line("{}: {}{}" .format(ole_clsid, clsid_desc, mal_msg))
 
