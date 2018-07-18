@@ -1188,7 +1188,7 @@ class Oletools(ServiceBase):
                                                )
             return True
         except Exception as e:
-            self.log.error("Failed to parse PowerPoint Document stream for sample {}: {}".format(self.sha, e))
+            self.log.warning("Failed to parse PowerPoint Document stream for sample {}: {}".format(self.sha, e))
             return False
 
     def process_ole_stream(self, ole, streams_section):
