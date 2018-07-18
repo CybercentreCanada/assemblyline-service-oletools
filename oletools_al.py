@@ -83,7 +83,7 @@ class Oletools(ServiceBase):
     def __init__(self, cfg=None):
         super(Oletools, self).__init__(cfg)
         self._oletools_version = ''
-        self.supported_ole_version = "0.52"
+        self.supported_ole_version = "0.53.1"
         self.request = None
         self.task = None
         self.ole_result = None
@@ -133,6 +133,7 @@ class Oletools(ServiceBase):
         from oletools.oleid import OleID, Indicator
         from oletools.thirdparty.xxxswf import xxxswf
         from oletools.thirdparty.olefile import olefile
+        from oletools.common import clsid
         import oletools.rtfobj as rtfparse
         from oletools import msodde, oleobj
         from io import BytesIO
@@ -146,6 +147,7 @@ class Oletools(ServiceBase):
         global VBA_Parser, VBA_Scanner
         global OleID, Indicator
         global olefile, xxxswf
+        global clsid
         global rtfparse
         global msodde, oleobj
         global magic
@@ -244,8 +246,8 @@ class Oletools(ServiceBase):
         for section in self.ole_result.sections:
             score_check += self.calculate_nested_scores(section)
 
-        if score_check == 0 and not request.deep_scan:
-            request.result = Result()
+        #if score_check == 0 and not request.deep_scan:
+        #   request.result = Result()
 
         self.all_macros = None
         self.all_vba = None
@@ -701,8 +703,8 @@ class Oletools(ServiceBase):
                     self.log.debug("Sort and filtering of macro scores failed for sample {}, "
                                    "reverting to full list of extracted macros" .format(self.sha))
                     filtered_macros = self.all_macros
-            else:
-                self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
+            # else:
+            #     self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
 
             for macro in filtered_macros:
                 if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
@@ -1186,10 +1188,63 @@ class Oletools(ServiceBase):
                                                )
             return True
         except Exception as e:
-            self.log.error("Failed to parse PowerPoint Document stream for sample {}: {}".format(self.sha, e))
+            self.log.warning("Failed to parse PowerPoint Document stream for sample {}: {}".format(self.sha, e))
             return False
 
     def process_ole_stream(self, ole, streams_section):
+
+        ole_tags = {
+            'title':'OLE_SUMMARY_TITLE',
+            'subject': 'OLE_SUMMARY_SUBJECT',
+            'author': 'OLE_SUMMARY_AUTHOR',
+            'comments': 'OLE_SUMMARY_COMMENTS',
+            'last_saved_by': 'OLE_SUMMARY_LASTSAVEDBY',
+            'last_printed': 'OLE_SUMMARY_LASTPRINTED',
+            'create_time': 'OLE_SUMMARY_CREATETIME',
+            'last_saved_time': 'OLE_SUMMARY_LASTSAVEDTIME',
+            'manager': 'OLE_SUMMARY_MANAGER',
+            'company': 'OLE_SUMMARY_COMPANY',
+            'codepage': 'OLE_SUMMARY_CODEPAGE',
+        }
+
+        # OLE Meta
+        meta = ole.get_metadata()
+        meta_sec = ResultSection(SCORE.NULL, "OLE Metadata:")
+        summeta_sec = ResultSection(SCORE.NULL, "Properties from the SummaryInformation Stream:", parent=meta_sec)
+        for prop in meta.SUMMARY_ATTRIBS:
+            value = getattr(meta, prop)
+            if value is not None and value not in ['"', "'", ""]:
+                summeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
+                # Add Tags
+                if prop in ole_tags:
+                    self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
+        docmeta_sec = ResultSection(SCORE.NULL, "Properties from the DocumentSummaryInformation Stream:",
+                                    parent=meta_sec)
+        for prop in meta.DOCSUM_ATTRIBS:
+            value = getattr(meta, prop)
+            if value is not None and value not in ['"', "'", ""]:
+                docmeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
+                # Add Tags
+                if prop in ole_tags:
+                    self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
+        if len(summeta_sec.body)+len(docmeta_sec.body) > 0:
+            streams_section.add_section(meta_sec)
+
+        # CLSIDS: Report, tag and flag known malicious
+        clsid_sec = ResultSection(SCORE.NULL, "CLSIDs:")
+        ole_clsid = ole.root.clsid
+        if ole_clsid is not None and ole_clsid not in ['"', "'", ""]:
+            self.ole_result.add_tag(TAG_TYPE["OLE_CLSID"], "{}".format(safe_str(ole_clsid)), TAG_WEIGHT.LOW)
+            clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
+            mal_msg = ""
+            if 'CVE' in clsid_desc:
+                clsid_sec.score = 500
+                mal_msg = " FLAGGED MALICIOUS"
+            clsid_sec.add_line("{}: {}{}" .format(ole_clsid, clsid_desc, mal_msg))
+
+        if len(clsid_sec.body) > 0:
+            streams_section.add_section(clsid_sec)
+
         listdir = ole.listdir()
 
         decompress = False
@@ -1211,6 +1266,7 @@ class Oletools(ServiceBase):
         hex_sec = ResultSection(SCORE.VHIGH, "VB hex notation:")
         sus_res = False
         sus_sec = ResultSection(SCORE.NULL, "Suspicious stream content:")
+
 
         ole_dir_examined = set()
         for direntry in ole.direntries:
@@ -1298,7 +1354,7 @@ class Oletools(ServiceBase):
                             decompress_macros.append(data)
 
                 except Exception as e:
-                    self.log.error("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
+                    self.log.warning("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
                     continue
 
         if exstr_sec:
@@ -1360,9 +1416,10 @@ class Oletools(ServiceBase):
             for ole_filename in oles.iterkeys():
                 try:
                     self.process_ole_stream(oles[ole_filename], streams_res)
+
                 except Exception:
-                    self.log.error("Error extracting streams for sample {}: {}".format(self.sha,
-                                                                                       traceback.format_exc(limit=2)))
+                    self.log.warning("Error extracting streams for sample {}: {}".format(self.sha,
+                                                                                         traceback.format_exc(limit=2)))
 
             # RTF Package
             rtfp = rtfparse.RtfObjParser(file_contents)
