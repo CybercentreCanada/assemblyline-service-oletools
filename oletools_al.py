@@ -1354,7 +1354,7 @@ class Oletools(ServiceBase):
                             decompress_macros.append(data)
 
                 except Exception as e:
-                    self.log.error("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
+                    self.log.warning("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
                     continue
 
         if exstr_sec:
@@ -1418,8 +1418,8 @@ class Oletools(ServiceBase):
                     self.process_ole_stream(oles[ole_filename], streams_res)
 
                 except Exception:
-                    self.log.error("Error extracting streams for sample {}: {}".format(self.sha,
-                                                                                       traceback.format_exc(limit=2)))
+                    self.log.warning("Error extracting streams for sample {}: {}".format(self.sha,
+                                                                                         traceback.format_exc(limit=2)))
 
             # RTF Package
             rtfp = rtfparse.RtfObjParser(file_contents)
