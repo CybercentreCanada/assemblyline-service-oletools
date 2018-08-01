@@ -1451,7 +1451,7 @@ class Oletools(ServiceBase):
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
-                            m = magic.Magic(mime=True)
+                            m = magic.Magic()
                             ftype = m.from_buffer(rtfobj.olepkgdata)
                             if "executable" in ftype:
                                 res_alert += 'CODE/EXECUTABLE FILE'
