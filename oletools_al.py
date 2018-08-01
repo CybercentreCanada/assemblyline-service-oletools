@@ -1449,6 +1449,12 @@ class Oletools(ServiceBase):
 
                         if self.re_executable_extensions.match(ext):
                             res_alert += 'CODE/EXECUTABLE FILE'
+                        else:
+                            # check if the file content is executable:
+                            m = magic.Magic()
+                            ftype = m.from_buffer(rtfobj.olepkgdata)
+                            if "executable" in ftype:
+                                res_alert += 'CODE/EXECUTABLE FILE'
 
                     else:
                         res_txt += 'Not an OLE Package'
@@ -1466,37 +1472,8 @@ class Oletools(ServiceBase):
                 else:
                     unknown.append((res_txt, res_alert))
 
-            if len(embedded) > 0:
-                emb_sec = ResultSection(SCORE.LOW, "RTF Embedded Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
-                for txt, alert in embedded:
-                    emb_sec.add_line(sep)
-                    emb_sec.add_line(txt)
-                    if alert != "":
-                        emb_sec.score = 1000
-                        emb_sec.add_line("Malicious Properties found: {}" .format(alert))
-                streams_res.add_section(emb_sec)
-            if len(linked) > 0:
-                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
-                for txt, alert in embedded:
-                    lik_sec.add_line(txt)
-                    if alert != "":
-                        lik_sec.score = 1000
-                        lik_sec.add_line("Malicious Properties found: {}" .format(alert))
-                streams_res.add_section(lik_sec)
-            if len(unknown) > 0:
-                unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
-                for txt, alert in embedded:
-                    unk_sec.add_line(txt)
-                    if alert != "":
-                        unk_sec.score = 1000
-                        unk_sec.add_line("Malicious Properties found: {}" .format(alert))
-                streams_res.add_section(unk_sec)
-
-            objects = rtfp.objects
-
-            # Objdata in RTF documents
-            for rtfobj in objects:
-                i = objects.index(rtfobj)
+                # Write object content to extracted file
+                i = rtfp.objects.index(rtfobj)
                 if rtfobj.is_package:
                     if rtfobj.filename:
                         fname = '%s' % (self.sanitize_filename(rtfobj.filename))
@@ -1529,6 +1506,32 @@ class Oletools(ServiceBase):
                     with open(extracted_obj, 'wb') as fh:
                         fh.write(rtfobj.rawdata)
                     self.request.add_extracted(extracted_obj, 'Raw data in object #%d:' % i)
+
+            if len(embedded) > 0:
+                emb_sec = ResultSection(SCORE.LOW, "RTF Embedded Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    emb_sec.add_line(sep)
+                    emb_sec.add_line(txt)
+                    if alert != "":
+                        emb_sec.score = 1000
+                        emb_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(emb_sec)
+            if len(linked) > 0:
+                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    lik_sec.add_line(txt)
+                    if alert != "":
+                        lik_sec.score = 1000
+                        lik_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(lik_sec)
+            if len(unknown) > 0:
+                unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
+                for txt, alert in embedded:
+                    unk_sec.add_line(txt)
+                    if alert != "":
+                        unk_sec.score = 1000
+                        unk_sec.add_line("Malicious Properties found: {}" .format(alert))
+                streams_res.add_section(unk_sec)
 
             if len(streams_res.body) > 0 or len(streams_res.subsections) > 0:
                 self.ole_result.add_section(streams_res)
