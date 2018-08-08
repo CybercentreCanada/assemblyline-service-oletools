@@ -107,6 +107,7 @@ class Oletools(ServiceBase):
         self.all_macros = None
         self.all_vba = None
         self.heurs = set()
+        self.extracted_clsids = None
         self.suspicious_strings = [
             # In maldoc.yara from decalage2/oledump-contrib/blob/master/
             (re.compile(r"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
@@ -221,6 +222,7 @@ class Oletools(ServiceBase):
         self.request = request
         self.sha = request.sha256
         self.scored_macro_uri = False
+        self.extracted_clsids = set()
 
         self.all_macros = []
         self.all_vba = []
@@ -1233,7 +1235,8 @@ class Oletools(ServiceBase):
         # CLSIDS: Report, tag and flag known malicious
         clsid_sec = ResultSection(SCORE.NULL, "CLSIDs:")
         ole_clsid = ole.root.clsid
-        if ole_clsid is not None and ole_clsid not in ['"', "'", ""]:
+        if ole_clsid is not None and ole_clsid not in ['"', "'", ""] and ole_clsid not in self.extracted_clsids:
+            self.extracted_clsids.add(ole_clsid)
             self.ole_result.add_tag(TAG_TYPE["OLE_CLSID"], "{}".format(safe_str(ole_clsid)), TAG_WEIGHT.LOW)
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
