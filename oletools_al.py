@@ -267,9 +267,10 @@ class Oletools(ServiceBase):
         # Base64
         b64_matches = set()
         b64_ascii_content = []
-        for b64_match in re.findall('([\x20](?:[A-Za-z0-9+/]{3,}={0,2}[\r]?[\n]?){6,})',
-                                    data):
-            b64 = b64_match.replace('\n', '').replace('\r', '').replace(' ', '')
+        # '<[\x00]  [\x00]' Character found before some line breaks?? TODO: investigate sample and oletools
+        for b64_match in re.findall('([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})',
+                                    re.sub('\x3C\x00\x20\x20\x00', '', data)):
+            b64 = b64_match.replace('\n', '').replace('\r', '').replace(' ', '').replace('<', '')
             uniq_char = ''.join(set(b64))
             if len(uniq_char) > 6:
                 if len(b64) >= 16 and len(b64) % 4 == 0:
@@ -525,6 +526,7 @@ class Oletools(ServiceBase):
         xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs content:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 content:")
+        extract_xml = 0
         try:
             template_re = re.compile(r'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      r'[Tt]argetMode="External"', re.DOTALL)
@@ -540,6 +542,7 @@ class Oletools(ServiceBase):
                         self.heurs.add(Oletools.AL_Oletools_003)
                     zip_uris.extend(template_re.findall(data))
 
+                    # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
                     if f_iocres:
                         xml_ioc_res.add_section(f_iocres)
@@ -1356,6 +1359,19 @@ class Oletools(ServiceBase):
                                     sus_sec.score += 100
                                 sus_sec.add_line("'{}' string found in stream {}, indicating {}"
                                                  .format(safe_str(matched.group(0)), stream, desc))
+
+                    # Finally look for other IOC patterns
+                    if self.patterns:
+                        ole_ioc_res, extract = self.check_for_patterns(data, stream)
+                        if ole_ioc_res:
+                            extract_stream = True
+                            sus_res = True
+                            sus_sec.add_section(ole_ioc_res)
+                    ole_b64_res, extract = self.check_for_b64(data, stream)
+                    if ole_b64_res:
+                        extract_stream = True
+                        sus_res = True
+                        sus_sec.add_section(ole_b64_res)
 
                     # All streams are extracted with deep scan (see below)
                     if extract_stream and not self.request.deep_scan:
