@@ -1360,8 +1360,8 @@ class Oletools(ServiceBase):
                                 sus_sec.add_line("'{}' string found in stream {}, indicating {}"
                                                  .format(safe_str(matched.group(0)), stream, desc))
 
-                    # Finally look for other IOC patterns
-                    if self.patterns:
+                    # Finally look for other IOC patterns, will ignore SRP streams for now
+                    if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
                         ole_ioc_res, extract = self.check_for_patterns(data, stream)
                         if ole_ioc_res:
                             extract_stream = True
