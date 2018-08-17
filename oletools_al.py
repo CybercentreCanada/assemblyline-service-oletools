@@ -216,7 +216,7 @@ class Oletools(ServiceBase):
         return ''.join([cls.iff(ord(b) >= 32, b, '.') for b in data])
 
     def check_for_patterns(self, data, dataname):
-        extract = False
+        extract = 0
         ioc_res = None
 
         # Use FrankenStrings modules to find other strings of interest
@@ -239,7 +239,7 @@ class Oletools(ServiceBase):
                                 or asc_asc in pat_whitelist:
                             continue
                         else:
-                            extract = self.decide_extract(ty, asc_asc)
+                            extract += self.decide_extract(ty, asc_asc)
                             ioc_res.score += 1
                             ioc_res.add_line("Found %s string: %s in file %s}"
                                                  % (TAG_TYPE[ty].replace("_", " "), asc_asc, dataname))
@@ -252,11 +252,19 @@ class Oletools(ServiceBase):
                                     or v in pat_whitelist:
                                 continue
                             else:
-                                extract = self.decide_extract(ty, v)
+                                extract += self.decide_extract(ty, v)
                                 ioc_res.score += 1
                                 ioc_res.add_line("Found %s string: %s in file %s"
                                                      % (TAG_TYPE[ty].replace("_", " "), v, dataname))
                                 self.ole_result.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
+            if ioc_res:
+                if ioc_res.score == 0:
+                    ioc_res = None
+            if extract == 0:
+                extract = False
+            else:
+                extract = True
+
         return ioc_res, extract
 
     def check_for_b64(self, data, dataname):
@@ -551,7 +559,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_section(f_b64res)
                     extract_xml = extract_ioc+extract_b64
 
-                    if len(extract_xml) > 0 and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
+                    if extract_xml > 0 and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
@@ -584,9 +592,9 @@ class Oletools(ServiceBase):
 
         if xml_target_res.score > 0:
             self.ole_result.add_section(xml_target_res)
-        if xml_ioc_res.score > 0:
+        if len(xml_ioc_res.subsections) > 0:
             self.ole_result.add_section(xml_ioc_res)
-        if xml_b64_res.score > 0:
+        if len(xml_b64_res.subsections) > 0:
             self.ole_result.add_section(xml_b64_res)
 
     @staticmethod
