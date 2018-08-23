@@ -518,11 +518,13 @@ class Oletools(ServiceBase):
                'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
 
         if ty == 'FILE_NAME':
-            fname, fext = val.rsplit('.', 1)
-            if not fext.upper() in foi:
-                return False
-            if fname.startswith("oleObject"):
-                return False
+            # Patterns will look for both common directories and file extensions. Ensure the value can be split.
+            if '.' in val[-4:]:
+                fname, fext = val.rsplit('.', 1)
+                if not fext.upper() in foi:
+                    return False
+                if fname.startswith("oleObject"):
+                    return False
 
         if ty == 'PESTUDIO_BLACKLIST_STRING':
             if val == 'http':
