@@ -69,7 +69,8 @@ class Oletools(ServiceBase):
     SERVICE_RAM_MB = 1024
     SERVICE_DEFAULT_CONFIG = {
         'MACRO_SCORE_MAX_FILE_SIZE': 5 * 1024**2,
-        'MACRO_SCORE_MIN_ALERT': 0.6
+        'MACRO_SCORE_MIN_ALERT': 0.6,
+        'METADATA_SIZE_TO_EXTRACT': 500
     }
 
     MAX_STRINGDUMP_CHARS = 500
@@ -103,6 +104,7 @@ class Oletools(ServiceBase):
         self.macro_words_re = re.compile("[a-z]{3,}")
         self.macro_score_max_size = cfg.get('MACRO_SCORE_MAX_FILE_SIZE', None)
         self.macro_score_min_alert = cfg.get('MACRO_SCORE_MIN_ALERT', 0.6)
+        self.metadata_size_to_extract = cfg.get('METADATA_SIZE_TO_EXTRACT', 500)
 
         self.all_macros = None
         self.all_vba = None
@@ -1252,6 +1254,14 @@ class Oletools(ServiceBase):
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
                 summeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
+                # Extract data over n bytes
+                if isinstance(value, str):
+                    if len(value) > self.metadata_size_to_extract:
+                        meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
+                        meta_path = os.path.join(self.working_directory, meta_name)
+                        with open(meta_path, 'wb') as fh:
+                            fh.write(value)
+                        self.request.add_extracted(meta_path, "OLE metadata from {} attribute" .format(prop.upper()))
                 # Add Tags
                 if prop in ole_tags:
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
@@ -1261,6 +1271,14 @@ class Oletools(ServiceBase):
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
                 docmeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
+                # Extract data over n bytes
+                if isinstance(value, str):
+                    if len(value) > self.metadata_size_to_extract:
+                        meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
+                        meta_path = os.path.join(self.working_directory, meta_name)
+                        with open(meta_path, 'wb') as fh:
+                            fh.write(value)
+                        self.request.add_extracted(meta_path, "OLE metadata from {} attribute" .format(prop.upper()))
                 # Add Tags
                 if prop in ole_tags:
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
