@@ -8,11 +8,12 @@ installation.
 
 ## Configuration Parameters (set by administrator):
 
-- MACRO_SCORE_MAX_FILE_SIZ: A macros section will not be flagged in results if the size is greater than this value. 
+- MACRO_SCORE_MAX_FILE_SIZE: A macros section will not be flagged in results if the size is greater than this value. 
 (Default value: 5 * 1024**2)
 - MACRO_SCORE_MIN_ALERT: Chains.json contains common English trigraphs. We score macros on how common these trigraphs 
 appear in code, skipping over some common keywords. A lower score than this config value indicates more randomized text, 
 and random variable/function names are common in malicious macros. (Default value: 0.6)
+- METADATA_SIZE_TO_EXTRACT: If OLE metadata is larger than this size (in bytes), the service will extract the metadata content as a new file (Default value: 500)  
 
 ## Execution
 
