@@ -852,8 +852,7 @@ class Oletools(ServiceBase):
             rawr_pcode = mraptor.MacroRaptor(all_pcode)
             rawr_pcode.scan()
 
-            if len(rawr_pcode.matches) > 0 and ((rawr_pcode.suspicious and not rawr_vba.suspicious) or not
-                                                all(elem in rawr_vba.matches for elem in rawr_pcode.matches)):
+            if len(rawr_pcode.matches) > 0 and rawr_pcode.suspicious and not rawr_vba.suspicious:
                 self.heurs.add(Oletools.AL_Oletools_004)
                 vba_matches = rawr_vba.matches
                 pcode_matches = rawr_pcode.matches
