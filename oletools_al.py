@@ -107,6 +107,10 @@ class Oletools(ServiceBase):
                                 dedent("""\
                                        Suspicious properties discovered in DDE link object.
                                        """))
+    AL_Oletools_016 = Heuristic("AL_Oletools_016", "Large Metadata Extracted", "document/office",
+                                dedent("""\
+                                       Large metadata content extracted for analysis.
+                                       """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
@@ -1368,6 +1372,7 @@ class Oletools(ServiceBase):
                 # Extract data over n bytes
                 if isinstance(value, str):
                     if len(value) > self.metadata_size_to_extract:
+                        self.heurs.add(Oletools.AL_Oletools_016)
                         meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
                         meta_path = os.path.join(self.working_directory, meta_name)
                         with open(meta_path, 'wb') as fh:
@@ -1385,6 +1390,7 @@ class Oletools(ServiceBase):
                 # Extract data over n bytes
                 if isinstance(value, str):
                     if len(value) > self.metadata_size_to_extract:
+                        self.heurs.add(Oletools.AL_Oletools_016)
                         meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
                         meta_path = os.path.join(self.working_directory, meta_name)
                         with open(meta_path, 'wb') as fh:
