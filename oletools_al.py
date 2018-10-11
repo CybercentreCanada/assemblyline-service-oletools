@@ -108,6 +108,7 @@ class Oletools(ServiceBase):
 
         self.all_macros = None
         self.all_vba = None
+        self.all_pcode = None
         self.heurs = set()
         self.extracted_clsids = None
         self.patterns = None
@@ -140,6 +141,7 @@ class Oletools(ServiceBase):
         from oletools.common import clsid
         import oletools.rtfobj as rtfparse
         from oletools import msodde, oleobj
+        from al_services.alsvc_oletools.pcodedmp import process_doc
         from io import BytesIO
         import magic
         import struct
@@ -154,6 +156,7 @@ class Oletools(ServiceBase):
         global clsid
         global rtfparse
         global msodde, oleobj
+        global process_doc
         global magic
         global struct
         global BytesIO
@@ -405,6 +408,7 @@ class Oletools(ServiceBase):
 
         self.all_macros = []
         self.all_vba = []
+        self.all_pcode = []
 
         path = request.download()
         filename = os.path.basename(path)
@@ -749,28 +753,43 @@ class Oletools(ServiceBase):
                 if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
                     self.ole_result.add_section(macro.macro_section)
 
-            # Create extracted file for all VBA script.
+            # Create extracted file for all VBA script in VBA project files
             if len(self.all_vba) > 0:
                 vba_file_path = ""
                 all_vba = "\n".join(self.all_vba)
                 vba_all_sha256 = hashlib.sha256(all_vba).hexdigest()
-                if vba_all_sha256 == request_hash:
-                    return
+                vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
+                if vba_all_sha256 != request_hash:
+                    try:
+                        with open(vba_file_path, 'w') as fh:
+                            fh.write(all_vba)
 
+                        self.request.add_extracted(vba_file_path, "vba_code",
+                                                   "all_vba_%s.vba" % vba_all_sha256[:15])
+                    except Exception as e:
+                        self.log.error("Error while adding extracted"
+                                       " macro {} for sample {}: {}".format(vba_file_path, self.sha, str(e)))
+
+            # Create extracted file for all VBA script in assembled pcode
+            if len(self.all_pcode) > 0:
+                all_pcode = "\n".join(self.all_pcode)
+                pcode_all_sha256 = hashlib.sha256(all_pcode).hexdigest()
+                pcode_file_path = os.path.join(self.working_directory, pcode_all_sha256)
                 try:
-                    vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
-                    with open(vba_file_path, 'w') as fh:
-                        fh.write(all_vba)
+                    with open(pcode_file_path, 'w') as fh:
+                        fh.write(all_pcode)
 
-                    self.request.add_extracted(vba_file_path, "vba_code",
-                                               "all_vba_%s.vba" % vba_all_sha256[:7])
+                    self.request.add_extracted(pcode_file_path, "pcode",
+                                               "all_pcode_%s.data" % pcode_all_sha256[:15])
                 except Exception as e:
-                    self.log.error("Error while adding extracted"
-                                   " macro {} for sample {}: {}".format(vba_file_path, self.sha, str(e)))
+                    self.log.error("Error while adding extracted pcode {} for sample {}: {}"
+                                   .format(pcode_file_path, self.sha, str(e)))
+
         except Exception as e:
             self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
             section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
             self.ole_result.add_section(section)
+
 
     def check_for_dde_links(self, filepath):
         # noinspection PyBroadException
@@ -885,6 +904,14 @@ class Oletools(ServiceBase):
                 self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
                 section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
                 self.ole_result.add_section(section)
+
+            # Analyze PCode
+            try:
+                pcode_res = process_doc(vba_parser)
+                self.all_pcode.append(pcode_res)
+            except Exception as e:
+                self.log.warning("pcodedmp.py failed to analyze pcode due to: {}" .format(e))
+
         except:
             self.log.debug("OleVBA VBA_Parser constructor failed for sample {}, may not be a supported OLE document"
                            .format(self.sha))
