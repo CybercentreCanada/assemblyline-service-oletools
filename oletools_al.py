@@ -998,7 +998,8 @@ class Oletools(ServiceBase):
             try:
                 if vba_parser:
                     pcode_res = process_doc(vba_parser)
-                    self.all_pcode.append(pcode_res)
+                    if pcode_res:
+                        self.all_pcode.append(pcode_res)
             except Exception as e:
                 self.log.warning("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
 

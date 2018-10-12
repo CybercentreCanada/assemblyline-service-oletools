@@ -1167,7 +1167,7 @@ def pcodeDump(moduleData, vbaProjectData, dirData, identifiers, is64bit, verbose
 
 def processProject(vbaParser, results, verbose, disasmOnly):
     try:
-        str_res = ""
+        str_res = None
         vbaProjects = vbaParser.find_vba_projects()
         if (vbaProjects is None):
             return str_res
