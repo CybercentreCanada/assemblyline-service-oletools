@@ -1167,9 +1167,10 @@ def pcodeDump(moduleData, vbaProjectData, dirData, identifiers, is64bit, verbose
 
 def processProject(vbaParser, results, verbose, disasmOnly):
     try:
+        str_res = ""
         vbaProjects = vbaParser.find_vba_projects()
         if (vbaProjects is None):
-            return
+            return str_res
         for vbaRoot, projectPath, dirPath in vbaProjects:
             # print('=' * 79)
             # if (not disasmOnly):
@@ -1190,13 +1191,14 @@ def processProject(vbaParser, results, verbose, disasmOnly):
             #     print('-' * 79)
             # print('Module streams:')
             results.append('Module streams:')
-            for module in codeModules:
-                modulePath = vbaRoot + 'VBA/' + module
-                moduleData = vbaParser.ole_file.openstream(modulePath).read()
-                results.append('{} - {:d} bytes'.format(modulePath, len(moduleData)))
-                #print ('{} - {:d} bytes'.format(modulePath, len(moduleData)))
-                pcode_res = pcodeDump(moduleData, vbaProjectData, dirData, identifiers, is64bit, verbose, disasmOnly)
-                results.extend(pcode_res)
+            if codeModules:
+                for module in codeModules:
+                    modulePath = vbaRoot + 'VBA/' + module
+                    moduleData = vbaParser.ole_file.openstream(modulePath).read()
+                    results.append('{} - {:d} bytes'.format(modulePath, len(moduleData)))
+                    #print ('{} - {:d} bytes'.format(modulePath, len(moduleData)))
+                    pcode_res = pcodeDump(moduleData, vbaProjectData, dirData, identifiers, is64bit, verbose, disasmOnly)
+                    results.extend(pcode_res)
     except Exception as e:
         raise Exception('Error: {}.'.format(e))
         #print('Error: {}.'.format(e), file=sys.stderr)
