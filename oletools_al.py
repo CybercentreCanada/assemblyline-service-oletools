@@ -463,6 +463,8 @@ class Oletools(ServiceBase):
         self.all_vba = []
         self.all_pcode = []
 
+        self.heurs = set()
+
         path = request.download()
         filename = os.path.basename(path)
         file_contents = request.get()
