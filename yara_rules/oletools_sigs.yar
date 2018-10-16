@@ -22,6 +22,8 @@ rule mraptor_oletools {
         $cs3 = "End Sub" fullword  nocase
         $cs4 = /Sub Auto[_]?Open/  nocase
         $macros = "Attribute VB_"
+        //pcode dump
+        $pcode = "Module streams:"
         //Suspicious strings RE mraptor
         $auto = /\b(Auto(Exec|_?Open|_?Close|Exit|New)|Document(_?Open|_Close|_?BeforeClose|Change|_New)|NewDocument|Workbook(_Open|_Activate|_Close)|\w+_(Painted|Painting|GotFocus|LostFocus|MouseHover|Layout|Click|Change|Resize|BeforeNavigate2|BeforeScriptExecute|DocumentComplete|DownloadBegin|DownloadComplete|FileDownload|NavigateComplete2|NavigateError|ProgressChange|PropertyChange|SetSecureLockIcon|StatusTextChange|TitleChange|MouseMove|MouseEnter|MouseLeave))\b/ nocase
         $write1 = /\b(Kill|ADODB\.Stream|WriteText|SaveAs|SaveAsRTF|SaveSetting|SetAttr)\b/ nocase
@@ -34,7 +36,7 @@ rule mraptor_oletools {
         $sus_execute = /\b(FollowHyperlink|CreateThread|ShellExecute)\b/
 
     condition:
-        ((2 of ($cs*) or $macros or al_tag contains "vbs")) and (any of ($sus*) or ($auto and (any of ($write*) or any of ($execute*))))
+        ((2 of ($cs*) or $macros or $pcode at 0 or al_tag contains "vbs")) and (any of ($sus*) or ($auto and (any of ($write*) or any of ($execute*))))
  }
 
 rule powershell_download {
@@ -87,6 +89,8 @@ rule VBA_external_connections {
         $cs3 = "End Sub" fullword nocase
         $cs4 = /Sub Auto[_]?(Open|Close)/ nocase
         $macros = "Attribute VB_"
+        //pcode dump
+        $pcode = "Module streams:"
         //External connections
         $ex1 = "ConnectServer" nocase
         $ex2 = "InternetCloseHandle" nocase
@@ -99,7 +103,7 @@ rule VBA_external_connections {
         $ex9reg = /http[s]?:\/\//
 
     condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($ex*)
+        (2 of ($cs*) or $macros or $pcode at 0 or al_tag contains "vbs") and any of ($ex*)
 }
 
 /*
@@ -137,8 +141,10 @@ rule VBA_CallByName
         $cs3 = "End Sub" fullword  nocase
         $cs4 = /Sub Auto[_]?Open/  nocase
         $macros = "Attribute VB_"
+        //pcode dump
+        $pcode = "Module streams:"
         // Suspicious Function
         $s = "CallByName" nocase fullword
     condition:
-        ((2 of ($cs*) or $macros) or al_tag contains "vbs") and any of ($s*)
+        (2 of ($cs*) or $macros or $pcode at 0 or al_tag contains "vbs") and any of ($s*)
 }

@@ -50,7 +50,12 @@ The Oletools service will report the following information for each file when pr
 
 4. MSO DDE Links (AL TAG: OLE_DDE_LINK)
 
-5. Service will extract: 
+5. Possible VBA stomping. Determined when difference in suspicious content exists between macro 
+dump and pcode dump. 
+
+6. Service will extract: 
     * All macros content.
+    * All pcode content.
     * Suspicious OLE streams and xml.
+    * DDE Links
     * If in deep scan mode, all OLE streams will be extracted.

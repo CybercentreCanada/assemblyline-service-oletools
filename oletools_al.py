@@ -44,19 +44,72 @@ class Macro(object):
 
 
 class Oletools(ServiceBase):
-    # AL_Oletools_001 = Heuristic("AL_Oletools_001", "Attached Document Template", "document/office/ole",
-    #                             dedent("""\
-    #                                    /Attached template specified in xml relationships. This can be used
-    #                                    for malicious purposes.
-    #                                    """))
-    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office/ole",
+    AL_Oletools_001 = Heuristic("AL_Oletools_001", "Attached Document Template", "document/office",
                                 dedent("""\
-                                       /File contains both old OLE format and new ODF format. This can be
+                                       /Attached template specified in xml relationships (pointing to external source). 
+                                       This can be used for malicious purposes.
+                                       """))
+    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office",
+                                dedent("""\
+                                       File contains both old OLE format and new ODF format. This can be
                                         used to obfuscate malicious content.
                                        """))
-    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office/ole",
+    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office",
                                 dedent("""\
-                                       /File contains parts which are massive. Could not scan entire document.
+                                       File contains parts which are massive. Could not scan entire document.
+                                       """))
+    AL_Oletools_004 = Heuristic("AL_Oletools_004", "Pcode and macros content differ", "document/office",
+                                dedent("""\
+                                       all_pcode dump contains suspicious content not in all_vba dump. Indicates 
+                                       possible VBA stomping.
+                                       """))
+    AL_Oletools_005 = Heuristic("AL_Oletools_005", "Flash content in OLE", "document/office/ole",
+                                dedent("""\
+                                       Flash object detected in OLE stream.
+                                       """))
+    AL_Oletools_006 = Heuristic("AL_Oletools_006", "Hex content in OLE", "document/office/ole",
+                                dedent("""\
+                                       Found large chunk of VBA hex notation in OLE.
+                                       """))
+    AL_Oletools_007 = Heuristic("AL_Oletools_007", "IOC in XML", "document/office",
+                                dedent("""\
+                                       IOC content discovered in compressed XML.
+                                       """))
+    AL_Oletools_008 = Heuristic("AL_Oletools_008", "B64 in XML", "document/office",
+                                dedent("""\
+                                       Base64 content discovered in compressed XML.
+                                       """))
+    AL_Oletools_009 = Heuristic("AL_Oletools_009", "IOC in OLE", "document/office",
+                                dedent("""\
+                                       IOC content discovered in OLE Object.
+                                       """))
+    AL_Oletools_010 = Heuristic("AL_Oletools_010", "B64 in OLE", "document/office",
+                                dedent("""\
+                                       Base64 content discovered in OLE Object.
+                                       """))
+    AL_Oletools_011 = Heuristic("AL_Oletools_011", "Suspicious Embedded RTF", "document/office",
+                                dedent("""\
+                                       Malicious properties discovered in embedded RTF object(s).
+                                       """))
+    AL_Oletools_012 = Heuristic("AL_Oletools_012", "Suspicious Embedded Link", "document/office",
+                                dedent("""\
+                                       Malicious properties discovered in embedded link object(s).
+                                       """))
+    AL_Oletools_013 = Heuristic("AL_Oletools_013", "Suspicious Unknown Object", "document/office",
+                                dedent("""\
+                                       Malicious properties discovered in embedded object(s) of unknown type.
+                                       """))
+    AL_Oletools_014 = Heuristic("AL_Oletools_014", "DDE Link Extracted", "document/office",
+                                dedent("""\
+                                       DDE link object extracted.
+                                       """))
+    AL_Oletools_015 = Heuristic("AL_Oletools_015", "Suspicious DDE Link", "document/office",
+                                dedent("""\
+                                       Suspicious properties discovered in DDE link object.
+                                       """))
+    AL_Oletools_016 = Heuristic("AL_Oletools_016", "Large Metadata Extracted", "document/office",
+                                dedent("""\
+                                       Large metadata content extracted for analysis.
                                        """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
@@ -108,6 +161,7 @@ class Oletools(ServiceBase):
 
         self.all_macros = None
         self.all_vba = None
+        self.all_pcode = None
         self.heurs = set()
         self.extracted_clsids = None
         self.patterns = None
@@ -139,7 +193,8 @@ class Oletools(ServiceBase):
         from oletools.thirdparty.olefile import olefile
         from oletools.common import clsid
         import oletools.rtfobj as rtfparse
-        from oletools import msodde, oleobj
+        from oletools import mraptor, msodde, oleobj
+        from al_services.alsvc_oletools.pcodedmp import process_doc
         from io import BytesIO
         import magic
         import struct
@@ -153,7 +208,8 @@ class Oletools(ServiceBase):
         global olefile, xxxswf
         global clsid
         global rtfparse
-        global msodde, oleobj
+        global mraptor, msodde, oleobj
+        global process_doc
         global magic
         global struct
         global BytesIO
@@ -405,6 +461,9 @@ class Oletools(ServiceBase):
 
         self.all_macros = []
         self.all_vba = []
+        self.all_pcode = []
+
+        self.heurs = set()
 
         path = request.download()
         filename = os.path.basename(path)
@@ -557,9 +616,11 @@ class Oletools(ServiceBase):
                     # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
                     if f_iocres:
+                        self.heurs.add(Oletools.AL_Oletools_007)
                         xml_ioc_res.add_section(f_iocres)
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
+                        self.heurs.add(Oletools.AL_Oletools_008)
                         xml_b64_res.add_section(f_b64res)
                     extract_xml = extract_ioc+extract_b64
 
@@ -590,6 +651,7 @@ class Oletools(ServiceBase):
                 if uris:
                     xml_target_res.score = 500
                     xml_target_res.add_lines(uris)
+                    self.heurs.add(Oletools.AL_Oletools_001)
 
         except Exception as e:
             self.log.debug("Failed to analyze zipped file for sample {}: {}".format(self.sha, e))
@@ -749,28 +811,72 @@ class Oletools(ServiceBase):
                 if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
                     self.ole_result.add_section(macro.macro_section)
 
-            # Create extracted file for all VBA script.
+            # Create extracted file for all VBA script in VBA project files
             if len(self.all_vba) > 0:
-                vba_file_path = ""
                 all_vba = "\n".join(self.all_vba)
                 vba_all_sha256 = hashlib.sha256(all_vba).hexdigest()
-                if vba_all_sha256 == request_hash:
-                    return
+                vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
+                if vba_all_sha256 != request_hash:
+                    try:
+                        with open(vba_file_path, 'w') as fh:
+                            fh.write(all_vba)
 
+                        self.request.add_extracted(vba_file_path, "vba_code",
+                                                   "all_vba_%s.vba" % vba_all_sha256[:15])
+                    except Exception as e:
+                        self.log.error("Error while adding extracted"
+                                       " macro {} for sample {}: {}".format(vba_file_path, self.sha, str(e)))
+            else:
+                all_vba = ""
+
+            # Create extracted file for all VBA script in assembled pcode
+            if len(self.all_pcode) > 0:
+                all_pcode = "\n".join(self.all_pcode)
+                pcode_all_sha256 = hashlib.sha256(all_pcode).hexdigest()
+                pcode_file_path = os.path.join(self.working_directory, pcode_all_sha256)
                 try:
-                    vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
-                    with open(vba_file_path, 'w') as fh:
-                        fh.write(all_vba)
+                    with open(pcode_file_path, 'w') as fh:
+                        fh.write(all_pcode)
 
-                    self.request.add_extracted(vba_file_path, "vba_code",
-                                               "all_vba_%s.vba" % vba_all_sha256[:7])
+                    self.request.add_extracted(pcode_file_path, "pcode",
+                                               "all_pcode_%s.data" % pcode_all_sha256[:15])
                 except Exception as e:
-                    self.log.error("Error while adding extracted"
-                                   " macro {} for sample {}: {}".format(vba_file_path, self.sha, str(e)))
+                    self.log.error("Error while adding extracted pcode {} for sample {}: {}"
+                                   .format(pcode_file_path, self.sha, str(e)))
+
+            else:
+                all_pcode = ""
+
+            # Look for suspicious content in all_vba vs all_pcode. If different, this may indicate VBA stomping
+            rawr_vba = mraptor.MacroRaptor(all_vba)
+            rawr_vba.scan()
+
+            rawr_pcode = mraptor.MacroRaptor(all_pcode)
+            rawr_pcode.scan()
+
+            if len(rawr_pcode.matches) > 0 and rawr_pcode.suspicious and not rawr_vba.suspicious:
+                self.heurs.add(Oletools.AL_Oletools_004)
+                vba_matches = rawr_vba.matches
+                pcode_matches = rawr_pcode.matches
+                stomp_sec = ResultSection(SCORE.VHIGH, "Possible VBA Stomping")
+                stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
+                pcode_stomp_sec = ResultSection(SCORE.NULL, "Pcode dump suspicious content:", parent=stomp_sec)
+                for m in pcode_matches:
+                    pcode_stomp_sec.add_line(m)
+                vba_stomp_sec = ResultSection(SCORE.NULL, "Macro dump suspicious content:", parent=stomp_sec)
+                if len(vba_matches) > 0:
+                    for m in vba_matches:
+                        vba_stomp_sec.add_line(m)
+                else:
+                    vba_stomp_sec.add_line("None.")
+
+                self.ole_result.add_section(stomp_sec)
+
         except Exception as e:
             self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
             section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
             self.ole_result.add_section(section)
+
 
     def check_for_dde_links(self, filepath):
         # noinspection PyBroadException
@@ -846,7 +952,9 @@ class Oletools(ServiceBase):
                                     weight=tag_weight,
                                     usage=TAG_USAGE.CORRELATION)
         if dde_extracted:
+            self.heurs.add(Oletools.AL_Oletools_014)
             if looksbad:
+                self.heurs.add(Oletools.AL_Oletools_015)
                 dde_section.change_score(SCORE.SURE)
             ole_section.add_section(dde_section)
 
@@ -885,6 +993,16 @@ class Oletools(ServiceBase):
                 self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample {}: {}".format(self.sha, e))
                 section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
                 self.ole_result.add_section(section)
+
+            # Analyze PCode
+            try:
+                if vba_parser:
+                    pcode_res = process_doc(vba_parser)
+                    if pcode_res:
+                        self.all_pcode.append(pcode_res)
+            except Exception as e:
+                self.log.warning("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
+
         except:
             self.log.debug("OleVBA VBA_Parser constructor failed for sample {}, may not be a supported OLE document"
                            .format(self.sha))
@@ -1257,6 +1375,7 @@ class Oletools(ServiceBase):
                 # Extract data over n bytes
                 if isinstance(value, str):
                     if len(value) > self.metadata_size_to_extract:
+                        self.heurs.add(Oletools.AL_Oletools_016)
                         meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
                         meta_path = os.path.join(self.working_directory, meta_name)
                         with open(meta_path, 'wb') as fh:
@@ -1274,6 +1393,7 @@ class Oletools(ServiceBase):
                 # Extract data over n bytes
                 if isinstance(value, str):
                     if len(value) > self.metadata_size_to_extract:
+                        self.heurs.add(Oletools.AL_Oletools_016)
                         meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
                         meta_path = os.path.join(self.working_directory, meta_name)
                         with open(meta_path, 'wb') as fh:
@@ -1359,6 +1479,7 @@ class Oletools(ServiceBase):
                     if b'FWS' in data or b'CWS' in data:
                         swf_found = self.extract_swf_objects(fio)
                         if swf_found:
+                            self.heurs.add(Oletools.AL_Oletools_005)
                             extract_stream = True
                             swf_res = True
                             swf_sec.add_line("Flash object detected in OLE stream {}" .format(stream))
@@ -1367,6 +1488,7 @@ class Oletools(ServiceBase):
                     for vbshex in re.findall(self.re_vbs_hex, data):
                         decoded = self.extract_vb_hex(vbshex)
                         if decoded:
+                            self.heurs.add(Oletools.AL_Oletools_006)
                             extract_stream = True
                             hex_res = True
                             hex_sec.add_line("Found large chunk of VBA hex notation in stream {}".format(stream))
@@ -1392,11 +1514,13 @@ class Oletools(ServiceBase):
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
                         ole_ioc_res, extract = self.check_for_patterns(data, stream)
                         if ole_ioc_res:
+                            self.heurs.add(Oletools.AL_Oletools_009)
                             extract_stream = True
                             sus_res = True
                             sus_sec.add_section(ole_ioc_res)
                     ole_b64_res, extract = self.check_for_b64(data, stream)
                     if ole_b64_res:
+                        self.heurs.add(Oletools.AL_Oletools_010)
                         extract_stream = True
                         sus_res = True
                         sus_sec.add_section(ole_b64_res)
@@ -1501,7 +1625,7 @@ class Oletools(ServiceBase):
                 res_txt = ""
                 res_alert = ""
                 if rtfobj.is_ole:
-                    res_txt += 'format_id: %d ' % rtfobj.format_id
+                    res_txt += 'format_id: %d \n' % rtfobj.format_id
                     res_txt += 'class name: %r\n' % rtfobj.class_name
                     # if the object is linked and not embedded, data_size=None:
                     if rtfobj.oledata_size is None:
@@ -1582,6 +1706,7 @@ class Oletools(ServiceBase):
                     emb_sec.add_line(sep)
                     emb_sec.add_line(txt)
                     if alert != "":
+                        self.heurs.add(Oletools.AL_Oletools_011)
                         emb_sec.score = 1000
                         emb_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(emb_sec)
@@ -1590,6 +1715,7 @@ class Oletools(ServiceBase):
                 for txt, alert in embedded:
                     lik_sec.add_line(txt)
                     if alert != "":
+                        self.heurs.add(Oletools.AL_Oletools_012)
                         lik_sec.score = 1000
                         lik_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(lik_sec)
@@ -1598,6 +1724,7 @@ class Oletools(ServiceBase):
                 for txt, alert in embedded:
                     unk_sec.add_line(txt)
                     if alert != "":
+                        self.heurs.add(Oletools.AL_Oletools_013)
                         unk_sec.score = 1000
                         unk_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(unk_sec)
