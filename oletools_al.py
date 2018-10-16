@@ -1625,7 +1625,7 @@ class Oletools(ServiceBase):
                 res_txt = ""
                 res_alert = ""
                 if rtfobj.is_ole:
-                    res_txt += 'format_id: %d ' % rtfobj.format_id
+                    res_txt += 'format_id: %d \n' % rtfobj.format_id
                     res_txt += 'class name: %r\n' % rtfobj.class_name
                     # if the object is linked and not embedded, data_size=None:
                     if rtfobj.oledata_size is None:
