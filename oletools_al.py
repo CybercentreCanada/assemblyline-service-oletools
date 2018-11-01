@@ -1414,7 +1414,7 @@ class Oletools(ServiceBase):
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
             if 'CVE' in clsid_desc:
-                cve = re.search(r'CVE-[0-9]{4}-[0-9]*', clsid_desc)
+                cve = re.search(r'CVE-[0-9]{4}-[0-9]*', clsid_desc).group()
                 clsid_sec.score = 500
                 mal_msg = " FLAGGED MALICIOUS"
                 self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
@@ -1710,7 +1710,7 @@ class Oletools(ServiceBase):
                     if alert != "":
                         self.heurs.add(Oletools.AL_Oletools_011)
                         if "CVE" in alert.lower():
-                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert).group()
                             self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         emb_sec.score = 1000
                         emb_sec.add_line("Malicious Properties found: {}" .format(alert))
@@ -1721,7 +1721,7 @@ class Oletools(ServiceBase):
                     lik_sec.add_line(txt)
                     if alert != "":
                         if "CVE" in alert.lower():
-                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert).group()
                             self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         self.heurs.add(Oletools.AL_Oletools_012)
                         lik_sec.score = 1000
@@ -1733,7 +1733,7 @@ class Oletools(ServiceBase):
                     unk_sec.add_line(txt)
                     if alert != "":
                         if "CVE" in alert.lower():
-                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            cve = re.search(r'CVE-[0-9]{4}-[0-9]*', alert).group()
                             self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         self.heurs.add(Oletools.AL_Oletools_013)
                         unk_sec.score = 1000
