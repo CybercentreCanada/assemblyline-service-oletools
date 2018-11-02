@@ -1001,7 +1001,7 @@ class Oletools(ServiceBase):
                     if pcode_res:
                         self.all_pcode.append(pcode_res)
             except Exception as e:
-                self.log.warning("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
+                self.log.debug("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
 
         except:
             self.log.debug("OleVBA VBA_Parser constructor failed for sample {}, may not be a supported OLE document"
