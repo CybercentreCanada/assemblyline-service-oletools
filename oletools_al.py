@@ -1001,7 +1001,7 @@ class Oletools(ServiceBase):
                     if pcode_res:
                         self.all_pcode.append(pcode_res)
             except Exception as e:
-                self.log.warning("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
+                self.log.debug("pcodedmp.py failed to analyze pcode for sample {}. Reason: {}" .format(self.sha, e))
 
         except:
             self.log.debug("OleVBA VBA_Parser constructor failed for sample {}, may not be a supported OLE document"
@@ -1414,9 +1414,13 @@ class Oletools(ServiceBase):
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
             if 'CVE' in clsid_desc:
+                cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', clsid_desc)
+                for cve in cves:
+                    self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                 clsid_sec.score = 500
                 mal_msg = " FLAGGED MALICIOUS"
             clsid_sec.add_line("{}: {}{}" .format(ole_clsid, clsid_desc, mal_msg))
+
 
         if len(clsid_sec.body) > 0:
             streams_section.add_section(clsid_sec)
@@ -1635,7 +1639,7 @@ class Oletools(ServiceBase):
                     if rtfobj.is_package:
                         res_txt = 'Filename: %r\n' % rtfobj.filename
                         res_txt += 'Source path: %r\n' % rtfobj.src_path
-                        res_txt += 'Temp path = %r' % rtfobj.temp_path
+                        res_txt += 'Temp path = %r\n' % rtfobj.temp_path
 
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtfobj.filename)
@@ -1648,7 +1652,6 @@ class Oletools(ServiceBase):
                             ftype = m.from_buffer(rtfobj.olepkgdata)
                             if "executable" in ftype:
                                 res_alert += 'CODE/EXECUTABLE FILE'
-
                     else:
                         res_txt += 'Not an OLE Package'
                     # Detect OLE2Link exploit
@@ -1707,6 +1710,10 @@ class Oletools(ServiceBase):
                     emb_sec.add_line(txt)
                     if alert != "":
                         self.heurs.add(Oletools.AL_Oletools_011)
+                        if "CVE" in alert.lower():
+                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            for cve in cves:
+                                self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         emb_sec.score = 1000
                         emb_sec.add_line("Malicious Properties found: {}" .format(alert))
                 streams_res.add_section(emb_sec)
@@ -1715,6 +1722,10 @@ class Oletools(ServiceBase):
                 for txt, alert in embedded:
                     lik_sec.add_line(txt)
                     if alert != "":
+                        if "CVE" in alert.lower():
+                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            for cve in cves:
+                                self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         self.heurs.add(Oletools.AL_Oletools_012)
                         lik_sec.score = 1000
                         lik_sec.add_line("Malicious Properties found: {}" .format(alert))
@@ -1724,6 +1735,10 @@ class Oletools(ServiceBase):
                 for txt, alert in embedded:
                     unk_sec.add_line(txt)
                     if alert != "":
+                        if "CVE" in alert.lower():
+                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                            for cve in cves:
+                                self.ole_result.add_tag('EXPLOIT_NAME', cve, TAG_WEIGHT.LOW)
                         self.heurs.add(Oletools.AL_Oletools_013)
                         unk_sec.score = 1000
                         unk_sec.add_line("Malicious Properties found: {}" .format(alert))
