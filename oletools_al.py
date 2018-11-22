@@ -111,6 +111,10 @@ class Oletools(ServiceBase):
                                 dedent("""\
                                        Large metadata content extracted for analysis.
                                        """))
+    AL_Oletools_017 = Heuristic("AL_Oletools_017", "Thumbnail Extracted", "document/office",
+                                dedent("""\
+                                       Embedded thumbnail from OLE metadata extracted.
+                                       """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
@@ -1367,31 +1371,45 @@ class Oletools(ServiceBase):
         # OLE Meta
         meta = ole.get_metadata()
         meta_sec = ResultSection(SCORE.NULL, "OLE Metadata:")
-        summeta_sec = ResultSection(SCORE.NULL, "Properties from the SummaryInformation Stream:", parent=meta_sec)
+        # Summary Information
+        summeta_sec = ResultSection(SCORE.NULL, "Properties from the Summary Information Stream:", parent=meta_sec)
         for prop in meta.SUMMARY_ATTRIBS:
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
-                summeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
+                if prop == "thumbnail":
+                    self.heurs.add(Oletools.AL_Oletools_017)
+                    meta_name = '{}.{}.data'.format(hashlib.sha256(value).hexdigest()[0:15], prop)
+                    meta_path = os.path.join(self.working_directory, meta_name)
+                    with open(meta_path, 'wb') as fh:
+                        fh.write(value)
+                    self.request.add_extracted(meta_path, "OLE metadata thumbnail extracted".format(prop.upper()))
+                    summeta_sec.add_line("{}: [see extracted files]".format(prop))
+                    continue
                 # Extract data over n bytes
                 if isinstance(value, str):
                     if len(value) > self.metadata_size_to_extract:
-                        self.heurs.add(Oletools.AL_Oletools_016)
-                        meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
-                        meta_path = os.path.join(self.working_directory, meta_name)
-                        with open(meta_path, 'wb') as fh:
-                            fh.write(value)
-                        self.request.add_extracted(meta_path, "OLE metadata from {} attribute" .format(prop.upper()))
+                        if len(value) > self.metadata_size_to_extract:
+                            self.heurs.add(Oletools.AL_Oletools_016)
+                            meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
+                            meta_path = os.path.join(self.working_directory, meta_name)
+                            with open(meta_path, 'wb') as fh:
+                                fh.write(value)
+                            self.request.add_extracted(meta_path, "OLE metadata from {} attribute" .format(prop.upper()))
+                            summeta_sec.add_line("{}: [Over {} bytes, see extracted files]"
+                                                 .format(prop, self.metadata_size_to_extract))
+                            continue
+                summeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
                 # Add Tags
                 if prop in ole_tags:
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
-        docmeta_sec = ResultSection(SCORE.NULL, "Properties from the DocumentSummaryInformation Stream:",
+        # Document Summary
+        docmeta_sec = ResultSection(SCORE.NULL, "Properties from the Document Summary Information Stream:",
                                     parent=meta_sec)
         for prop in meta.DOCSUM_ATTRIBS:
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
-                docmeta_sec.add_line("{}: {}" .format(prop, safe_str(value)))
-                # Extract data over n bytes
                 if isinstance(value, str):
+                    # Extract data over n bytes
                     if len(value) > self.metadata_size_to_extract:
                         self.heurs.add(Oletools.AL_Oletools_016)
                         meta_name = '{}.{}.data' .format(hashlib.sha256(value).hexdigest()[0:15], prop)
@@ -1399,9 +1417,14 @@ class Oletools(ServiceBase):
                         with open(meta_path, 'wb') as fh:
                             fh.write(value)
                         self.request.add_extracted(meta_path, "OLE metadata from {} attribute" .format(prop.upper()))
+                        docmeta_sec.add_line("{}: [Over {} bytes, see extracted files]"
+                                             .format(prop, self.metadata_size_to_extract))
+                        continue
+                docmeta_sec.add_line("{}: {}".format(prop, safe_str(value)))
                 # Add Tags
                 if prop in ole_tags:
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
+
         if len(summeta_sec.body)+len(docmeta_sec.body) > 0:
             streams_section.add_section(meta_sec)
 
