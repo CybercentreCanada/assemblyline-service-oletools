@@ -1311,7 +1311,7 @@ class Oletools(ServiceBase):
                                          .format(safe_str(matched.group(0)), ole10native.filename, desc))
 
             if suspicious:
-                streams_section.add_section(suspicious)
+                streams_section.add_section(sus_sec)
 
             return True
         except Exception as e:
