@@ -1456,6 +1456,7 @@ class Oletools(ServiceBase):
                 decompress = True
         decompress_macros = []
 
+        stream_num = 0
         exstr_sec = None
         if self.request.deep_scan:
             exstr_sec = ResultSection(SCORE.NULL, "Extracted Ole streams:", body_format=TEXT_FORMAT.MEMORY_DUMP)
@@ -1554,6 +1555,7 @@ class Oletools(ServiceBase):
 
                     # All streams are extracted with deep scan (see below)
                     if extract_stream and not self.request.deep_scan:
+                        stream_num += 1
                         stream_name = '{}.ole_stream'.format(stm_sha)
                         stream_path = os.path.join(self.working_directory, stream_name)
                         with open(stream_path, 'w') as fh:
@@ -1564,6 +1566,7 @@ class Oletools(ServiceBase):
 
                     # Only write all streams with deep scan.
                     if self.request.deep_scan:
+                        stream_num += 1
                         exstr_sec.add_line("Stream Name:{}, SHA256: {}" .format(stream, stm_sha))
                         stream_name = '{}.ole_stream'.format(stm_sha)
                         stream_path = os.path.join(self.working_directory, stream_name)
@@ -1577,7 +1580,7 @@ class Oletools(ServiceBase):
                     self.log.warning("Error adding extracted stream {} for sample {}:\t{}".format(stream, self.sha, e))
                     continue
 
-        if exstr_sec:
+        if exstr_sec and stream_num > 0:
             streams_section.add_section(exstr_sec)
         if ole10_res:
             streams_section.add_section(ole10_sec)
