@@ -130,6 +130,9 @@ class Oletools(ServiceBase):
         'METADATA_SIZE_TO_EXTRACT': 500
     }
 
+    # OLEtools minimum version supported
+    SUPPORTED_VERSION = "0.53.1"
+
     MAX_STRINGDUMP_CHARS = 500
     MAX_STRING_SCORE = SCORE.VHIGH
     MAX_MACRO_SECTIONS = 3
@@ -138,24 +141,34 @@ class Oletools(ServiceBase):
     # in addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
+    # Regex's
+    DOMAIN_RE = '^((?:(?:[a-zA-Z0-9\-]+)\.)+[a-zA-Z]{2,5})'
+    EXECUTABLE_EXTENSIONS_RE = r"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE|VB|JSE|JS|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR" \
+                               r"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
+    IP_RE = r'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
+    URI_RE = r'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
+    VBS_HEX_RE = r'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
+    SUSPICIOUS_STRINGS = [
+        # In maldoc.yara from decalage2/oledump-contrib/blob/master/
+        (r"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
+         r"|IsBadWritePtr|LoadLibrary|ReadFile|SetFilePointer|ShellExecute|URLDownloadToFile|VirtualAlloc|WinExec"
+         r"|WriteFile)", "use of suspicious system function"),
+        # EXE
+        (r'This program cannot be run in DOS mode', "embedded executable"),
+        (r'(?s)MZ.{32,1024}PE\000\000', "embedded executable"),
+        # Javascript
+        (r'(function\(|\beval[ \t]*\(|new[ \t]+ActiveXObject\(|xfa\.((resolve|create)Node|datasets|form)'
+         r'|\.oneOfChild)', "embedded javascript")
+    ]
+
     def __init__(self, cfg=None):
         super(Oletools, self).__init__(cfg)
         self._oletools_version = ''
-        self.supported_ole_version = "0.53.1"
         self.request = None
         self.task = None
         self.ole_result = None
         self.scored_macro_uri = False
-        self.ip_re = re.compile(
-            r'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
-        )
-        self.domain_re = re.compile('^((?:(?:[a-zA-Z0-9\-]+)\.)+[a-zA-Z]{2,5})')
-        self.uri_re = re.compile(r'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+')
-        self.re_executable_extensions = re.compile(r"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE|VB|JSE|JS"
-                                                   r"|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR|HTA|CPL|CLASS|JAR|PS1XML|PS1"
-                                                   r"|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b")
 
-        self.re_vbs_hex = re.compile(r'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}')
         self.word_chains = None
         self.macro_skip_words = None
         self.macro_words_re = re.compile("[a-z]{3,}")
@@ -169,27 +182,15 @@ class Oletools(ServiceBase):
         self.heurs = set()
         self.extracted_clsids = None
         self.patterns = None
-        self.suspicious_strings = [
-            # In maldoc.yara from decalage2/oledump-contrib/blob/master/
-            (re.compile(r"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
-             "|IsBadWritePtr|LoadLibrary|ReadFile|SetFilePointer|ShellExecute|URLDownloadToFile|VirtualAlloc|WinExec"
-             "|WriteFile)"), "use of suspicious system function"),
-            # EXE
-            (re.compile(r'This program cannot be run in DOS mode', re.M), "embedded executable"),
-            (re.compile(r'(?s)MZ.{32,1024}PE\000\000'), "embedded executable"),
-            # Javascript
-            (re.compile(r'(function\(|\beval[ \t]*\(|new[ \t]+ActiveXObject\(|xfa\.((resolve|create)Node|datasets|form)|'
-             '\.oneOfChild)'), "embedded javascript"),
-        ]
 
     # noinspection PyUnresolvedReferences
     def import_service_deps(self):
         # Check version and exit when latest supported version is not installed
         si = SiteInstaller()
-        if not si.check_version("oletools", self.supported_ole_version):
+        if not si.check_version("oletools", self.SUPPORTED_VERSION):
             raise NonRecoverableError("Oletools version out of date (requires {}). Reinstall service on worker(s) "
                                       "with /opt/al/pkg/assemblyline/al/install/reinstall_service.py Oletools"
-                                      .format(self.supported_ole_version))
+                                      .format(self.SUPPORTED_VERSION))
 
         from oletools.olevba import VBA_Parser, VBA_Scanner
         from oletools.oleid import OleID, Indicator
@@ -532,7 +533,7 @@ class Oletools(ServiceBase):
     # Returns True if the URI should score
     # noinspection PyUnusedLocal
     def parse_uri(self, check_uri):
-        m = self.uri_re.match(check_uri)
+        m = re.match(self.URI_RE, check_uri)
         if m is None:
             return False, ""
         else:
@@ -559,8 +560,8 @@ class Oletools(ServiceBase):
                                     usage=TAG_USAGE.CORRELATION)
             scorable = True
 
-            domain = self.domain_re.match(uri)
-            ip = self.ip_re.match(uri)
+            domain = re.match(self.DOMAIN_RE, uri)
+            ip = re.match(self.IP_RE, uri)
             if ip:
                 ip_str = ip.group(1)
                 if not is_ip_reserved(ip_str):
@@ -1201,7 +1202,7 @@ class Oletools(ServiceBase):
                         # olevba seems to have swapped the keyword for description during iocs extraction
                         # this holds true until at least version 0.27
 
-                        desc_ip = self.ip_re.match(description)
+                        desc_ip = re.match(self.IP_RE, description)
                         puri, duri = self.parse_uri(description)
                         if puri:
                             subsection.add_line("{}: {}".format(keyword, duri))
@@ -1513,7 +1514,7 @@ class Oletools(ServiceBase):
                             swf_sec.add_line("Flash object detected in OLE stream {}" .format(stream))
 
                     # Find hex encoded chunks
-                    for vbshex in re.findall(self.re_vbs_hex, data):
+                    for vbshex in re.findall(self.VBS_HEX_RE, data):
                         decoded = self.extract_vb_hex(vbshex)
                         if decoded:
                             self.heurs.add(Oletools.AL_Oletools_006)
@@ -1523,8 +1524,8 @@ class Oletools(ServiceBase):
 
                     # Find suspicious strings
                     # Look for suspicious strings
-                    for pattern, desc in self.suspicious_strings:
-                        matched = re.search(pattern, data)
+                    for pattern, desc in self.SUSPICIOUS_STRINGS:
+                        matched = re.search(pattern, data, re.M)
                         if matched:
                             if "_VBA_PROJECT" not in stream:
                                 extract_stream = True
@@ -1670,7 +1671,7 @@ class Oletools(ServiceBase):
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtfobj.filename)
 
-                        if self.re_executable_extensions.match(ext):
+                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
