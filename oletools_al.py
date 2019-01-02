@@ -115,6 +115,10 @@ class Oletools(ServiceBase):
                                 dedent("""\
                                        Embedded thumbnail from OLE metadata extracted.
                                        """))
+    AL_Oletools_018 = Heuristic("AL_Oletools_018", "Large malformed OLE Object Extracted", "document/office",
+                                dedent("""\
+                                       Large malformed OLE object extracted from sample.
+                                       """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
@@ -1687,6 +1691,9 @@ class Oletools(ServiceBase):
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
                     res_txt = '%08X is not a well-formed OLE object' % (rtfobj.start)
+                    if len(rtfobj.rawdata) > 4999:
+                        res_alert += "Data of malformed OLE object over 5000 bytes"
+                    self.heurs.add(Oletools.AL_Oletools_018)
 
                 if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
                     embedded.append((res_txt, res_alert))
