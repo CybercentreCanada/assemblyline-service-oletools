@@ -1685,7 +1685,7 @@ class Oletools(ServiceBase):
                     if rtfobj.class_name == 'OLE2Link':
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
-                    res_txt = 'Not a well-formed OLE object'
+                    res_txt = '%08X is not a well-formed OLE object' % (rtfobj.start)
 
                 if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
                     embedded.append((res_txt, res_alert))
@@ -1745,7 +1745,7 @@ class Oletools(ServiceBase):
                 streams_res.add_section(emb_sec)
             if len(linked) > 0:
                 lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
-                for txt, alert in embedded:
+                for txt, alert in linked:
                     lik_sec.add_line(txt)
                     if alert != "":
                         if "CVE" in alert.lower():
@@ -1758,7 +1758,7 @@ class Oletools(ServiceBase):
                 streams_res.add_section(lik_sec)
             if len(unknown) > 0:
                 unk_sec = ResultSection(SCORE.LOW, "Unknown Object Details", body_format=TEXT_FORMAT.MEMORY_DUMP)
-                for txt, alert in embedded:
+                for txt, alert in unknown:
                     unk_sec.add_line(txt)
                     if alert != "":
                         if "CVE" in alert.lower():
