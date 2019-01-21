@@ -255,33 +255,6 @@ class Oletools(ServiceBase):
     def get_tool_version(self):
         return self._oletools_version
 
-    # CIC: Call If Callable
-    @staticmethod
-    def cic(expression):
-        """
-        From 'base64dump.py' by Didier Stevens@https://DidierStevens.com
-        """
-        if callable(expression):
-            return expression()
-        else:
-            return expression
-
-    # IFF: IF Function
-    @classmethod
-    def iff(cls, expression, value_true, value_false):
-        """
-        From 'base64dump.py' by Didier Stevens@https://DidierStevens.com
-        """
-        if expression:
-            return cls.cic(value_true)
-        else:
-            return cls.cic(value_false)
-
-    # Ascii Dump
-    @classmethod
-    def ascii_dump(cls, data):
-        return ''.join([cls.iff(ord(b) >= 32, b, '.') for b in data])
-
     def check_for_patterns(self, data, dataname):
         extract = 0
         ioc_res = None
@@ -390,10 +363,11 @@ class Oletools(ServiceBase):
                         if check_utf16 != "":
                             asc_b64 = check_utf16
                         else:
-                            asc_b64 = self.ascii_dump(base64data)
+                            # Filter printable characters then put in results
+                            asc_b64 = "".join(i for i in base64data if 31 < ord(i) < 127)
                         # If data has less then 7 uniq chars then ignore
                         uniq_char = ''.join(set(asc_b64))
-                        if len(uniq_char) > 6:
+                        if len(uniq_char) > 6 and len(re.sub("\s", "", asc_b64)) > 14:
                             if self.patterns:
                                 st_value = self.patterns.ioc_match(asc_b64, bogon_ip=True)
                                 if len(st_value) > 0:
