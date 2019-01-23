@@ -120,7 +120,7 @@ class Oletools(ServiceBase):
                                        Large malformed OLE object extracted from sample.
                                        """))
     SERVICE_CATEGORY = 'Static Analysis'
-    SERVICE_ACCEPTS = 'document/office/.*'
+    SERVICE_ACCEPTS = 'document/office/.*|code/xml'
     SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
                           "Microsoft OLE and XML documents using the Python library py-oletools."
     SERVICE_ENABLED = True
