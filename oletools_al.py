@@ -1534,7 +1534,7 @@ class Oletools(ServiceBase):
         meta = ole.get_metadata()
         meta_sec = ResultSection(SCORE.NULL, "OLE Metadata:")
         # Summary Information
-        summeta_sec = ResultSection(SCORE.NULL, "Properties from the Summary Information Stream:", parent=meta_sec)
+        summeta_sec = ResultSection(SCORE.NULL, "Properties from the Summary Information Stream:")
         for prop in meta.SUMMARY_ATTRIBS:
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
@@ -1565,8 +1565,7 @@ class Oletools(ServiceBase):
                 if prop in ole_tags:
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
         # Document Summary
-        docmeta_sec = ResultSection(SCORE.NULL, "Properties from the Document Summary Information Stream:",
-                                    parent=meta_sec)
+        docmeta_sec = ResultSection(SCORE.NULL, "Properties from the Document Summary Information Stream:")
         for prop in meta.DOCSUM_ATTRIBS:
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
@@ -1588,6 +1587,10 @@ class Oletools(ServiceBase):
                     self.ole_result.add_tag(TAG_TYPE[ole_tags[prop]], "{}" .format(value), TAG_WEIGHT.LOW)
 
         if len(summeta_sec.body)+len(docmeta_sec.body) > 0:
+            if len(summeta_sec.body) > 0:
+                meta_sec.add_section(summeta_sec)
+            if len(docmeta_sec.body) > 0:
+                meta_sec.add_section(docmeta_sec)
             streams_section.add_section(meta_sec)
 
         # CLSIDS: Report, tag and flag known malicious
