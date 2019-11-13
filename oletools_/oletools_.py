@@ -25,13 +25,13 @@ from pcodedmp import process_doc
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.str_utils import safe_str
 from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from oletools_.stream_parser import Ole10Native, PowerPointDoc
 
+PatternMatch = None
 try:
-    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
-
     global PatternMatch
+    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
 except ImportError:
     pass
 
@@ -514,18 +514,18 @@ class Oletools(ServiceBase):
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
-                        self.heurs.add(Oletools.AL_Oletools_003)
+                        xml_target_res.set_heuristic(3)
                     zip_uris.extend(template_re.findall(data))
 
                     # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
                     if f_iocres:
-                        self.heurs.add(Oletools.AL_Oletools_007)
-                        xml_ioc_res.add_section(f_iocres)
+                        f_iocres.set_heuristic(7)
+                        xml_ioc_res.add_subsection(f_iocres)
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
-                        self.heurs.add(Oletools.AL_Oletools_008)
-                        xml_b64_res.add_section(f_b64res)
+                        f_b64res.set_heuristic(8)
+                        xml_b64_res.add_subsection(f_b64res)
                     extract_xml = extract_ioc+extract_b64
 
                     if extract_xml > 0 and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
@@ -539,7 +539,7 @@ class Oletools(ServiceBase):
                                 self.request.add_extracted(xml_file_path, f"zipped file {f} contents", xml_sha256)
                                 xml_extracted.add(xml_sha256)
                             except Exception as e:
-                                self.log.error("Error while adding extracted content {xml_file_path} for "
+                                self.log.error(f"Error while adding extracted content {xml_file_path} for "
                                                f"sample {self.sha}: {str(e)}")
 
                 z.close()
@@ -554,7 +554,7 @@ class Oletools(ServiceBase):
                 if uris:
                     xml_target_res.score = 500
                     xml_target_res.add_lines(uris)
-                    self.heurs.add(Oletools.AL_Oletools_001)
+                    xml_target_res.set_heuristic(1)
 
         except Exception as e:
             self.log.debug(f"Failed to analyze zipped file for sample {self.sha}: {str(e)}")
@@ -804,10 +804,10 @@ class Oletools(ServiceBase):
             rawr_pcode.scan()
 
             if len(rawr_pcode.matches) > 0 and rawr_pcode.suspicious and not rawr_vba.suspicious:
-                self.heurs.add(Oletools.AL_Oletools_004)
                 vba_matches = rawr_vba.matches
                 pcode_matches = rawr_pcode.matches
-                stomp_sec = ResultSection(SCORE.VHIGH, "Possible VBA Stomping")
+                stomp_sec = ResultSection("Possible VBA Stomping")
+                stomp_sec.set_heuristic(4)
                 stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
                 pcode_stomp_sec = ResultSection("Pcode dump suspicious content:", parent=stomp_sec)
                 for m in pcode_matches:
@@ -1106,7 +1106,7 @@ class Oletools(ServiceBase):
                 if m.group(1):
                     i = int(m.group(1))
 
-                    # unichr range is platform dependent, either [0..0xFFFF] or [0..0x10FFFF]
+                    # chr range is platform dependent, either [0..0xFFFF] or [0..0x10FFFF]
                     if (i >= 0) and ((i <= 0xFFFF) or (i <= 0x10FFFF)):
                         return f'"{chr(i)}"'
                 return ''
@@ -1502,19 +1502,19 @@ class Oletools(ServiceBase):
                     if b'FWS' in data or b'CWS' in data:
                         swf_found = self.extract_swf_objects(fio)
                         if swf_found:
-                            self.heurs.add(Oletools.AL_Oletools_005)
                             extract_stream = True
                             swf_res = True
                             swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
+                            swf_sec.set_heuristic(5)
 
                     # Find hex encoded chunks
                     for vbshex in re.findall(self.VBS_HEX_RE, data):
                         decoded = self.extract_vb_hex(vbshex)
                         if decoded:
-                            self.heurs.add(Oletools.AL_Oletools_006)
                             extract_stream = True
                             hex_res = True
                             hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
+                            hex_sec.set_heuristic(6)
 
                     # Find suspicious strings
                     # Look for suspicious strings
@@ -1537,13 +1537,13 @@ class Oletools(ServiceBase):
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
                         ole_ioc_res, extract = self.check_for_patterns(data, stream)
                         if ole_ioc_res:
-                            self.heurs.add(Oletools.AL_Oletools_009)
+                            ole_ioc_res.set_heuristic(9)
                             extract_stream = True
                             sus_res = True
                             sus_sec.add_subsection(ole_ioc_res)
                     ole_b64_res, extract = self.check_for_b64(data, stream)
                     if ole_b64_res:
-                        self.heurs.add(Oletools.AL_Oletools_010)
+                        ole_b64_res.set_heuristic(10)
                         extract_stream = True
                         sus_res = True
                         sus_sec.add_subsection(ole_b64_res)
@@ -1636,7 +1636,7 @@ class Oletools(ServiceBase):
                 oles[file_name] = olefile.OleFileIO(file_name)
 
             if is_zip and is_ole:
-                self.heurs.add(Oletools.AL_Oletools_002)
+                streams_res.set_heuristic(2)
 
             for ole_filename in oles.keys():
                 try:
@@ -1739,16 +1739,16 @@ class Oletools(ServiceBase):
                     emb_sec.add_line(sep)
                     emb_sec.add_line(txt)
                     if alert != "":
-                        self.heurs.add(Oletools.AL_Oletools_011)
+                        emb_sec.set_heuristic(11)
                         if "CVE" in alert.lower():
                             cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
                             for cve in cves:
                                 self.ole_result.add_tag('attribution.exploit', cve)
-                        emb_sec.score = 1000
                         emb_sec.add_line(f"Malicious Properties found: {alert}")
                 streams_res.add_subsection(emb_sec)
             if len(linked) > 0:
-                lik_sec = ResultSection(SCORE.LOW, "Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
+                lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                        heuristic=Heuristic('12a'))
                 for txt, alert in linked:
                     lik_sec.add_line(txt)
                     if alert != "":
@@ -1756,8 +1756,7 @@ class Oletools(ServiceBase):
                             cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
                             for cve in cves:
                                 self.ole_result.add_tag('attribution.exploit', cve)
-                        self.heurs.add(Oletools.AL_Oletools_012)
-                        lik_sec.score = 1000
+                        lik_sec.set_heuristic(12)
                         lik_sec.add_line(f"Malicious Properties found: {alert}")
                 streams_res.add_subsection(lik_sec)
             if len(unknown) > 0:

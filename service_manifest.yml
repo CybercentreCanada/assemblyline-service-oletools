@@ -26,34 +26,125 @@ config:
 
 heuristics:
   - heur_id: 1
-    name: Info
-    score: 10
-    filetype: '*'
-    description: Yara rule - Info group
+    name: Attached Document Template
+    score:
+    filetype: document/office
+    description: >-
+      Attached template specified in xml relationships (pointing to external source).
+      This can be used for malicious purposes.
 
   - heur_id: 2
-    name: Technique
-    score: 100
-    filetype: '*'
-    description: Yara rule - Technique group
+    name: Multi-embedded documents
+    score:
+    filetype: document/office
+    description: >-
+      File contains both old OLE format and new ODF format. This can be
+      used to obfuscate malicious content.
 
   - heur_id: 3
-    name: Exploit
-    score: 500
-    filetype: '*'
-    description: Yara rule - Exploit group
+    name: Massive document
+    score:
+    filetype: document/office
+    description: >-
+      File contains parts which are massive. Could not scan entire document.
 
   - heur_id: 4
-    name: Tool
-    score: 1000
-    filetype: '*'
-    description: Yara rule - Tool group
+    name: Pcode and macros content differ
+    score: 500
+    filetype: document/office
+    description: >-
+      all_pcode dump contains suspicious content not in all_vba dump. Indicates
+      possible VBA stomping.
 
   - heur_id: 5
-    name: Malware
+    name: Flash content in OLE
+    score:
+    filetype: document/office/ole
+    description: Flash object detected in OLE stream.
+
+  - heur_id: 6
+    name: Hex content in OLE
+    score:
+    filetype: document/office/ole
+    description: Found large chunk of VBA hex notation in OLE.
+
+  - heur_id: 7
+    name: IOC in XML
+    score:
+    filetype: document/office
+    description: IOC content discovered in compressed XML.
+
+  - heur_id: 8
+    name: B64 in XML
+    score:
+    filetype: document/office
+    description: Base64 content discovered in compressed XML.
+
+  - heur_id: 9
+    name: IOC in OLE
+    score:
+    filetype: document/office
+    description: IOC content discovered in OLE Object.
+
+  - heur_id: 10
+    name: B64 in OLE
+    score:
+    filetype: document/office
+    description: Base64 content discovered in OLE Object.
+
+  - heur_id: 11
+    name: Suspicious Embedded RTF
     score: 1000
-    filetype: '*'
-    description: Yara rule - Malware group
+    filetype: document/office
+    description: Malicious properties discovered in embedded RTF object(s).
+
+  - heur_id: 12
+    name: Suspicious Embedded Link
+    score: 1000
+    filetype: document/office
+    description: Malicious properties discovered in embedded link object(s).
+
+  - heur_id: 12a
+    name: Linked Object
+    score: 10
+    filetype: document/office
+    description: Malicious properties discovered in embedded link object(s).
+
+  - heur_id: 13
+    name: Suspicious Unknown Object
+    score:
+    filetype: document/office
+    description: Malicious properties discovered in embedded object(s) of unknown type.
+
+  - heur_id: 14
+    name: DDE Link Extracted
+    score:
+    filetype: document/office
+    description: DDE link object extracted.
+
+  - heur_id: 15
+    name: Suspicious DDE Link
+    score:
+    filetype: document/office
+    description: Suspicious properties discovered in DDE link object.
+
+  - heur_id: 16
+    name: Large Metadata Extracted
+    score:
+    filetype: document/office
+    description: Large metadata content extracted for analysis.
+
+  - heur_id: 17
+    name: Thumbnail Extracted
+    score:
+    filetype: document/office
+    description: Embedded thumbnail from OLE metadata extracted.
+
+  - heur_id: 18
+    name: Large malformed OLE Object Extracted
+    score:
+    filetype: document/office
+    description: Large malformed OLE object extracted from sample.
 
 docker_config:
   image: cccs/assemblyline-service-oletools:latest
@@ -68,82 +159,3 @@ update_config:
     command: ["python", "-m", "yara_.yara_updater"]
     image: cccs/assemblyline-service-yara:latest
   update_interval_seconds: 3600
-
-
-
-####################
-AL_Oletools_001 = Heuristic("AL_Oletools_001", "Attached Document Template", "document/office",
-                                dedent("""\
-                                       /Attached template specified in xml relationships (pointing to external source).
-                                       This can be used for malicious purposes.
-                                       """))
-    AL_Oletools_002 = Heuristic("AL_Oletools_002", "Multi-embedded documents", "document/office",
-                                dedent("""\
-                                       File contains both old OLE format and new ODF format. This can be
-                                        used to obfuscate malicious content.
-                                       """))
-    AL_Oletools_003 = Heuristic("AL_Oletools_003", "Massive document", "document/office",
-                                dedent("""\
-                                       File contains parts which are massive. Could not scan entire document.
-                                       """))
-    AL_Oletools_004 = Heuristic("AL_Oletools_004", "Pcode and macros content differ", "document/office",
-                                dedent("""\
-                                       all_pcode dump contains suspicious content not in all_vba dump. Indicates
-                                       possible VBA stomping.
-                                       """))
-    AL_Oletools_005 = Heuristic("AL_Oletools_005", "Flash content in OLE", "document/office/ole",
-                                dedent("""\
-                                       Flash object detected in OLE stream.
-                                       """))
-    AL_Oletools_006 = Heuristic("AL_Oletools_006", "Hex content in OLE", "document/office/ole",
-                                dedent("""\
-                                       Found large chunk of VBA hex notation in OLE.
-                                       """))
-    AL_Oletools_007 = Heuristic("AL_Oletools_007", "IOC in XML", "document/office",
-                                dedent("""\
-                                       IOC content discovered in compressed XML.
-                                       """))
-    AL_Oletools_008 = Heuristic("AL_Oletools_008", "B64 in XML", "document/office",
-                                dedent("""\
-                                       Base64 content discovered in compressed XML.
-                                       """))
-    AL_Oletools_009 = Heuristic("AL_Oletools_009", "IOC in OLE", "document/office",
-                                dedent("""\
-                                       IOC content discovered in OLE Object.
-                                       """))
-    AL_Oletools_010 = Heuristic("AL_Oletools_010", "B64 in OLE", "document/office",
-                                dedent("""\
-                                       Base64 content discovered in OLE Object.
-                                       """))
-    AL_Oletools_011 = Heuristic("AL_Oletools_011", "Suspicious Embedded RTF", "document/office",
-                                dedent("""\
-                                       Malicious properties discovered in embedded RTF object(s).
-                                       """))
-    AL_Oletools_012 = Heuristic("AL_Oletools_012", "Suspicious Embedded Link", "document/office",
-                                dedent("""\
-                                       Malicious properties discovered in embedded link object(s).
-                                       """))
-    AL_Oletools_013 = Heuristic("AL_Oletools_013", "Suspicious Unknown Object", "document/office",
-                                dedent("""\
-                                       Malicious properties discovered in embedded object(s) of unknown type.
-                                       """))
-    AL_Oletools_014 = Heuristic("AL_Oletools_014", "DDE Link Extracted", "document/office",
-                                dedent("""\
-                                       DDE link object extracted.
-                                       """))
-    AL_Oletools_015 = Heuristic("AL_Oletools_015", "Suspicious DDE Link", "document/office",
-                                dedent("""\
-                                       Suspicious properties discovered in DDE link object.
-                                       """))
-    AL_Oletools_016 = Heuristic("AL_Oletools_016", "Large Metadata Extracted", "document/office",
-                                dedent("""\
-                                       Large metadata content extracted for analysis.
-                                       """))
-    AL_Oletools_017 = Heuristic("AL_Oletools_017", "Thumbnail Extracted", "document/office",
-                                dedent("""\
-                                       Embedded thumbnail from OLE metadata extracted.
-                                       """))
-    AL_Oletools_018 = Heuristic("AL_Oletools_018", "Large malformed OLE Object Extracted", "document/office",
-                                dedent("""\
-                                       Large malformed OLE object extracted from sample.
-                                       """))
