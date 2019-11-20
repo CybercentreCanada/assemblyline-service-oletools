@@ -24,23 +24,10 @@ from pcodedmp import process_doc
 
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.str_utils import safe_str
+from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from oletools_.stream_parser import Ole10Native, PowerPointDoc
-
-PatternMatch = None
-try:
-    global PatternMatch
-    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
-except ImportError:
-    pass
-
-VBA_Parser = None
-VBA_Scanner = None
-OleID = None
-Indicator = None
-olefile = None
-rtf_iter_objects = None
 
 
 class Macro(object):
