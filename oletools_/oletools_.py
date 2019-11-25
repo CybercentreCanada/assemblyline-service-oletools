@@ -230,9 +230,8 @@ class Oletools(ServiceBase):
                     ftype = m.from_buffer(base64data)
                     if 'octet-stream' not in ftype:
                         b64_file_path = os.path.join(self.working_directory, f"{sha256hash[0:10]}_b64_decoded")
-                        self.request.add_extracted(b64_file_path,
-                                                   "Extracted b64 file during "
-                                                   "OLETools analysis.")
+                        self.request.add_extracted(b64_file_path, os.path.basename(b64_file_path),
+                                                   "Extracted b64 file during OLETools analysis")
                         with open(b64_file_path, 'wb') as b64_file:
                             b64_file.write(base64data)
                             self.log.debug(f"Submitted dropped file for analysis: {b64_file_path}")
@@ -312,8 +311,7 @@ class Oletools(ServiceBase):
             try:
                 with open(b64_file_path, 'w') as fh:
                     fh.write(all_b64)
-                self.request.add_extracted(b64_file_path, f"b64 for {dataname}",
-                                           f"b64_{b64_all_sha256[:7]}.txt")
+                self.request.add_extracted(b64_file_path, f"b64_{b64_all_sha256[:7]}.txt", f"b64 for {dataname}")
             except Exception as e:
                 self.log.error("Error while adding extracted "
                                f"b64 content {b64_file_path} for sample {self.sha}: {str(e)}")
@@ -523,7 +521,7 @@ class Oletools(ServiceBase):
                                 with open(xml_file_path, 'wb') as fh:
                                     fh.write(data)
 
-                                self.request.add_extracted(xml_file_path, f"zipped file {f} contents", xml_sha256)
+                                self.request.add_extracted(xml_file_path, xml_sha256, f"zipped file {f} contents")
                                 xml_extracted.add(xml_sha256)
                             except Exception as e:
                                 self.log.error(f"Error while adding extracted content {xml_file_path} for "
@@ -646,7 +644,8 @@ class Oletools(ServiceBase):
             swf_path = os.path.join(self.working_directory, f'{swf_md5}.swf')
             with open(swf_path, 'wb') as fh:
                 fh.write(swf)
-            self.request.add_extracted(swf_path, text="Flash file extracted during sample analysis")
+            self.request.add_extracted(swf_path, os.path.basename(swf_path),
+                                       "Flash file extracted during sample analysis")
             swf_found = True
         return swf_found
 
@@ -671,7 +670,8 @@ class Oletools(ServiceBase):
         hex_path = os.path.join(self.working_directory, f'{hex_md5}.hex.decoded')
         with open(hex_path, 'w') as fh:
             fh.write(decoded)
-        self.request.add_extracted(hex_path, text="Large hex encoded chunks detected during sample analysis")
+        self.request.add_extracted(hex_path, os.path.basename(hex_path),
+                                   "Large hex encoded chunks detected during sample analysis")
 
         return True
 
@@ -760,7 +760,7 @@ class Oletools(ServiceBase):
                         with open(vba_file_path, 'w') as fh:
                             fh.write(all_vba)
 
-                        self.request.add_extracted(vba_file_path, "vba_code", f"all_vba_{vba_all_sha256[:15]}.vba")
+                        self.request.add_extracted(vba_file_path, f"all_vba_{vba_all_sha256[:15]}.vba", "vba_code")
                     except Exception as e:
                         self.log.error(f"Error while adding extracted macro {vba_file_path} for "
                                        f"sample {self.sha}: {str(e)}")
@@ -776,7 +776,7 @@ class Oletools(ServiceBase):
                     with open(pcode_file_path, 'w') as fh:
                         fh.write(all_pcode)
 
-                    self.request.add_extracted(pcode_file_path, "pcode", f"all_pcode_{pcode_all_sha256[:15]}.data")
+                    self.request.add_extracted(pcode_file_path, f"all_pcode_{pcode_all_sha256[:15]}.data", "pcode")
                 except Exception as e:
                     self.log.error(f"Error while adding extracted pcode {pcode_file_path} for sample {self.sha}: {str(e)}")
 
@@ -852,7 +852,7 @@ class Oletools(ServiceBase):
         ddeout_path = os.path.join(self.working_directory, ddeout_name)
         with open(ddeout_path, 'w') as fh:
             fh.write(links_text)
-        self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Original DDE Links")
+        self.request.add_extracted(ddeout_path, "Original DDE Links", ddeout_name)
 
         """ typical results look like this:
         DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
@@ -891,7 +891,7 @@ class Oletools(ServiceBase):
                 ddeout_path = os.path.join(self.working_directory, ddeout_name)
                 with open(ddeout_path, 'w') as fh:
                     fh.write(link_text)
-                self.request.add_extracted(name=ddeout_path, text=ddeout_name, display_name="Tweaked DDE Link")
+                self.request.add_extracted(ddeout_path, "Tweaked DDE Link", ddeout_name)
 
                 link_text_lower = link_text.lower()
                 if any(x in link_text_lower for x in suspicious_keywords):
@@ -1216,7 +1216,8 @@ class Oletools(ServiceBase):
                             fh.write(part_data)
                         try:
                             mime_res.add_line(part_filename)
-                            self.request.add_extracted(part_path, "ActiveMime x-mso from multipart/related.")
+                            self.request.add_extracted(part_path, os.path.basename(part_path),
+                                                       "ActiveMime x-mso from multipart/related.")
                         except Exception as e:
                             self.log.error(f"Error submitting extracted file for sample {self.sha}: {str(e)}")
                     except Exception as e:
@@ -1249,7 +1250,8 @@ class Oletools(ServiceBase):
             stream_desc = f"{stream_name} ({ole10native.label}):\n\tFilename: {ole10native.filename}\n\t" \
                           f"Data Length: {ole10native.native_data_size}"
             streams_section.add_line(stream_desc)
-            self.request.add_extracted(ole10_stream_file, f"Embedded OLE Stream {stream_name}")
+            self.request.add_extracted(ole10_stream_file, os.path.basename(ole10_stream_file),
+                                       f"Embedded OLE Stream {stream_name}")
 
             # handle embedded native macros
             if ole10native.label.endswith(".vbs") or \
@@ -1319,9 +1321,8 @@ class Oletools(ServiceBase):
                     streams_section.add_line(f"\tPowerPoint Embedded OLE Storage:\n\t\tSHA-256: {ole_hash}\n\t\t"
                                              f"Length: {len(obj.raw)}\n\t\tCompressed: {obj.compressed}")
                     self.log.debug(f"Added OLE stream within a PowerPoint Document Stream: {ole_obj_filename}")
-                    self.request.add_extracted(ole_obj_filename,
-                                               "Embedded OLE Storage within PowerPoint Document Stream",
-                                               f"ExeOleObjStg_{ole_hash}")
+                    self.request.add_extracted(ole_obj_filename, f"ExeOleObjStg_{ole_hash}",
+                                               "Embedded OLE Storage within PowerPoint Document Stream")
             return True
         except Exception as e:
             self.log.warning(f"Failed to parse PowerPoint Document stream for sample {self.sha}: {str(e)}")
@@ -1365,7 +1366,7 @@ class Oletools(ServiceBase):
                     meta_path = os.path.join(self.working_directory, meta_name)
                     with open(meta_path, 'wb') as fh:
                         fh.write(value)
-                    self.request.add_extracted(meta_path, "OLE metadata thumbnail extracted")
+                    self.request.add_extracted(meta_path, os.path.basename(meta_path), "OLE metadata thumbnail extracted")
                     summeta_sec.add_line(f"{prop}: [see extracted files]")
                     continue
                 # Extract data over n bytes
@@ -1377,7 +1378,7 @@ class Oletools(ServiceBase):
                             meta_path = os.path.join(self.working_directory, meta_name)
                             with open(meta_path, 'w') as fh:
                                 fh.write(value)
-                            self.request.add_extracted(meta_path, f"OLE metadata from {prop.upper()} attribute")
+                            self.request.add_extracted(meta_path, os.path.basename(meta_path), f"OLE metadata from {prop.upper()} attribute")
                             summeta_sec.add_line(f"{prop}: [Over {self.metadata_size_to_extract} bytes, see extracted files]")
                             continue
                 summeta_sec.add_line(f"{prop}: {safe_str(value)}")
@@ -1397,7 +1398,8 @@ class Oletools(ServiceBase):
                         meta_path = os.path.join(self.working_directory, meta_name)
                         with open(meta_path, 'w') as fh:
                             fh.write(value)
-                        self.request.add_extracted(meta_path, f"OLE metadata from {prop.upper()} attribute")
+                        self.request.add_extracted(meta_path, os.path.basename(meta_path),
+                                                   f"OLE metadata from {prop.upper()} attribute")
                         docmeta_sec.add_line(f"{prop}: [Over {self.metadata_size_to_extract} bytes, see extracted files]")
                         continue
                 docmeta_sec.add_line(f"{prop}: {safe_str(value)}")
@@ -1542,7 +1544,8 @@ class Oletools(ServiceBase):
                         stream_path = os.path.join(self.working_directory, stream_name)
                         with open(stream_path, 'w') as fh:
                             fh.write(data)
-                        self.request.add_extracted(stream_path, f"Embedded OLE Stream {stream}.")
+                        self.request.add_extracted(stream_path, os.path.basename(stream_path),
+                                                   f"Embedded OLE Stream {stream}")
                         if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                             decompress_macros.append(data)
 
@@ -1554,7 +1557,8 @@ class Oletools(ServiceBase):
                         stream_path = os.path.join(self.working_directory, stream_name)
                         with open(stream_path, 'w') as fh:
                             fh.write(data)
-                        self.request.add_extracted(stream_path, f"Embedded OLE Stream {stream}.")
+                        self.request.add_extracted(stream_path, os.path.basename(stream_path),
+                                                   f"Embedded OLE Stream {stream}")
                         if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                             decompress_macros.append(data)
 
@@ -1584,7 +1588,7 @@ class Oletools(ServiceBase):
             stream_path = os.path.join(self.working_directory, stream_name)
             with open(stream_path, 'w') as fh:
                 fh.write(macros)
-            self.request.add_extracted(stream_path, "Combined macros.", "all_macros.ps")
+            self.request.add_extracted(stream_path, "all_macros.ps", "Combined macros")
 
     # noinspection PyBroadException
     def extract_streams(self, file_name, file_contents):
@@ -1695,7 +1699,8 @@ class Oletools(ServiceBase):
                     extracted_obj = os.path.join(self.working_directory, fname)
                     with open(extracted_obj, 'wb') as fh:
                         fh.write(rtfobj.olepkgdata)
-                    self.request.add_extracted(extracted_obj, f'OLE Package in object #{i}:')
+                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
+                                               f'OLE Package in object #{i}:')
 
                 # When format_id=TYPE_LINKED, oledata_size=None
                 elif rtfobj.is_ole and rtfobj.oledata_size is not None:
@@ -1711,14 +1716,16 @@ class Oletools(ServiceBase):
                     extracted_obj = os.path.join(self.working_directory, fname)
                     with open(extracted_obj, 'wb') as fh:
                         fh.write(rtfobj.oledata)
-                    self.request.add_extracted(extracted_obj, f'Embedded in OLE object #{i}:')
+                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
+                                               f'Embedded in OLE object #{i}:')
 
                 else:
                     fname = f'object_{hex(rtfobj.start)}.raw'
                     extracted_obj = os.path.join(self.working_directory, fname)
                     with open(extracted_obj, 'wb') as fh:
                         fh.write(rtfobj.rawdata)
-                    self.request.add_extracted(extracted_obj, f'Raw data in object #{i}:')
+                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
+                                               f'Raw data in object #{i}:')
 
             if len(embedded) > 0:
                 emb_sec = ResultSection(SCORE.LOW, "RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
