@@ -1,10 +1,10 @@
 FROM cccs/assemblyline-v4-service-base:latest
 
-ENV SERVICE_PATH beaver.beaver.Beaver
+ENV SERVICE_PATH oletools_.oletools_.Oletools
 
 # Get required apt packages
 RUN apt-get update && apt-get install -y \
-  libmysqlclient-dev
+  default-libmysqlclient-dev
 
 RUN pip install \
   pcodedmp \
