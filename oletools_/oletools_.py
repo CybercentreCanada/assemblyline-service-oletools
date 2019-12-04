@@ -165,19 +165,21 @@ class Oletools(ServiceBase):
                             # Determine if entity should be extracted
                             extract += self.decide_extract(ty, asc_asc)
                             score += 1
-                            ioc_res.add_line(f"Found {ty.replace('_', ' ')} string: {asc_asc} in file {dataname}")
+                            ioc_res.add_line(f"Found {ty.replace('.', ' ')} string: {asc_asc} in file {dataname}")
                             ioc_res.add_tag(ty, asc_asc)
                     else:
                         ulis = list(set(val))
                         for v in ulis:
-                            if any(bytes(x, 'utf8') in v for x in pat_strs) \
-                                    or v.endswith(tuple(pat_ends)) \
-                                    or v in pat_whitelist:
+                            if any(str(x) in str(v) for x in pat_strs) \
+                                    or str(v).endswith(tuple([str(x) for x in pat_ends])) \
+                                    or str(v) in [str(x) for x in pat_whitelist]:
                                 continue
                             else:
                                 extract += self.decide_extract(ty, v)
                                 score += 1
-                                ioc_res.add_line(f"Found {ty.replace('_', ' ')} string: {v} in file {dataname}")
+                                if isinstance(v, bytes):
+                                    v = v.decode()
+                                ioc_res.add_line(f"Found {ty.replace('.', ' ')} string: {v} in file {dataname}")
                                 ioc_res.add_tag(ty, v)
             if ioc_res:
                 if score == 0:
@@ -466,16 +468,16 @@ class Oletools(ServiceBase):
         foi = ['APK', 'APP', 'BAT', 'BIN', 'CLASS', 'CMD', 'DAT', 'DLL', 'EXE', 'JAR', 'JS', 'JSE', 'LNK', 'MSI',
                'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
 
-        if ty == 'FILE_NAME':
+        if ty == 'file.name.extracted':
             # Patterns will look for both common directories and file extensions. Ensure the value can be split.
-            if '.' in val[-4:]:
-                fname, fext = val.rsplit('.', 1)
+            if b'.' in val[-4:]:
+                fname, fext = val.rsplit(b'.', 1)
                 if not fext.upper() in foi:
                     return False
                 if fname.startswith("oleObject"):
                     return False
 
-        if ty == 'PESTUDIO_BLACKLIST_STRING':
+        if ty == 'file.string.blacklisted':
             if val == 'http':
                 return False
 
@@ -557,8 +559,8 @@ class Oletools(ServiceBase):
                     for tag in tags_all:
                         xml_target_res.add_tag(tag[0], tag[1])
 
-        except Exception as e:
-            self.log.debug(f"Failed to analyze zipped file for sample {self.sha}: {str(e)}")
+        except Exception:
+            self.log.debug(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
         if len(xml_ioc_res.subsections) > 0:
             self.ole_result.add_section(xml_ioc_res)
@@ -1603,22 +1605,23 @@ class Oletools(ServiceBase):
                         if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                             decompress_macros.append(data)
 
-                except Exception as e:
-                    self.log.warning(f"Error adding extracted stream {stream} for sample {self.sha}:\t{str(e)}")
+                except Exception:
+                    self.log.warning(f"Error adding extracted stream {stream} for sample "
+                                     f"{self.sha}:\t{traceback.format_exc()}")
                     continue
 
         if exstr_sec and stream_num > 0:
-            streams_section.add_section(exstr_sec)
+            streams_section.add_subsection(exstr_sec)
         if ole10_res:
-            streams_section.add_section(ole10_sec)
+            streams_section.add_subsection(ole10_sec)
         if pwrpnt_res:
-            streams_section.add_section(pwrpnt_sec)
+            streams_section.add_subsection(pwrpnt_sec)
         if swf_res:
-            streams_section.add_section(swf_sec)
+            streams_section.add_subsection(swf_sec)
         if hex_res:
-            streams_section.add_section(hex_sec)
+            streams_section.add_subsection(hex_sec)
         if sus_res:
-            streams_section.add_section(sus_sec)
+            streams_section.add_subsection(sus_sec)
 
         if decompress_macros:
             # HWP Files
