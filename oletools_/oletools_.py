@@ -763,7 +763,7 @@ class Oletools(ServiceBase):
             #     self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
 
             for macro in filtered_macros:
-                if macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
+                if macro.macro_score and macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
                     self.ole_result.add_section(macro.macro_section)
 
             # Create extracted file for all VBA script in VBA project files
@@ -826,7 +826,7 @@ class Oletools(ServiceBase):
                 self.ole_result.add_section(stomp_sec)
 
         except Exception as e:
-            self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {str(e)}")
+            self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {traceback.format_exc()}")
             section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
             self.ole_result.add_section(section)
 
@@ -948,10 +948,10 @@ class Oletools(ServiceBase):
                             self.all_vba.append(vba_code)
                             macro_section = self.macro_section_builder(vba_code)
                             macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
-                            # toplevel_score = self.calculate_nested_scores(macro_section)
+                            toplevel_score = self.calculate_nested_scores(macro_section)
 
                             self.all_macros.append(Macro(vba_code, vba_code_sha256, macro_section,
-                                                         #toplevel_score
+                                                         toplevel_score
                             ))
                     except Exception as e:
                         self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: {str(e)}")
@@ -1289,8 +1289,6 @@ class Oletools(ServiceBase):
                     ole10native.command.endswith(".vbs") or \
                     ole10native.filename.endswith(".vbs"):
 
-
-
                 self.all_vba.append(ole10native.native_data)
                 macro_section = self.macro_section_builder(ole10native.native_data)
                 macro_section.add_tag('technique.macro', "Contains Embedded VBA Macro(s)")
@@ -1306,10 +1304,10 @@ class Oletools(ServiceBase):
                     matched = re.search(pattern, ole10native.native_data)
                     if matched:
                         suspicious = True
-                        if 'javascript' in desc:
+                        if b'javascript' in desc:
                             sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
                                                                  heuristic=Heuristic(23)))
-                        if 'executable' in desc:
+                        if b'executable' in desc:
                             sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
                                                                  heuristic=Heuristic(24)))
                         else:
@@ -1421,7 +1419,7 @@ class Oletools(ServiceBase):
                             continue
                 summeta_sec.add_line(f"{prop}: {safe_str(value)}")
                 # Add Tags
-                if prop in ole_tags:
+                if prop in ole_tags and value:
                     summeta_sec.add_tag(ole_tags[prop], value)
         # Document Summary
         docmeta_sec = ResultSection("Properties from the Document Summary Information Stream:")
@@ -1443,13 +1441,13 @@ class Oletools(ServiceBase):
                         continue
                 docmeta_sec.add_line(f"{prop}: {safe_str(value)}")
                 # Add Tags
-                if prop in ole_tags:
+                if prop in ole_tags and value:
                     docmeta_sec.add_tag(ole_tags[prop], value)
 
-        if len(summeta_sec.body)+len(docmeta_sec.body) > 0:
-            if len(summeta_sec.body) > 0:
+        if summeta_sec.body or docmeta_sec.body:
+            if summeta_sec.body:
                 meta_sec.add_subsection(summeta_sec)
-            if len(docmeta_sec.body) > 0:
+            if docmeta_sec.body:
                 meta_sec.add_subsection(docmeta_sec)
             streams_section.add_subsection(meta_sec)
 
@@ -1469,7 +1467,7 @@ class Oletools(ServiceBase):
                 mal_msg = " FLAGGED MALICIOUS"
             clsid_sec.add_line(f"{ole_clsid}: {clsid_desc}{mal_msg}")
 
-        if len(clsid_sec.body) > 0:
+        if clsid_sec.body:
             streams_section.add_subsection(clsid_sec)
 
         listdir = ole.listdir()
