@@ -954,7 +954,7 @@ class Oletools(ServiceBase):
                                                          toplevel_score
                             ))
                     except Exception as e:
-                        self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: {str(e)}")
+                        self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: {traceback.format_exc()}")
                         section = ResultSection("OleVBA : Error extracting macros")
                         section.add_tag('technique.macro', "Contains VBA Macro(s)")
                         self.ole_result.add_section(section)
@@ -985,7 +985,10 @@ class Oletools(ServiceBase):
         Returns:
            Score as int.
         """
-        score = section.heuristic  # TODO: get score
+        if section.heuristic:
+            score = section.heuristic['score']
+        else:
+            score = 0
         if len(section.subsections) > 0:
             for subsection in section.subsections:
                 score = score + self.calculate_nested_scores(subsection)
