@@ -514,7 +514,8 @@ class Oletools(ServiceBase):
                     # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
                     if f_iocres:
-                        f_iocres.set_heuristic(7)
+                        if not f_iocres.heuristic:
+                            f_iocres.set_heuristic(7)
                         xml_ioc_res.add_subsection(f_iocres)
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
@@ -1171,7 +1172,7 @@ class Oletools(ServiceBase):
 
                 if len(vba_scanner.suspicious_keywords) > 0:
                     subsection = ResultSection("Suspicious strings or functions")
-                    if len(vba_scanner.suspicious_keywords) <= 5:
+                    if len(vba_scanner.suspicious_keywords) <= 3:
                         subsection.set_heuristic(30)
                     else:
                         subsection.set_heuristic(31)

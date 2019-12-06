@@ -207,14 +207,14 @@ heuristics:
     description: Potential host or network IOCs
 
   - heur_id: 30
-    name: Suspicious strings or functions (0-250)
-    score: 250
+    name: Suspicious strings or functions (1-3)
+    score: 150
     filetype: document/office
     description: Suspicious strings or functions
 
   - heur_id: 31
-    name: Suspicious strings or functions (251-500)
-    score: 500
+    name: Suspicious strings or functions (4+)
+    score: 300
     filetype: document/office
     description: Suspicious strings or functions
 
