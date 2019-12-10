@@ -1,0 +1,272 @@
+name: Oletools
+version: 1
+description: >-
+  This service extracts metadata, network information and reports anomalies in
+  Microsoft OLE and XML documents using the Python library py-oletools by Philippe
+  Lagadec - http://www.decalage.info.
+
+accepts: document/office/.*|code/xml
+rejects: empty|metadata/.*
+
+stage: CORE
+category: Static Analysis
+
+file_required: true
+timeout: 60
+disable_cache: false
+
+enabled: true
+is_external: false
+licence_count: 0
+
+config:
+  macro_score_max_file_size: 5242880  # 5 * 1024**2
+  macro_score_min_alert: 0.6
+  metadata_size_to_extract: 500
+
+heuristics:
+  - heur_id: 1
+    name: Attached Document Template
+    score: 0
+    filetype: document/office
+    description: >-
+      Attached template specified in xml relationships (pointing to external source).
+      This can be used for malicious purposes.
+
+  - heur_id: 2
+    name: Multi-embedded documents
+    score: 0
+    filetype: document/office
+    description: >-
+      File contains both old OLE format and new ODF format. This can be
+      used to obfuscate malicious content.
+
+  - heur_id: 3
+    name: Massive document
+    score: 0
+    filetype: document/office
+    description: >-
+      File contains parts which are massive. Could not scan entire document.
+
+  - heur_id: 4
+    name: Pcode and macros content differ
+    score: 500
+    filetype: document/office
+    description: >-
+      all_pcode dump contains suspicious content not in all_vba dump. Indicates
+      possible VBA stomping.
+
+  - heur_id: 5
+    name: Flash content in OLE
+    score: 10
+    filetype: document/office/ole
+    description: Flash object detected in OLE stream.
+
+  - heur_id: 6
+    name: Hex content in OLE
+    score: 500
+    filetype: document/office/ole
+    description: Found large chunk of VBA hex notation in OLE.
+
+  - heur_id: 7
+    name: IOC in XML
+    score: 0
+    filetype: document/office
+    description: IOC content discovered in compressed XML.
+
+  - heur_id: 8
+    name: B64 in XML
+    score: 0
+    filetype: document/office
+    description: Base64 content discovered in compressed XML.
+
+  - heur_id: 9
+    name: IOC in OLE
+    score: 0
+    filetype: document/office
+    description: IOC content discovered in OLE Object.
+
+  - heur_id: 10
+    name: B64 in OLE
+    score: 0
+    filetype: document/office
+    description: Base64 content discovered in OLE Object.
+
+  - heur_id: 11
+    name: Suspicious Embedded RTF
+    score: 1000
+    filetype: document/office
+    description: Malicious properties discovered in embedded RTF object(s).
+
+  - heur_id: 12
+    name: Suspicious Embedded Link
+    score: 1000
+    filetype: document/office
+    description: Malicious properties discovered in embedded link object(s).
+
+  - heur_id: 13
+    name: Linked Object
+    score: 10
+    filetype: document/office
+    description: Malicious properties discovered in embedded link object(s).
+
+  - heur_id: 14
+    name: Suspicious Unknown Object
+    score: 1000
+    filetype: document/office
+    description: Malicious properties discovered in embedded object(s) of unknown type.
+
+  - heur_id: 15
+    name: DDE Link Extracted
+    score: 50
+    filetype: document/office
+    description: DDE link object extracted.
+
+  - heur_id: 16
+    name: Suspicious DDE Link
+    score: 1000
+    filetype: document/office
+    description: Suspicious properties discovered in DDE link object.
+
+  - heur_id: 17
+    name: Large Metadata Extracted
+    score: 0
+    filetype: document/office
+    description: Large metadata content extracted for analysis.
+
+  - heur_id: 18
+    name: Thumbnail Extracted
+    score: 0
+    filetype: document/office
+    description: Embedded thumbnail from OLE metadata extracted.
+
+  - heur_id: 19
+    name: Large malformed OLE Object Extracted
+    score: 0
+    filetype: document/office
+    description: Large malformed OLE object extracted from sample.
+
+  - heur_id: 20
+    name: Packed or obfuscated macro
+    score: 100
+    filetype: document/office
+    description: Macro may be packed or obfuscated.
+
+  - heur_id: 21
+    name: RTF Embedded Object
+    score: 10
+    filetype: document/office
+    description: RTF Embedded Object.
+
+  - heur_id: 22
+    name: Compressed macros found
+    score: 100
+    filetype: document/office
+    description: Compressed macros found.
+
+  - heur_id: 23
+    name: "Suspicious string found: 'javascript'"
+    score: 500
+    filetype: document/office
+    description: "Suspicious string found: 'javascript'"
+
+  - heur_id: 24
+    name: "Suspicious string found: 'executable'"
+    score: 500
+    filetype: document/office
+    description: "Suspicious string found: 'executable'"
+
+  - heur_id: 25
+    name: "Suspicious string found"
+    score: 500
+    filetype: document/office
+    description: "Suspicious string found"
+
+  - heur_id: 26
+    name: ActiveMime Document(s) in multipart/related
+    score: 500
+    filetype: document/office
+    description: ActiveMime Document(s) in multipart/related
+
+  - heur_id: 27
+    name: Found network indicator(s) within macros
+    score: 500
+    filetype: document/office
+    description: Found network indicator(s) within macros
+
+  - heur_id: 28
+    name: Potential host or network IOCs (0-250)
+    score: 250
+    filetype: document/office
+    description: Potential host or network IOCs
+
+  - heur_id: 29
+    name: Potential host or network IOCs (251-500)
+    score: 500
+    filetype: document/office
+    description: Potential host or network IOCs
+
+  - heur_id: 30
+    name: Suspicious strings or functions (1-3)
+    score: 150
+    filetype: document/office
+    description: Suspicious strings or functions
+
+  - heur_id: 31
+    name: Suspicious strings or functions (4+)
+    score: 300
+    filetype: document/office
+    description: Suspicious strings or functions
+
+  - heur_id: 32
+    name: Autoexecution strings (0-250)
+    score: 250
+    filetype: document/office
+    description: Autoexecution strings
+
+  - heur_id: 33
+    name: Autoexecution strings (251-500)
+    score: 500
+    filetype: document/office
+    description: Autoexecution strings
+
+  - heur_id: 34
+    name: OleID Indicator Found
+    score: 10
+    filetype: document/office
+    description: OleID indicator object found
+
+  - heur_id: 35
+    name: IOCs found (1-5)
+    score: 5
+    filetype: document/office
+    description: IOCs found (1-5)
+
+  - heur_id: 36
+    name: IOCs found (6-10)
+    score: 10
+    filetype: document/office
+    description: IOCs found (6-10)
+
+  - heur_id: 37
+    name: IOCs found (10+)
+    score: 20
+    filetype: document/office
+    description: IOCs found (10+)
+
+  - heur_id: 38
+    name: Attached External Template Targets in XML
+    score: 500
+    filetype: document/office
+    description: Attached External Template Targets in XML
+
+  - heur_id: 39
+    name: Base64 Extracted
+    score: 100
+    filetype: document/office
+    description: Base64 Extracted
+
+docker_config:
+  image: cccs/assemblyline-service-oletools:latest
+  cpu_cores: 0.5
+  ram_mb: 1024
