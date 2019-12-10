@@ -439,7 +439,7 @@ class Oletools(ServiceBase):
                 ".gc.ca/" not in full_uri and \
                 ".mil.ca/" not in full_uri:
 
-            tags.append(('network.uri', full_uri))
+            tags.append(('network.static.uri', full_uri))
             scorable = True
 
             domain = re.match(self.DOMAIN_RE, uri)
@@ -447,10 +447,10 @@ class Oletools(ServiceBase):
             if ip:
                 ip_str = ip.group(1)
                 if not is_ip_reserved(ip_str):
-                    self.ole_result.add_tag('network.ip', ip_str)
+                    self.ole_result.add_tag('network.static.ip', ip_str)
             elif domain:
                 dom_str = domain.group(1)
-                tags.append(('network.domain', dom_str))
+                tags.append(('network.static.domain', dom_str))
 
         return scorable, m.group(0), tags
 
@@ -1203,7 +1203,7 @@ class Oletools(ServiceBase):
                             ip_str = desc_ip.group(1)
                             if not is_ip_reserved(ip_str):
                                 scored_macro_uri = True
-                                subsection.add_tag('network.ip', ip_str)
+                                subsection.add_tag('network.static.ip', ip_str)
                         else:
                             subsection.add_line(f"{keyword}: {description}")
 
