@@ -1393,6 +1393,7 @@ class Oletools(ServiceBase):
         meta = ole.get_metadata()
         meta_sec = ResultSection("OLE Metadata:")
         # Summary Information
+        summeta_sec_json_body = dict()
         summeta_sec = ResultSection("Properties from the Summary Information Stream:")
         for prop in meta.SUMMARY_ATTRIBS:
             value = getattr(meta, prop)
@@ -1404,28 +1405,29 @@ class Oletools(ServiceBase):
                         fh.write(value)
                     self.request.add_extracted(meta_path, os.path.basename(meta_path),
                                                "OLE metadata thumbnail extracted")
-                    summeta_sec.add_line(f"{prop}: [see extracted files]")
+                    summeta_sec_json_body[prop] = "[see extracted files]"
                     summeta_sec.set_heuristic(18)
                     continue
                 # Extract data over n bytes
-                if isinstance(value, str):
-                    if len(value) > self.metadata_size_to_extract:
-                        if len(value) > self.metadata_size_to_extract:
-                            meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
-                            meta_path = os.path.join(self.working_directory, meta_name)
-                            with open(meta_path, 'w') as fh:
-                                fh.write(value)
-                            self.request.add_extracted(meta_path, os.path.basename(meta_path),
-                                                       f"OLE metadata from {prop.upper()} attribute")
-                            summeta_sec.add_line(f"{prop}: [Over {self.metadata_size_to_extract} bytes, "
-                                                 f"see extracted files]")
-                            summeta_sec.set_heuristic(17)
-                            continue
-                summeta_sec.add_line(f"{prop}: {safe_str(value)}")
+                if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
+                    meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
+                    meta_path = os.path.join(self.working_directory, meta_name)
+                    with open(meta_path, 'w') as fh:
+                        fh.write(value)
+                    self.request.add_extracted(meta_path, os.path.basename(meta_path),
+                                               f"OLE metadata from {prop.upper()} attribute")
+                    summeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
+                                                  f"see extracted files]"
+                    summeta_sec.set_heuristic(17)
+                    continue
+                summeta_sec_json_body[prop] = safe_str(value)
                 # Add Tags
                 if prop in ole_tags and value:
                     summeta_sec.add_tag(ole_tags[prop], value)
+        summeta_sec.body = json.dumps(summeta_sec_json_body)
+
         # Document Summary
+        docmeta_sec_json_body = dict()
         docmeta_sec = ResultSection("Properties from the Document Summary Information Stream:")
         for prop in meta.DOCSUM_ATTRIBS:
             value = getattr(meta, prop)
@@ -1439,14 +1441,15 @@ class Oletools(ServiceBase):
                             fh.write(value)
                         self.request.add_extracted(meta_path, os.path.basename(meta_path),
                                                    f"OLE metadata from {prop.upper()} attribute")
-                        docmeta_sec.add_line(f"{prop}: [Over {self.metadata_size_to_extract} bytes, "
-                                             f"see extracted files]")
+                        docmeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
+                                                      f"see extracted files]"
                         docmeta_sec.set_heuristic(17)
                         continue
-                docmeta_sec.add_line(f"{prop}: {safe_str(value)}")
+                docmeta_sec_json_body[prop] = safe_str(value)
                 # Add Tags
                 if prop in ole_tags and value:
                     docmeta_sec.add_tag(ole_tags[prop], value)
+        docmeta_sec.body = json.dumps(docmeta_sec_json_body)
 
         if summeta_sec.body or docmeta_sec.body:
             if summeta_sec.body:
@@ -1456,6 +1459,7 @@ class Oletools(ServiceBase):
             streams_section.add_subsection(meta_sec)
 
         # CLSIDS: Report, tag and flag known malicious
+        clsid_sec_json_body = dict()
         clsid_sec = ResultSection("CLSIDs:")
         ole_clsid = ole.root.clsid
         if ole_clsid is not None and ole_clsid not in ['"', "'", ""] and ole_clsid not in self.extracted_clsids:
@@ -1469,7 +1473,8 @@ class Oletools(ServiceBase):
                     clsid_sec.add_tag('attribution.exploit', cve)
                 clsid_sec.score = 500
                 mal_msg = " FLAGGED MALICIOUS"
-            clsid_sec.add_line(f"{ole_clsid}: {clsid_desc}{mal_msg}")
+            clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
+        clsid_sec.body = json.dumps(clsid_sec_json_body)
 
         if clsid_sec.body:
             streams_section.add_subsection(clsid_sec)
