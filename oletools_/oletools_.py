@@ -178,7 +178,7 @@ class Oletools(ServiceBase):
                                 extract += self.decide_extract(ty, v)
                                 score += 1
                                 if isinstance(v, bytes):
-                                    v = v.decode()
+                                    v = safe_str(v)
                                 ioc_res.add_line(f"Found {ty.replace('.', ' ')} string: {v} in file {dataname}")
                                 ioc_res.add_tag(ty, v)
             if ioc_res:
