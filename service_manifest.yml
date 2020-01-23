@@ -268,5 +268,5 @@ heuristics:
 
 docker_config:
   image: cccs/assemblyline-service-oletools:latest
-  cpu_cores: 0.5
+  cpu_cores: 1
   ram_mb: 1024
