@@ -165,22 +165,21 @@ heuristics:
     description: Compressed macros found.
 
   - heur_id: 23
-    name: "Suspicious string found: 'javascript'"
+    name: Suspicious javascript string
     score: 500
     filetype: document/office
-    description: "Suspicious string found: 'javascript'"
+    description: Suspicious javascript string found in the stream
 
   - heur_id: 24
-    name: "Suspicious string found: 'executable'"
+    name: Suspicious executable string
     score: 500
     filetype: document/office
-    description: "Suspicious string found: 'executable'"
-
+    description: Suspicious executable string found in the stream
   - heur_id: 25
-    name: "Suspicious string found"
+    name: Suspicious string found
     score: 500
     filetype: document/office
-    description: "Suspicious string found"
+    description: Suspicious string found in the stream
 
   - heur_id: 26
     name: ActiveMime Document(s) in multipart/related

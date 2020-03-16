@@ -167,7 +167,7 @@ class Oletools(ServiceBase):
                             extract += self.decide_extract(ty, asc_asc)
                             score += 1
 
-                            ioc_res.add_line(f"Found the following {ty}:")
+                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
                             ioc_res.add_line(asc_asc)
                     else:
                         ulis = list(set(val))
@@ -186,7 +186,7 @@ class Oletools(ServiceBase):
                                 val_list.append(v)
                                 ioc_res.add_tag(ty, v)
                         if val_list:
-                            ioc_res.add_line(f"Found the following {ty}:")
+                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
                             ioc_res.add_line('  |  '.join(val_list))
 
             if ioc_res:
@@ -1338,7 +1338,7 @@ class Oletools(ServiceBase):
                             sus_sec.add_subsection(ResultSection("Suspicious string found",
                                                                  heuristic=Heuristic(25)))
                         sus_sec.add_line(f"'{safe_str(matched.group(0))}' string found in stream "
-                                         f"{ole10native.filename}, indicating {desc}")
+                                         f"{ole10native.filename}, indicating {safe_str(desc)}")
 
             if suspicious:
                 streams_section.add_section(sus_sec)
@@ -1589,7 +1589,7 @@ class Oletools(ServiceBase):
                                 extract_stream = True
                                 sus_res = True
                                 body = f"'{safe_str(matched.group(0))}' string found in stream " \
-                                       f"{stream}, indicating {desc}"
+                                       f"{stream}, indicating {safe_str(desc)}"
                                 if b'javascript' in desc:
                                     sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
                                                                          body=body,
