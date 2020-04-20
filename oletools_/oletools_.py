@@ -376,7 +376,7 @@ class Oletools(ServiceBase):
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
-        if not request.deep_scan:
+        if request.deep_scan:
             # Proceed with OLE Deep extraction
             parser = OLEDeepParser(path, request.result, self.log, request.task)
             parser.run()
