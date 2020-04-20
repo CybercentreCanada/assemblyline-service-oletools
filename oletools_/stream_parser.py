@@ -323,7 +323,7 @@ if __name__ == "__main__":
                 fname = "/tmp/{}.pp_obj".format(hashlib.sha256(obj.decompressed_raw).hexdigest())
                 with open(fname, 'w') as fh:
                     fh.write(obj.decompressed_raw)
-    except:
+    except Exception:
         pass
 
     try:

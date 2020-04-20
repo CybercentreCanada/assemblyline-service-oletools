@@ -1,7 +1,6 @@
 # Oletools Service
 
-This Assemblyline service extracts metadata and network information, and reports on anomalies in Microsoft OLE and 
-XML documents using the Python library py-oletools.
+This Assemblyline service extracts metadata and network information, and reports on anomalies in Microsoft OLE and XML documents using the Python library py-oletools and hachoir.
 
 **NOTE**: This service does not require you to buy a licence and is preinstalled and working after a default 
 installation.
@@ -19,28 +18,28 @@ and random variable/function names are common in malicious macros. (Default valu
 
 The Oletools service will report the following information for each file when present:
 
-1. Individual Macros: (AL TAG: TECHNIQUE_MACROS)
-    * SHA256 of each section. (AL TAG: OLE_MACRO_SHA256)
-    * Suspicious strings. (AL TAG: OLE_MACRO_SUSPICIOUS_STRINGS)
+1. Individual Macros: (AL TAG: technique.macro)
+    * SHA256 of each section. (AL TAG: file.ole.macro.sha256)
+    * Suspicious strings. (AL TAG: file.ole.macro.suspicious_strings)
     * Network indicators. 
 
 2. Embedded document streams and OLE information:
     * Name and metadata (author, company, last saved time, etc). 
     AL TAGS:
     
-            OLE_SUMMARY_TITLE,
-            OLE_SUMMARY_SUBJECT,
-            OLE_SUMMARY_AUTHOR,
-            OLE_SUMMARY_COMMENTS,
-            OLE_SUMMARY_LASTSAVEDBY,
-            OLE_SUMMARY_LASTPRINTED,
-            OLE_SUMMARY_CREATETIME,
-            OLE_SUMMARY_LASTSAVEDTIME,
-            OLE_SUMMARY_MANAGER,
-            OLE_SUMMARY_COMPANY,
-            OLE_SUMMARY_CODEPAGE
+            file.ole.summary.title,
+            file.ole.summary.subject,
+            file.ole.summary.author,
+            file.ole.summary.comment,
+            file.ole.summary.last_saved_by,
+            file.ole.summary.last_printed,
+            file.ole.summary.create_time,
+            file.ole.summary.last_saved_time,
+            file.ole.summary.manager,
+            file.ole.summary.company,
+            file.ole.summary.codepage
             
-    * CLSIDs (flags known malicious values). (AL TAG: OLE_CLSID)
+    * CLSIDs (flags known malicious values). (AL TAG: file.ole.clsid)
 
 3. Suspicious XML/OLE Stream features:
     * FrankenStrings IOC Patterns module results.
@@ -48,7 +47,7 @@ The Oletools service will report the following information for each file when pr
     * Base64 encoded content.
     * Hex encoded content.
 
-4. MSO DDE Links (AL TAG: OLE_DDE_LINK)
+4. MSO DDE Links (AL TAG: file.ole.dde_link)
 
 5. Possible VBA stomping. Determined when difference in suspicious content exists between macro 
 dump and pcode dump. 
@@ -58,4 +57,5 @@ dump and pcode dump.
     * All pcode content.
     * Suspicious OLE streams and xml.
     * DDE Links
-    * If in deep scan mode, all OLE streams will be extracted.
+
+7. If in deep scan mode, all OLE streams will be extracted and hachoir will run its deep object analysis.

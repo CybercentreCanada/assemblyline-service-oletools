@@ -1,4 +1,4 @@
-# Modified by CSE for use in alsvc_oletools
+# Modified by CSE for use in assemblyline-service-oletools
 # Licenced under GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007, and can be found here:
 # https://github.com/bontchev/pcodedmp/blob/master/LICENSE
 

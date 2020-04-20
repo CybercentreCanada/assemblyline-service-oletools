@@ -27,6 +27,8 @@ from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
+
+from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
 from oletools_.stream_parser import Ole10Native, PowerPointDoc
 
@@ -373,6 +375,11 @@ class Oletools(ServiceBase):
             self.create_macro_sections(request.sha256)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
+
+        if not request.deep_scan:
+            # Proceed with OLE Deep extraction
+            parser = OLEDeepParser(path, request.result, self.log, request.task)
+            parser.run()
 
         # score_check = 0
         # for section in self.ole_result.sections:
@@ -1440,7 +1447,7 @@ class Oletools(ServiceBase):
                                                   f"see extracted files]"
                     summeta_sec.set_heuristic(17)
                     continue
-                summeta_sec_json_body[prop] = safe_str(value)
+                summeta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
                 if prop in ole_tags and value:
                     summeta_sec.add_tag(ole_tags[prop], value)

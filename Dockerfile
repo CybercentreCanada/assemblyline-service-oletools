@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y default-libmysqlclient-dev && rm -rf /v
 # Switch to assemblyline user
 USER assemblyline
 
-RUN pip install --no-cache-dir --user pcodedmp oletools && rm -rf ~/.cache/pip
+RUN pip install --no-cache-dir --user hachoir pcodedmp oletools && rm -rf ~/.cache/pip
 
-# Copy APKaye service code
+# Copy Oletools service code
 WORKDIR /opt/al_service
 COPY . .
