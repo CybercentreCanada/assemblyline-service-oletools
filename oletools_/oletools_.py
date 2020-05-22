@@ -1011,7 +1011,7 @@ class Oletools(ServiceBase):
            Score as int.
         """
         if section.heuristic:
-            score = section.heuristic['score']
+            score = section.heuristic.score
         else:
             score = 0
         if len(section.subsections) > 0:
