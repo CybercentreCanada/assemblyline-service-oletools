@@ -1450,7 +1450,7 @@ class Oletools(ServiceBase):
                 summeta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
                 if prop in ole_tags and value:
-                    summeta_sec.add_tag(ole_tags[prop], value)
+                    summeta_sec.add_tag(ole_tags[prop], safe_str(value))
         if summeta_sec_json_body:
             summeta_sec.body = json.dumps(summeta_sec_json_body)
 
