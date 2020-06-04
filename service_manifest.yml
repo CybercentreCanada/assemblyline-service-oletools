@@ -76,7 +76,7 @@ heuristics:
 
   - heur_id: 8
     name: B64 in XML
-    score: 0
+    score: 100
     filetype: document/office
     description: Base64 content discovered in compressed XML.
 
@@ -88,7 +88,7 @@ heuristics:
 
   - heur_id: 10
     name: B64 in OLE
-    score: 0
+    score: 100
     filetype: document/office
     description: Base64 content discovered in OLE Object.
 
@@ -258,12 +258,6 @@ heuristics:
     score: 500
     filetype: document/office
     description: Attached External Template Targets in XML
-
-  - heur_id: 39
-    name: Base64 Extracted
-    score: 100
-    filetype: document/office
-    description: Base64 Extracted
 
   - heur_id: 40
     name: Root[0] Does Not Exist
