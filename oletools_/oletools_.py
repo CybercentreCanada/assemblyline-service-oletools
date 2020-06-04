@@ -231,8 +231,7 @@ class Oletools(ServiceBase):
         for b64_match in re.findall(b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})',
                                     re.sub(b'\x3C\x00\x20\x20\x00', b'', data)):
             b64 = b64_match.replace(b'\n', b'').replace(b'\r', b'').replace(b' ', b'').replace(b'<', b'')
-            uniq_char = ''.join(set(str(b64)))
-            if len(uniq_char) > 6:
+            if len(set(b64)) > 6:
                 if len(b64) >= 16 and len(b64) % 4 == 0:
                     b64_matches.add(b64)
         """
@@ -250,31 +249,31 @@ class Oletools(ServiceBase):
                     ftype = m.from_buffer(base64data)
                     if 'octet-stream' not in ftype:
                         b64_file_path = os.path.join(self.working_directory, f"{sha256hash[0:10]}_b64_decoded")
-                        self.request.add_extracted(b64_file_path, os.path.basename(b64_file_path),
-                                                   "Extracted b64 file during OLETools analysis")
                         with open(b64_file_path, 'wb') as b64_file:
                             b64_file.write(base64data)
                             self.log.debug(f"Submitted dropped file for analysis: {b64_file_path}")
 
+                        self.request.add_extracted(b64_file_path, os.path.basename(b64_file_path),
+                                                   "Extracted b64 file during OLETools analysis")
+
                         b64results[sha256hash] = [len(b64_string), b64_string[0:50],
                                                   f"[Possible base64 file contents in {dataname}. "
-                                                  "See extracted files.]", "", ""]
+                                                  "See extracted files.]", "", "", []]
 
                         extract = True
                         b64_extracted.add(sha256hash)
                         break
                 # Dump the rest in results and its own file
                 if len(base64data) > 30:
-                    if all(ord(c) < 128 for c in base64data):
-                        check_utf16 = base64data.decode('utf-16').encode('ascii', 'ignore')
-                        if check_utf16 != "":
+                    if all(c < 128 for c in base64data):
+                        check_utf16 = base64data.decode('utf-16', 'ignore').encode('ascii', 'ignore')
+                        if check_utf16 != b"":
                             asc_b64 = check_utf16
                         else:
                             # Filter printable characters then put in results
-                            asc_b64 = "".join(i for i in base64data if 31 < ord(i) < 127)
+                            asc_b64 = bytes(i for i in base64data if 31 < i < 127)
                         # If data has less then 7 uniq chars then ignore
-                        uniq_char = ''.join(set(asc_b64))
-                        if len(uniq_char) > 6 and len(re.sub(r"\s", "", asc_b64)) > 14:
+                        if len(set(asc_b64)) > 6 and len(re.sub(rb"\s", b"", asc_b64)) > 14:
                             tags = []
                             if self.patterns:
                                 st_value = self.patterns.ioc_match(asc_b64, bogon_ip=True)
@@ -299,8 +298,6 @@ class Oletools(ServiceBase):
         if len(b64results) > 0:
             b64_res = ResultSection(f"Base64 in {dataname}:")
         for b64k, b64l in b64results.items():
-            b64_res.set_heuristic(39)
-            b64_res.score = 100
             b64index += 1
             sub_b64_res = ResultSection(f"Result {b64index}", parent=b64_res)
             for tag in b64l[5]:
@@ -328,11 +325,11 @@ class Oletools(ServiceBase):
                                     b64_res.add_tag(ty, v)
 
         if len(b64_ascii_content) > 0:
-            all_b64 = "\n".join(b64_ascii_content)
+            all_b64 = b"\n".join(b64_ascii_content)
             b64_all_sha256 = hashlib.sha256(all_b64).hexdigest()
             b64_file_path = os.path.join(self.working_directory, b64_all_sha256)
             try:
-                with open(b64_file_path, 'w') as fh:
+                with open(b64_file_path, 'wb') as fh:
                     fh.write(all_b64)
                 self.request.add_extracted(b64_file_path, f"b64_{b64_all_sha256[:7]}.txt", f"b64 for {dataname}")
             except Exception as e:
