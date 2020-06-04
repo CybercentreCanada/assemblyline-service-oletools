@@ -1,5 +1,5 @@
 name: Oletools
-version: 1
+version: $SERVICE_TAG
 description: >-
   This service extracts metadata, network information and reports anomalies in
   Microsoft OLE and XML documents using the Python library py-oletools by Philippe
@@ -347,6 +347,6 @@ heuristics:
     description: Found properties with different IDs than storage, stream and root.
 
 docker_config:
-  image: ${REGISTRY}cccs/assemblyline-service-oletools:latest
+  image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1
   ram_mb: 1024
