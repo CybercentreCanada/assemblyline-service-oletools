@@ -513,6 +513,7 @@ class Oletools(ServiceBase):
         try:
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
+            external_re = re.compile(rb'[Tt]arget="[^]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
             uris = []
             zip_uris = []
             xml_extracted = set()
@@ -524,6 +525,9 @@ class Oletools(ServiceBase):
                         data = data[:500000]
                         xml_target_res.set_heuristic(3)
                     zip_uris.extend(template_re.findall(data))
+                    
+                    # Extract all files with external targets
+                    external = external_re.search(data)
 
                     # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
@@ -537,7 +541,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
                     extract_xml = extract_ioc + extract_b64
 
-                    if extract_xml > 0 and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
+                    if (extract_xml > 0 or external) and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
