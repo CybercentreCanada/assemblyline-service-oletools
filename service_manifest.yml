@@ -346,6 +346,12 @@ heuristics:
     filetype: '*'
     description: Found properties with different IDs than storage, stream and root.
 
+  - heur_id: 51
+    name: Excel 4.0 macro sheet
+    score: 250
+    filetype: '*'
+    description: Excel 4.0 macro sheets are depricated and can be used for detection avoidance.
+
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1

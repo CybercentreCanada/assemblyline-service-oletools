@@ -508,12 +508,15 @@ class Oletools(ServiceBase):
         xml_target_res = ResultSection("Attached External Template Targets in XML")
         xml_ioc_res = ResultSection("IOCs content:")
         xml_b64_res = ResultSection("Base64 content:")
+        xml_big_res = ResultSection("Files too larged to be fully scanned")
+        xml_big_res.set_heuristic(3)
+        xml_big_res.heuristic.frequency = 0
 
         # noinspection PyBroadException
         try:
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
-            external_re = re.compile(rb'[Tt]arget="[^]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
+            external_re = re.compile(rb'[Tt]arget="[^"]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
             uris = []
             zip_uris = []
             xml_extracted = set()
@@ -523,7 +526,8 @@ class Oletools(ServiceBase):
                     data = z.open(f).read()
                     if len(data) > 500000:
                         data = data[:500000]
-                        xml_target_res.set_heuristic(3)
+                        xml_big_res.add_line(f'{f}')
+                        xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
                     
                     # Extract all files with external targets
@@ -572,7 +576,7 @@ class Oletools(ServiceBase):
                     xml_target_res.set_heuristic(38)
                     self.ole_result.add_section(xml_target_res)
                     xml_target_res.add_lines(uris)
-                    xml_target_res.set_heuristic(1)
+                    #xml_target_res.set_heuristic(1)
 
                 if tags_all:
                     for tag in tags_all:
@@ -581,6 +585,8 @@ class Oletools(ServiceBase):
         except Exception:
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
+        if xml_big_res.body:
+            self.ole_result.add_section(xml_big_res)
         if len(xml_ioc_res.subsections) > 0:
             self.ole_result.add_section(xml_ioc_res)
         if len(xml_b64_res.subsections) > 0:
@@ -1049,6 +1055,10 @@ class Oletools(ServiceBase):
         else:
             dump_subsection = ResultSection(dump_title, body_format=BODY_FORMAT.MEMORY_DUMP)
             dump_subsection.add_line(analyzed_code)
+
+        # Check for Excel 4.0 macro sheet
+        if re.search(rb'Sheet Information - Excel 4.0 macro sheet', analyzed_code):
+            dump_subsection.set_heuristic(51)
 
         if req_deob:
             dump_subsection.add_tag('technique.obfuscation', "VBA Macro String Functions")
