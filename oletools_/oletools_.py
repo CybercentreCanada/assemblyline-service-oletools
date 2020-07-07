@@ -565,7 +565,7 @@ class Oletools(ServiceBase):
                 for uri in zip_uris:
                     puri, duri, tags = self.parse_uri(uri)
                     if puri:
-                        uris.append(duri)
+                        uris.append(safe_str(duri))
 
                     if tags:
                         tags_all.extend(tags)
@@ -574,8 +574,8 @@ class Oletools(ServiceBase):
                 # If there are domains or IPs, report them
                 if uris:
                     xml_target_res.set_heuristic(38)
-                    self.ole_result.add_section(xml_target_res)
                     xml_target_res.add_lines(uris)
+                    self.ole_result.add_section(xml_target_res)
                     #xml_target_res.set_heuristic(1)
 
                 if tags_all:
@@ -1057,7 +1057,7 @@ class Oletools(ServiceBase):
             dump_subsection.add_line(analyzed_code)
 
         # Check for Excel 4.0 macro sheet
-        if re.search(rb'Sheet Information - Excel 4.0 macro sheet', analyzed_code):
+        if re.search(r'Sheet Information - Excel 4\.0 macro sheet', analyzed_code):
             dump_subsection.set_heuristic(51)
 
         if req_deob:
