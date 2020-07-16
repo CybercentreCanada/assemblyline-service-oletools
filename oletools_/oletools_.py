@@ -1195,34 +1195,24 @@ class Oletools(ServiceBase):
 
                 if len(vba_scanner.autoexec_keywords) > 0:
                     subsection = ResultSection("Autoexecution strings")
-                    if len(vba_scanner.autoexec_keywords) <= 5:
-                        subsection.set_heuristic(32)
-                    else:
-                        subsection.set_heuristic(33)
-
+                    subsection.set_heuristic(32)
                     for keyword, description in vba_scanner.autoexec_keywords:
                         subsection.add_line(keyword)
-                        subsection.add_tag('file.ole.macro.suspicious_string', keyword)
+                        subsection.heuristic.add_signature_id(keyword)
                     score_section.add_subsection(subsection)
 
                 if len(vba_scanner.suspicious_keywords) > 0:
                     subsection = ResultSection("Suspicious strings or functions")
-                    if len(vba_scanner.suspicious_keywords) <= 3:
-                        subsection.set_heuristic(30)
-                    else:
-                        subsection.set_heuristic(31)
-
+                    subsection.set_heuristic(30)
                     for keyword, description in vba_scanner.suspicious_keywords:
                         subsection.add_line(keyword)
-                        subsection.add_tag('file.ole.macro.suspicious_string', keyword)
+                        subsection.heuristic.add_signature_id(keyword)
                     score_section.add_subsection(subsection)
 
                 if len(vba_scanner.iocs) > 0:
                     subsection = ResultSection("Potential host or network IOCs")
-                    if len(vba_scanner.iocs) <= 5:
-                        subsection.set_heuristic(28)
-                    else:
-                        subsection.set_heuristic(29)
+                    subsection.set_heuristic(28)
+                    subsection.heuristic.frequency = len(vba_scanner.iocs)
 
                     scored_macro_uri = False
                     for keyword, description in vba_scanner.iocs:
@@ -1333,7 +1323,8 @@ class Oletools(ServiceBase):
 
                 self.all_vba.append(ole10native.native_data)
                 macro_section = self.macro_section_builder(ole10native.native_data)
-                macro_section.add_tag('technique.macro', "Contains Embedded VBA Macro(s)")
+                macro_section.set_heuristic(33)
+
                 toplevel_score = self.calculate_nested_scores(macro_section)
 
                 self.all_macros.append(Macro(ole10native.native_data,
