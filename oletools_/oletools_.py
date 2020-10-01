@@ -99,6 +99,7 @@ class Oletools(ServiceBase):
         self.all_pcode = None
         self.extracted_clsids = None
         self.patterns = None
+        self.vba_stomping = False
 
     def start(self):
 
@@ -351,6 +352,8 @@ class Oletools(ServiceBase):
         self.all_macros = []
         self.all_vba = []
         self.all_pcode = []
+
+        self.vba_stomping = False
 
         path = request.file_path
         filename = os.path.basename(path)
@@ -836,21 +839,21 @@ class Oletools(ServiceBase):
             rawr_pcode = mraptor.MacroRaptor(all_pcode)
             rawr_pcode.scan()
 
-            if len(rawr_pcode.matches) > 0 and rawr_pcode.suspicious and not rawr_vba.suspicious:
+            if self.vba_stomping or rawr_pcode.matches and rawr_pcode.suspicious and not rawr_vba.suspicious:
                 vba_matches = rawr_vba.matches
                 pcode_matches = rawr_pcode.matches
-                stomp_sec = ResultSection("Possible VBA Stomping")
+                stomp_sec = ResultSection("VBA Stomping")
                 stomp_sec.set_heuristic(4)
-                stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
-                pcode_stomp_sec = ResultSection("Pcode dump suspicious content:", parent=stomp_sec)
-                for m in pcode_matches:
-                    pcode_stomp_sec.add_line(m)
-                vba_stomp_sec = ResultSection("Macro dump suspicious content:", parent=stomp_sec)
-                if len(vba_matches) > 0:
+                if pcode_matches:
+                    stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
+                    pcode_stomp_sec = ResultSection("Pcode dump suspicious content:", parent=stomp_sec)
+                    for m in pcode_matches:
+                        pcode_stomp_sec.add_line(m)
+                    vba_stomp_sec = ResultSection("Macro dump suspicious content:", parent=stomp_sec)
                     for m in vba_matches:
                         vba_stomp_sec.add_line(m)
-                else:
-                    vba_stomp_sec.add_line("None.")
+                    if not vba_matches:
+                        vba_stomp_sec.add_line("None.")
 
                 self.ole_result.add_section(stomp_sec)
 
@@ -998,6 +1001,8 @@ class Oletools(ServiceBase):
             # Analyze PCode
             try:
                 if vba_parser:
+                    if vba_parser.detect_vba_stomping():
+                        self.vba_stomping = True
                     pcode_res = process_doc(vba_parser)
                     if pcode_res:
                         self.all_pcode.append(pcode_res)

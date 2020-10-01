@@ -49,12 +49,10 @@ heuristics:
       File contains parts which are massive. Could not scan entire document.
 
   - heur_id: 4
-    name: Pcode and macros content differ
+    name: VBA Stomping
     score: 500
     filetype: document/office
-    description: >-
-      all_pcode dump contains suspicious content not in all_vba dump. Indicates
-      possible VBA stomping.
+    description: The VBA source code and P-code are different, this may have been used to hide malicious code.
 
   - heur_id: 5
     name: Flash content in OLE
