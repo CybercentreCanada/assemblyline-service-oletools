@@ -356,7 +356,6 @@ class Oletools(ServiceBase):
         self.vba_stomping = False
 
         path = request.file_path
-        filename = os.path.basename(path)
         file_contents = request.file_contents
 
         # noinspection PyBroadException
@@ -368,7 +367,7 @@ class Oletools(ServiceBase):
         try:
             self.check_for_indicators(path)
             self.check_for_dde_links(path)
-            self.check_for_macros(filename, file_contents, request.sha256)
+            self.check_for_macros(path, file_contents, request.sha256)
             self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
@@ -966,8 +965,9 @@ class Oletools(ServiceBase):
         """
         # noinspection PyBroadException
         try:
-            vba_parser = VBA_Parser(filename=filename, data=file_contents)
-
+            # olevba currently doesn't support vba_stomping detection on in memory files
+            # Todo: pass the file contents in when olevba supports it
+            vba_parser = VBA_Parser(filename)
             try:
                 if vba_parser.detect_vba_macros():
                     # noinspection PyBroadException
