@@ -378,7 +378,13 @@ class Oletools(ServiceBase):
         if request.deep_scan:
             # Proceed with OLE Deep extraction
             parser = OLEDeepParser(path, request.result, self.log, request.task)
-            parser.run()
+            # noinspection PyBroadException
+            try:
+                parser.run()
+            except Exception as e:
+                self.log.error("Error while deep parsing {path}: {str(e)}")
+                section = ResultSection("Error deep parsing: {str(e)}")
+                request.result.add_section(section)
 
         # score_check = 0
         # for section in self.ole_result.sections:
