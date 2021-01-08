@@ -341,6 +341,12 @@ heuristics:
     filetype: '*'
     description: Excel 4.0 macro sheets are depricated and can be used for detection avoidance.
 
+  - heur_id: 52
+    name: Known malicious CLSID
+    score: 500
+    filetype: '*'
+    description: CLSID that has been flagged as malicious
+
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1

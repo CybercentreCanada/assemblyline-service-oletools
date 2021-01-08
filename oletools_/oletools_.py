@@ -315,7 +315,6 @@ class Oletools(ServiceBase):
                 if self.patterns:
                     st_value = self.patterns.ioc_match(b64l[3], bogon_ip=True)
                     if len(st_value) > 0:
-                        b64_res.score += 1
                         for ty, val in st_value.items():
                             if val == "":
                                 asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
@@ -1387,7 +1386,7 @@ class Oletools(ServiceBase):
                 if obj.rec_type == "ExOleObjStg":
                     if obj.error is not None:
                         streams_section.add_line("\tError parsing ExOleObjStg stream. This is suspicious.")
-                        streams_section.score += 50
+                        #streams_section.score += 50
                         continue
 
                     ole_hash = hashlib.sha256(obj.raw).hexdigest()
@@ -1513,7 +1512,7 @@ class Oletools(ServiceBase):
                 cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', clsid_desc)
                 for cve in cves:
                     clsid_sec.add_tag('attribution.exploit', cve)
-                clsid_sec.score = 500
+                clsid_sec.set_heuristic(52)
                 mal_msg = " FLAGGED MALICIOUS"
             clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
         if clsid_sec_json_body:
