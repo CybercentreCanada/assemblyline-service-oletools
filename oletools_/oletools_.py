@@ -27,6 +27,7 @@ from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
+from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
