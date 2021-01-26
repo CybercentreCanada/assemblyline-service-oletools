@@ -27,6 +27,7 @@ from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
+from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
@@ -99,6 +100,7 @@ class Oletools(ServiceBase):
         self.all_pcode = None
         self.extracted_clsids = None
         self.patterns = None
+        self.excess_extracted = None
         self.vba_stomping = False
 
     def start(self):
@@ -351,6 +353,7 @@ class Oletools(ServiceBase):
         self.all_macros = []
         self.all_vba = []
         self.all_pcode = []
+        self.excess_extracted = []
 
         self.vba_stomping = False
 
@@ -385,6 +388,8 @@ class Oletools(ServiceBase):
                 section = ResultSection("Error deep parsing: {str(e)}")
                 request.result.add_section(section)
 
+        if self.excess_extracted:
+            self.log.error(f"Too many files extracted for sample {self.sha}. {len(self.excess_extracted)} files were not extracted")
         # score_check = 0
         # for section in self.ole_result.sections:
         #     score_check += self.calculate_nested_scores(section)
@@ -562,6 +567,8 @@ class Oletools(ServiceBase):
 
                                 self.request.add_extracted(xml_file_path, xml_sha256, f"zipped file {f} contents")
                                 xml_extracted.add(xml_sha256)
+                            except MaxExtractedExceeded:
+                                self.excess_extracted.append(xml_sha256)
                             except Exception as e:
                                 self.log.error(f"Error while adding extracted content {xml_file_path} for "
                                                f"sample {self.sha}: {str(e)}")
@@ -1290,6 +1297,8 @@ class Oletools(ServiceBase):
                             mime_res.add_line(part_filename)
                             self.request.add_extracted(part_path, os.path.basename(part_path),
                                                        "ActiveMime x-mso from multipart/related.")
+                        except MaxExtractedExceeded:
+                            self.excess_extracted.append(part_filename)
                         except Exception as e:
                             self.log.error(f"Error submitting extracted file for sample {self.sha}: {str(e)}")
                     except Exception as e:
