@@ -11,6 +11,7 @@ import unicodedata
 import zipfile
 import zlib
 from operator import attrgetter
+from collections import defaultdict
 
 import magic
 import olefile
@@ -519,11 +520,14 @@ class Oletools(ServiceBase):
         """
         xml_target_res = ResultSection("Attached External Template Targets in XML")
         xml_ioc_res = ResultSection("IOCs content:")
+        xml_ioc_res.set_heuristic(7)
+        xml_ioc_res.heuristic.frequency = 0
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too larged to be fully scanned")
         xml_big_res.set_heuristic(3)
         xml_big_res.heuristic.frequency = 0
 
+        ioc_files = defaultdict(list)
         # noinspection PyBroadException
         try:
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
@@ -547,10 +551,11 @@ class Oletools(ServiceBase):
 
                     # Check for IOC and b64 data in XML
                     f_iocres, extract_ioc = self.check_for_patterns(data, f)
-                    if f_iocres:
-                        if not f_iocres.heuristic:
-                            f_iocres.set_heuristic(7)
-                        xml_ioc_res.add_subsection(f_iocres)
+                    if f_iocres and f_iocres.tags:
+                        for tag_type, iocs in f_iocres.tags.items():
+                            for ioc in iocs:
+                                ioc_files[tag_type+ioc].append(f)
+                                xml_ioc_res.add_tag(tag_type, ioc)
 
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
@@ -602,7 +607,13 @@ class Oletools(ServiceBase):
 
         if xml_big_res.body:
             self.ole_result.add_section(xml_big_res)
-        if len(xml_ioc_res.subsections) > 0:
+        if xml_ioc_res.tags:
+            for tag_type, tags in xml_ioc_res.tags.items():
+                for tag in tags:
+                    xml_ioc_res.add_line(f"Found the {tag_type} string {tag} in:")
+                    xml_ioc_res.add_lines(ioc_files[tag_type+tag])
+                    xml_ioc_res.add_line('')
+                    xml_ioc_res.increment_frequency()
             self.ole_result.add_section(xml_ioc_res)
         if len(xml_b64_res.subsections) > 0:
             self.ole_result.add_section(xml_b64_res)
