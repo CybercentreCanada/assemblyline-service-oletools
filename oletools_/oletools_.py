@@ -370,10 +370,10 @@ class Oletools(ServiceBase):
             self.check_for_indicators(path)
             self.check_for_dde_links(path)
             self.check_for_macros(path, file_contents, request.sha256)
-            self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
             self.create_macro_sections(request.sha256)
+            self.check_xml_strings(path)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
@@ -551,6 +551,7 @@ class Oletools(ServiceBase):
                         if not f_iocres.heuristic:
                             f_iocres.set_heuristic(7)
                         xml_ioc_res.add_subsection(f_iocres)
+
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
                         f_b64res.set_heuristic(8)
