@@ -162,40 +162,26 @@ class Oletools(ServiceBase):
             if len(st_value) > 0:
                 ioc_res = ResultSection(f"IOCs in {dataname}:")
                 for ty, val in st_value.items():
-                    if val == "":
-                        asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                        if any(x in asc_asc for x in pat_strs) \
-                                or asc_asc.endswith(tuple(pat_ends)) \
-                                or asc_asc in pat_whitelist:
+                    ulis = list(set(val))
+                    val_list = []
+                    for v in ulis:
+                        if any(str(x) in str(v) for x in pat_strs) \
+                                or str(v).endswith(tuple([str(x) for x in pat_ends])) \
+                                or str(v) in [str(x) for x in pat_whitelist]:
                             continue
                         else:
-                            # Determine if entity should be extracted
-                            extract = extract or self.decide_extract(ty, asc_asc)
+                            if isinstance(v, bytes):
+                                v = safe_str(v)
+
+                            extract = extract or self.decide_extract(ty, v)
                             score += 1
-
-                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
-                            ioc_res.add_line(asc_asc)
-                    else:
-                        ulis = list(set(val))
-                        val_list = []
-                        for v in ulis:
-                            if any(str(x) in str(v) for x in pat_strs) \
-                                    or str(v).endswith(tuple([str(x) for x in pat_ends])) \
-                                    or str(v) in [str(x) for x in pat_whitelist]:
-                                continue
-                            else:
-                                if isinstance(v, bytes):
-                                    v = safe_str(v)
-
-                                extract = extract or self.decide_extract(ty, v)
-                                score += 1
-                                val_list.append(v)
-                                ioc_res.add_tag(ty, v)
-                                if result:
-                                    result.add_tag(ty, v)
-                        if val_list:
-                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
-                            ioc_res.add_line('  |  '.join(val_list))
+                            val_list.append(v)
+                            ioc_res.add_tag(ty, v)
+                            if result:
+                                result.add_tag(ty, v)
+                    if val_list:
+                        ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
+                        ioc_res.add_line('  |  '.join(val_list))
 
             if ioc_res:
                 if score == 0:
