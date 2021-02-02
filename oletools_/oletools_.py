@@ -136,7 +136,7 @@ class Oletools(ServiceBase):
     def get_tool_version(self):
         return self._oletools_version
 
-    def check_for_patterns(self, data, dataname):
+    def check_for_patterns(self, data, dataname, result=None):
         """Use FrankenStrings module to find strings of interest.
 
         Args:
@@ -191,6 +191,8 @@ class Oletools(ServiceBase):
                                 score += 1
                                 val_list.append(v)
                                 ioc_res.add_tag(ty, v)
+                                if result:
+                                    result.add_tag(ty, v)
                         if val_list:
                             ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
                             ioc_res.add_line('  |  '.join(val_list))
@@ -1642,10 +1644,15 @@ class Oletools(ServiceBase):
 
                     # Finally look for other IOC patterns, will ignore SRP streams for now
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
-                        ole_ioc_res, _ = self.check_for_patterns(data, stream)
-                        if ole_ioc_res:
-                            if not ole_ioc_res.heuristic:
-                                ole_ioc_res.set_heuristic(9)
+                        ole_ioc_res = ResultSection(f"IOCs in {dataname}:")
+                        ole_ioc_res.set_heuristic(9)
+                        ole_ioc_res.heuristic.frequency=0
+                        ioc_res, _ = self.check_for_patterns(data, stream, result=ole_ioc_res)
+                        if ioc_res and ioc_res.tags:
+                            for tag_type, tags in ole_ioc_res.tags.items():
+                                ole_ioc_res.add_line(f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
+                                ole_ioc_res.add_line('  |  '.join(tags))
+                                ole_ioc_res.heuristic.increment_frequency(len(tags))
                             extract_stream = True
                             sus_res = True
                             sus_sec.add_subsection(ole_ioc_res)
