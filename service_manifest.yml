@@ -224,24 +224,6 @@ heuristics:
     filetype: document/office
     description: OleID indicator object found
 
-  - heur_id: 35
-    name: IOCs found (1-5)
-    score: 5
-    filetype: document/office
-    description: IOCs found (1-5)
-
-  - heur_id: 36
-    name: IOCs found (6-10)
-    score: 10
-    filetype: document/office
-    description: IOCs found (6-10)
-
-  - heur_id: 37
-    name: IOCs found (10+)
-    score: 20
-    filetype: document/office
-    description: IOCs found (10+)
-
   - heur_id: 38
     name: Attached External Template Targets in XML
     score: 500

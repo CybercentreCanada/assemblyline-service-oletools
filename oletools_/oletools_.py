@@ -136,19 +136,17 @@ class Oletools(ServiceBase):
     def get_tool_version(self):
         return self._oletools_version
 
-    def check_for_patterns(self, data, dataname, result=None):
+    def check_for_patterns(self, data):
         """Use FrankenStrings module to find strings of interest.
 
         Args:
             data: Data to be searched.
-            dataname: Name of data to place in AL result header.
 
         Returns:
-            AL result object and whether entity should be extracted (boolean).
+            Dictionary of strings found by type and whether entity should be extracted (boolean).
         """
         extract = False
-        ioc_res = None
-        score = 0
+        found_tags = defaultdict(set)
 
         # Plain IOCs
         if self.patterns:
@@ -158,44 +156,19 @@ class Oletools(ServiceBase):
                         "VBE7.DLL"]
             pat_whitelist = ['Management', 'Manager', "microsoft.com"]
 
-            st_value = self.patterns.ioc_match(data, bogon_ip=True)
-            if len(st_value) > 0:
-                ioc_res = ResultSection(f"IOCs in {dataname}:")
-                for ty, val in st_value.items():
-                    ulis = list(set(val))
-                    val_list = []
-                    for v in ulis:
-                        if any(str(x) in str(v) for x in pat_strs) \
-                                or str(v).endswith(tuple([str(x) for x in pat_ends])) \
-                                or str(v) in [str(x) for x in pat_whitelist]:
-                            continue
-                        else:
-                            if isinstance(v, bytes):
-                                v = safe_str(v)
+            patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
+            for tag_type, iocs in patterns_found.items():
+                for ioc in iocs:
+                    if isinstance(ioc, bytes):
+                        ioc = safe_str(ioc)
+                    if any(string in ioc for string in pat_strs) \
+                            or ioc.endswith(tuple(pat_ends)) \
+                            or ioc in pat_whitelist:
+                        continue
+                    extract = extract or self.decide_extract(tag_type, ioc)
+                    found_tags[tag_type].add(ioc)
 
-                            extract = extract or self.decide_extract(ty, v)
-                            score += 1
-                            val_list.append(v)
-                            ioc_res.add_tag(ty, v)
-                            if result:
-                                result.add_tag(ty, v)
-                    if val_list:
-                        ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
-                        ioc_res.add_line('  |  '.join(val_list))
-
-            if ioc_res:
-                if score == 0:
-                    ioc_res = None
-                else:
-                    # Set the heuristic based on the score range
-                    if score <= 5:
-                        ioc_res.set_heuristic(35)
-                    elif score <= 10:
-                        ioc_res.set_heuristic(36)
-                    else:
-                        ioc_res.set_heuristic(37)
-
-        return ioc_res, extract
+        return dict(found_tags), extract
 
     # noinspection PyBroadException
     def check_for_b64(self, data, dataname):
@@ -535,12 +508,12 @@ class Oletools(ServiceBase):
                     external = external_re.search(data)
 
                     # Check for IOC and b64 data in XML
-                    f_iocres, extract_ioc = self.check_for_patterns(data, f)
-                    if f_iocres and f_iocres.tags:
-                        for tag_type, iocs in f_iocres.tags.items():
-                            for ioc in iocs:
-                                ioc_files[tag_type+ioc].append(f)
-                                xml_ioc_res.add_tag(tag_type, ioc)
+                    iocs, extract_ioc = self.check_for_patterns(data)
+                    if iocs:
+                        for tag_type, tags in iocs.items():
+                            for tag in tags:
+                                ioc_files[tag_type+tag].append(f)
+                                xml_ioc_res.add_tag(tag_type, tag)
 
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
@@ -598,7 +571,7 @@ class Oletools(ServiceBase):
                     xml_ioc_res.add_line(f"Found the {tag_type} string {tag} in:")
                     xml_ioc_res.add_lines(ioc_files[tag_type+tag])
                     xml_ioc_res.add_line('')
-                    xml_ioc_res.increment_frequency()
+                    xml_ioc_res.heuristic.increment_frequency()
             self.ole_result.add_section(xml_ioc_res)
         if len(xml_b64_res.subsections) > 0:
             self.ole_result.add_section(xml_b64_res)
@@ -1630,16 +1603,18 @@ class Oletools(ServiceBase):
 
                     # Finally look for other IOC patterns, will ignore SRP streams for now
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
-                        ole_ioc_res = ResultSection(f"IOCs in {dataname}:")
+                        ole_ioc_res = ResultSection(f"IOCs in {stream}:")
                         ole_ioc_res.set_heuristic(9)
-                        ole_ioc_res.heuristic.frequency=0
-                        ioc_res, _ = self.check_for_patterns(data, stream, result=ole_ioc_res)
-                        if ioc_res and ioc_res.tags:
-                            for tag_type, tags in ole_ioc_res.tags.items():
-                                ole_ioc_res.add_line(f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                                ole_ioc_res.add_line('  |  '.join(tags))
-                                ole_ioc_res.heuristic.increment_frequency(len(tags))
-                            extract_stream = True
+                        ole_ioc_res.heuristic.frequency = 0
+                        iocs, extract_stream = self.check_for_patterns(data)
+                        for tag_type, tags in iocs:
+                            ole_ioc_res.add_line(
+                                f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
+                            ole_ioc_res.add_line('  |  '.join(tags))
+                            ole_ioc_res.heuristic.increment_frequency(len(tags))
+                            for tag in tags:
+                                ole_ioc_res.add_tag(tag_type, tag)
+                        if iocs:
                             sus_res = True
                             sus_sec.add_subsection(ole_ioc_res)
                     ole_b64_res, _ = self.check_for_b64(data, stream)
