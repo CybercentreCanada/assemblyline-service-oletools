@@ -68,7 +68,8 @@ heuristics:
 
   - heur_id: 7
     name: IOC in XML
-    score: 0
+    score: 1
+    max_score: 100
     filetype: document/office
     description: IOC content discovered in compressed XML.
 
@@ -80,7 +81,8 @@ heuristics:
 
   - heur_id: 9
     name: IOC in OLE
-    score: 0
+    score: 1
+    max_score: 100
     filetype: document/office
     description: IOC content discovered in OLE Object.
 
@@ -223,24 +225,6 @@ heuristics:
     score: 10
     filetype: document/office
     description: OleID indicator object found
-
-  - heur_id: 35
-    name: IOCs found (1-5)
-    score: 5
-    filetype: document/office
-    description: IOCs found (1-5)
-
-  - heur_id: 36
-    name: IOCs found (6-10)
-    score: 10
-    filetype: document/office
-    description: IOCs found (6-10)
-
-  - heur_id: 37
-    name: IOCs found (10+)
-    score: 20
-    filetype: document/office
-    description: IOCs found (10+)
 
   - heur_id: 38
     name: Attached External Template Targets in XML

