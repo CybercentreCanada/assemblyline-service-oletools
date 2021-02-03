@@ -68,7 +68,8 @@ heuristics:
 
   - heur_id: 7
     name: IOC in XML
-    score: 0
+    score: 1
+    max_score: 100
     filetype: document/office
     description: IOC content discovered in compressed XML.
 
@@ -80,7 +81,8 @@ heuristics:
 
   - heur_id: 9
     name: IOC in OLE
-    score: 0
+    score: 1
+    max_score: 100
     filetype: document/office
     description: IOC content discovered in OLE Object.
 

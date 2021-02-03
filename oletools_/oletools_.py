@@ -568,7 +568,7 @@ class Oletools(ServiceBase):
         if xml_ioc_res.tags:
             for tag_type, tags in xml_ioc_res.tags.items():
                 for tag in tags:
-                    xml_ioc_res.add_line(f"Found the {tag_type} string {tag} in:")
+                    xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {tag} in:")
                     xml_ioc_res.add_lines(ioc_files[tag_type+tag])
                     xml_ioc_res.add_line('')
                     xml_ioc_res.heuristic.increment_frequency()
@@ -1607,7 +1607,7 @@ class Oletools(ServiceBase):
                         ole_ioc_res.set_heuristic(9)
                         ole_ioc_res.heuristic.frequency = 0
                         iocs, extract_stream = self.check_for_patterns(data)
-                        for tag_type, tags in iocs:
+                        for tag_type, tags in iocs.items():
                             ole_ioc_res.add_line(
                                 f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
                             ole_ioc_res.add_line('  |  '.join(tags))
