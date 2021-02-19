@@ -151,10 +151,10 @@ class Oletools(ServiceBase):
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org"]
+                        "www.w3.org", "dublincore.org/schemas/"]
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
-            pat_whitelist = ['Management', 'Manager', "microsoft.com"]
+            pat_whitelist = ['management', 'manager', 'connect', "microsoft.com", "dublincore.org"]
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
@@ -163,7 +163,7 @@ class Oletools(ServiceBase):
                         ioc = safe_str(ioc)
                     if any(string in ioc for string in pat_strs) \
                             or ioc.endswith(tuple(pat_ends)) \
-                            or ioc in pat_whitelist:
+                            or ioc.lower() in pat_whitelist:
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
                     found_tags[tag_type].add(ioc)
@@ -438,8 +438,7 @@ class Oletools(ServiceBase):
 
         return scorable, m.group(0), tags
 
-    @staticmethod
-    def decide_extract(ty, val):
+    def decide_extract(self, ty, val):
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
@@ -454,15 +453,15 @@ class Oletools(ServiceBase):
 
         if ty == 'file.name.extracted':
             # Patterns will look for both common directories and file extensions. Ensure the value can be split.
-            if '.' in val[-4:]:
+            if '.' in val:
                 fname, fext = val.rsplit('.', 1)
                 if not fext.upper() in foi:
                     return False
                 if fname.startswith("oleObject"):
                     return False
 
-        if ty == 'file.string.blacklisted':
-            if val == 'http':
+        elif ty == 'file.string.blacklisted':
+            elif val == 'http':
                 return False
 
         return True
