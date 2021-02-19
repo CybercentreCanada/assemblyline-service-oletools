@@ -461,7 +461,7 @@ class Oletools(ServiceBase):
                     return False
 
         elif ty == 'file.string.blacklisted':
-            elif val == 'http':
+            if val == 'http':
                 return False
 
         return True
@@ -490,6 +490,8 @@ class Oletools(ServiceBase):
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
             external_re = re.compile(rb'[Tt]arget="[^"]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
+            dde_re = re.compile(rb'ddeLink')
+            script_re = re.compile(rb'script.{1,512}("JScript"|javascript)', re.DOTALL)
             uris = []
             zip_uris = []
             xml_extracted = set()
@@ -503,8 +505,11 @@ class Oletools(ServiceBase):
                         xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
 
-                    # Extract all files with external targets
-                    external = external_re.search(data)
+                    has_external = external_re.search(data) # Extract all files with external targets
+                    has_dde = dde_re.search(data) # Extract all files with dde links
+                    has_script = script_re.search(data) # Extract all files with javascript
+                    extract_regex = has_external or has_dde or has_script
+
 
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self.check_for_patterns(data)
@@ -520,7 +525,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or extract_b64 or external) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
