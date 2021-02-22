@@ -23,6 +23,7 @@ config:
   macro_score_max_file_size: 5242880  # 5 * 1024**2
   macro_score_min_alert: 0.6
   metadata_size_to_extract: 500
+  ioc_pattern_safelist: []
 
 heuristics:
   - heur_id: 1
