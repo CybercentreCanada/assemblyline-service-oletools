@@ -96,6 +96,7 @@ class Oletools(ServiceBase):
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
         self.metadata_size_to_extract = self.config.get('metadata_size_to_extract', 500)
         self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist')
+        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist')
 
         self.all_macros = None
         self.all_vba = None
@@ -152,11 +153,14 @@ class Oletools(ServiceBase):
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org", "dublincore.org/schemas/"] + self.ioc_pattern_safelist
+                        "www.w3.org", "dublincore.org/schemas/"]
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
             pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
             excel_bin_re = re.compile(r'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
+            if not self.request.deep_scan:
+                pat_strs += self.ioc_pattern_safelist
+                pat_whitelist += self.ioc_exact_safelist
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
