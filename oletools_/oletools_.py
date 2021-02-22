@@ -151,11 +151,11 @@ class Oletools(ServiceBase):
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org", "dublincore.org/schemas/", "gcdocs.gc.ca"]
+                        "www.w3.org", "dublincore.org/schemas/"]
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
-            pat_whitelist = ["management", "manager", "connect", "microsoft.com", "dublincore.org", "llisapi.dll"]
-            known_bin = ["sheet", "printerSettings", "queryTable", "binaryIndex", "table"]
+            pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
+            excel_bin_re = re.compile('(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
@@ -167,7 +167,7 @@ class Oletools(ServiceBase):
                             or ioc.lower() in pat_whitelist:
                         continue
                     # Skip .bin files that are common in normal excel files
-                    if not self.deep_scan and ioc[-4:] == '.bin' and ioc.startswith(known_bin):
+                    if not self.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(val):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
                     found_tags[tag_type].add(ioc)
@@ -467,6 +467,16 @@ class Oletools(ServiceBase):
         elif ty == 'file.string.blacklisted':
             if val == 'http':
                 return False
+
+        # When deepscanning, do only minimal whitelisting
+        if self.request.deep_scan:
+            return True
+
+        # gcdocs links cause these iocs
+        if 'gcdocs.gc.ca' in val:
+            return False
+        if val == 'llisapi.dll':
+            return False
 
         return True
 
