@@ -151,10 +151,11 @@ class Oletools(ServiceBase):
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org", "dublincore.org/schemas/"]
+                        "www.w3.org", "dublincore.org/schemas/", "gcdocs.gc.ca"]
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
-            pat_whitelist = ['management', 'manager', 'connect', "microsoft.com", "dublincore.org"]
+            pat_whitelist = ["management", "manager", "connect", "microsoft.com", "dublincore.org", "llisapi.dll"]
+            known_bin = ["sheet", "printerSettings", "queryTable", "binaryIndex", "table"]
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
@@ -164,6 +165,9 @@ class Oletools(ServiceBase):
                     if any(string in ioc for string in pat_strs) \
                             or ioc.endswith(tuple(pat_ends)) \
                             or ioc.lower() in pat_whitelist:
+                        continue
+                    # Skip .bin files that are common in normal excel files
+                    if not self.deep_scan and ioc[-4:] == '.bin' and ioc.startswith(known_bin):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
                     found_tags[tag_type].add(ioc)
