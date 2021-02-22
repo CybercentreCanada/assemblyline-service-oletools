@@ -155,7 +155,7 @@ class Oletools(ServiceBase):
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
             pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
-            excel_bin_re = re.compile('(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
+            excel_bin_re = re.compile(r'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
@@ -167,7 +167,7 @@ class Oletools(ServiceBase):
                             or ioc.lower() in pat_whitelist:
                         continue
                     # Skip .bin files that are common in normal excel files
-                    if not self.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(val):
+                    if not self.request.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(ioc):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
                     found_tags[tag_type].add(ioc)
@@ -473,11 +473,15 @@ class Oletools(ServiceBase):
             return True
 
         # gcdocs links cause these iocs
-        if 'gcdocs.gc.ca' in val:
-            return False
-        if val == 'llisapi.dll':
+        if 'gcdocs.gc.ca' in val or val == 'llisapi.dll':
             return False
 
+        # common false positives
+        if ty == 'file.string.api' and val == 'connect':
+            return False
+        blacklist_false_positives = ['connect', 'protect', 'background', 'enterprise', 'account', 'waiting', 'request']
+        if ty == 'file.string.blacklisted' and val.lower() in blacklist_false_positives:
+            return False
         return True
 
     def check_xml_strings(self, path):
