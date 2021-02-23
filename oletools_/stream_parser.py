@@ -277,7 +277,7 @@ class PowerPointDoc(object):
 class PowerPointObject(object):
     # noinspection PyBroadException
     def __init__(self, buf):
-        self.rec_ver = struct.unpack("B", buf[0])[0] & 0xF
+        self.rec_ver = buf[0] & 0xF
         self.rec_instance = struct.unpack("<H", buf[:2])[0] >> 4
         self.rec_type = PowerPointDoc.OBJ_TYPES[struct.unpack("<H", buf[2:4])[0]]
         self.rec_length = struct.unpack("<I", buf[4:8])[0]

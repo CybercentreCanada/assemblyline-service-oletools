@@ -95,6 +95,8 @@ class Oletools(ServiceBase):
         self.macro_score_max_size = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
         self.metadata_size_to_extract = self.config.get('metadata_size_to_extract', 500)
+        self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist')
+        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist')
 
         self.all_macros = None
         self.all_vba = None
@@ -151,10 +153,14 @@ class Oletools(ServiceBase):
         # Plain IOCs
         if self.patterns:
             pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org"]
+                        "www.w3.org", "dublincore.org/schemas/"]
             pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
                         "VBE7.DLL"]
-            pat_whitelist = ['Management', 'Manager', "microsoft.com"]
+            pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
+            excel_bin_re = re.compile(r'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
+            if not self.request.deep_scan:
+                pat_strs += self.ioc_pattern_safelist
+                pat_whitelist += self.ioc_exact_safelist
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
@@ -163,7 +169,10 @@ class Oletools(ServiceBase):
                         ioc = safe_str(ioc)
                     if any(string in ioc for string in pat_strs) \
                             or ioc.endswith(tuple(pat_ends)) \
-                            or ioc in pat_whitelist:
+                            or ioc.lower() in pat_whitelist:
+                        continue
+                    # Skip .bin files that are common in normal excel files
+                    if not self.request.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(ioc):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
                     found_tags[tag_type].add(ioc)
@@ -438,8 +447,7 @@ class Oletools(ServiceBase):
 
         return scorable, m.group(0), tags
 
-    @staticmethod
-    def decide_extract(ty, val):
+    def decide_extract(self, ty, val):
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
@@ -454,17 +462,27 @@ class Oletools(ServiceBase):
 
         if ty == 'file.name.extracted':
             # Patterns will look for both common directories and file extensions. Ensure the value can be split.
-            if '.' in val[-4:]:
+            if '.' in val:
                 fname, fext = val.rsplit('.', 1)
                 if not fext.upper() in foi:
                     return False
                 if fname.startswith("oleObject"):
                     return False
 
-        if ty == 'file.string.blacklisted':
+        elif ty == 'file.string.blacklisted':
             if val == 'http':
                 return False
 
+        # When deepscanning, do only minimal whitelisting
+        if self.request.deep_scan:
+            return True
+
+        # common false positives
+        if ty == 'file.string.api' and val == 'connect':
+            return False
+        blacklist_false_positives = ['connect', 'protect', 'background', 'enterprise', 'account', 'waiting', 'request']
+        if ty == 'file.string.blacklisted' and val.lower() in blacklist_false_positives:
+            return False
         return True
 
     def check_xml_strings(self, path):
@@ -491,6 +509,8 @@ class Oletools(ServiceBase):
             template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
             external_re = re.compile(rb'[Tt]arget="[^"]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
+            dde_re = re.compile(rb'ddeLink')
+            script_re = re.compile(rb'script.{1,512}("JScript"|javascript)', re.DOTALL)
             uris = []
             zip_uris = []
             xml_extracted = set()
@@ -504,8 +524,11 @@ class Oletools(ServiceBase):
                         xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
 
-                    # Extract all files with external targets
-                    external = external_re.search(data)
+                    has_external = external_re.search(data) # Extract all files with external targets
+                    has_dde = dde_re.search(data) # Extract all files with dde links
+                    has_script = script_re.search(data) # Extract all files with javascript
+                    extract_regex = has_external or has_dde or has_script
+
 
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self.check_for_patterns(data)
@@ -521,7 +544,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or extract_b64 or external) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
