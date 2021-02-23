@@ -95,8 +95,8 @@ class Oletools(ServiceBase):
         self.macro_score_max_size = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
         self.metadata_size_to_extract = self.config.get('metadata_size_to_extract', 500)
-        self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist')
-        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist')
+        self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist', [])
+        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist', [])
 
         self.all_macros = None
         self.all_vba = None
