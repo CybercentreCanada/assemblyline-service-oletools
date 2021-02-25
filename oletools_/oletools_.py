@@ -1273,7 +1273,7 @@ class Oletools(ServiceBase):
 
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
 
-        mhtml = email.message_from_string(data)
+        mhtml = email.message_from_bytes(data)
         # find all the attached files:
         for part in mhtml.walk():
             content_type = part.get_content_type()
@@ -1297,7 +1297,7 @@ class Oletools(ServiceBase):
                     except Exception as e:
                         self.log.debug(f"Could not decompress ActiveMime part for sample {self.sha}: {str(e)}")
 
-        if len(mime_res.body) > 0:
+        if mime_res.body:
             self.ole_result.add_section(mime_res)
 
     def process_ole10native(self, stream_name, data, streams_section):
