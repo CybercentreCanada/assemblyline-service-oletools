@@ -98,6 +98,7 @@ class Oletools(ServiceBase):
         self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist', [])
         self.ioc_exact_safelist = self.config.get('ioc_exact_safelist', [])
 
+        self.macro_section = None
         self.all_macros = None
         self.all_vba = None
         self.all_pcode = None
@@ -317,6 +318,8 @@ class Oletools(ServiceBase):
         self.scored_macro_uri = False
         self.extracted_clsids = set()
 
+        self.macro_section = ResultSection("OleVBA : Macros detected")
+        self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         self.all_macros = []
         self.all_vba = []
         self.all_pcode = []
@@ -783,7 +786,7 @@ class Oletools(ServiceBase):
         # noinspection PyBroadException
         try:
             filtered_macros = []
-            if len(self.all_macros) > 0:
+            if self.all_macros:
                 # noinspection PyBroadException
                 try:
                     # first sort all analyzed macros by their relative score, highest first
@@ -795,12 +798,10 @@ class Oletools(ServiceBase):
                     self.log.debug(f"Sort and filtering of macro scores failed for sample {self.sha}, "
                                    "reverting to full list of extracted macros")
                     filtered_macros = self.all_macros
-            # else:
-            #     self.ole_result.add_section(ResultSection(SCORE.NULL, "No interesting macros found."))
 
             for macro in filtered_macros:
                 if macro.macro_score and macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
-                    self.ole_result.add_section(macro.macro_section)
+                    self.macro_section.add_subsection(macro.macro_section)
 
             # Create extracted file for all VBA script in VBA project files
             if len(self.all_vba) > 0:
@@ -859,13 +860,15 @@ class Oletools(ServiceBase):
                     if not vba_matches:
                         vba_stomp_sec.add_line("None.")
 
-                self.ole_result.add_section(stomp_sec)
+                self.macro_section.add_subsection(stomp_sec)
 
         except Exception as e:
             self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: "
                            f"{traceback.format_exc()}")
             section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
-            self.ole_result.add_section(section)
+            self.macro_section.add_subsection(section)
+        if self.macro_section.subsections:
+            self.ole_result.add_section(self.macro_section)
 
     def check_for_dde_links(self, filepath):
         """Use msodde in OLETools to report on DDE links in document.
@@ -986,7 +989,6 @@ class Oletools(ServiceBase):
 
                             self.all_vba.append(vba_code)
                             macro_section = self.macro_section_builder(vba_code)
-                            macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
                             toplevel_score = self.calculate_nested_scores(macro_section)
 
                             self.all_macros.append(Macro(vba_code, vba_code_sha256, macro_section,
@@ -1046,9 +1048,7 @@ class Oletools(ServiceBase):
            AL result object.
         """
         vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
-        macro_section = ResultSection("OleVBA : Macro detected")
-        macro_section.add_line(f"Macro SHA256 : {vba_code_sha256}")
-        # macro_section.add_line("Resubmitted macro as: macro_%s.vba" % vba_code_sha256[:7])
+        macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
         macro_section.add_tag('file.ole.macro.sha256', vba_code_sha256)
 
         dump_title = "Macro contents dump"
@@ -1073,9 +1073,10 @@ class Oletools(ServiceBase):
         if req_deob:
             dump_subsection.add_tag('technique.obfuscation', "VBA Macro String Functions")
 
-        score_subsection = self.macro_scorer(analyzed_code)
-        if score_subsection:
-            macro_section.add_subsection(score_subsection)
+        # Scan the analyzed code with VBA_Scanner
+        self.macro_scanner(analyzed_code, macro_section)
+
+        if macro_section.subsections:
             macro_section.add_subsection(dump_subsection)
 
         # Flag macros
@@ -1176,18 +1177,13 @@ class Oletools(ServiceBase):
 
         return deobf
 
-    def macro_scorer(self, text):
-        """Manually add up the score_section.score value so that it is usable before the service finishes,
-        otherwise it is not calculated until finalize() is called on the top-level ResultSection
+    def macro_scanner(self, text, macro_section):
+        """ Scan the text of a macro with VBA_Scanner and add the results to macro_section
 
         Args:
             text: Original VBA code.
-
-        Returns:
-           AL result section for VBA scoring (malicious properties).
+            macro_section: The ResultSection to which results are added
         """
-        score_section = None
-
         try:
             vba_scanner = VBA_Scanner(text)
             vba_scanner.scan(include_decoded_strings=True)
@@ -1197,67 +1193,59 @@ class Oletools(ServiceBase):
                     # play nice with detect_suspicious from olevba.py
                     vba_scanner.suspicious_keywords.append((string, 'May download files from the Internet'))
 
-            stringcount = len(vba_scanner.autoexec_keywords) + len(vba_scanner.suspicious_keywords) + \
-                len(vba_scanner.iocs)
+            if len(vba_scanner.autoexec_keywords) > 0:
+                subsection = ResultSection("Autoexecution strings")
+                subsection.set_heuristic(32)
+                for keyword, description in vba_scanner.autoexec_keywords:
+                    subsection.add_line(keyword)
+                    subsection.heuristic.add_signature_id(keyword)
+                macro_section.add_subsection(subsection)
 
-            if stringcount > 0:
-                score_section = ResultSection("Interesting macro strings found")
+            if len(vba_scanner.suspicious_keywords) > 0:
+                subsection = ResultSection("Suspicious strings or functions")
+                subsection.set_heuristic(30)
+                for keyword, description in vba_scanner.suspicious_keywords:
+                    subsection.add_line(keyword)
+                    subsection.heuristic.add_signature_id(keyword)
+                macro_section.add_subsection(subsection)
 
-                if len(vba_scanner.autoexec_keywords) > 0:
-                    subsection = ResultSection("Autoexecution strings")
-                    subsection.set_heuristic(32)
-                    for keyword, description in vba_scanner.autoexec_keywords:
-                        subsection.add_line(keyword)
-                        subsection.heuristic.add_signature_id(keyword)
-                    score_section.add_subsection(subsection)
+            if len(vba_scanner.iocs) > 0:
+                subsection = ResultSection("Potential host or network IOCs")
+                subsection.set_heuristic(28)
+                subsection.heuristic.frequency = len(vba_scanner.iocs)
 
-                if len(vba_scanner.suspicious_keywords) > 0:
-                    subsection = ResultSection("Suspicious strings or functions")
-                    subsection.set_heuristic(30)
-                    for keyword, description in vba_scanner.suspicious_keywords:
-                        subsection.add_line(keyword)
-                        subsection.heuristic.add_signature_id(keyword)
-                    score_section.add_subsection(subsection)
+                scored_macro_uri = False
+                for keyword, description in vba_scanner.iocs:
+                    # olevba seems to have swapped the keyword for description during iocs extraction
+                    # this holds true until at least version 0.27
 
-                if len(vba_scanner.iocs) > 0:
-                    subsection = ResultSection("Potential host or network IOCs")
-                    subsection.set_heuristic(28)
-                    subsection.heuristic.frequency = len(vba_scanner.iocs)
+                    if isinstance(description, str):
+                        description = description.encode('utf-8', errors='ignore')
 
-                    scored_macro_uri = False
-                    for keyword, description in vba_scanner.iocs:
-                        # olevba seems to have swapped the keyword for description during iocs extraction
-                        # this holds true until at least version 0.27
-
-                        if isinstance(description, str):
-                            description = description.encode('utf-8', errors='ignore')
-
-                        desc_ip = re.match(self.IP_RE, description)
-                        puri, duri, tags = self.parse_uri(description)
-                        if puri:
-                            subsection.add_line(f"{keyword}: {duri}")
+                    desc_ip = re.match(self.IP_RE, description)
+                    puri, duri, tags = self.parse_uri(description)
+                    if puri:
+                        subsection.add_line(f"{keyword}: {duri}")
+                        scored_macro_uri = True
+                    elif desc_ip:
+                        ip_str = desc_ip.group(1)
+                        if not is_ip_reserved(ip_str):
                             scored_macro_uri = True
-                        elif desc_ip:
-                            ip_str = desc_ip.group(1)
-                            if not is_ip_reserved(ip_str):
-                                scored_macro_uri = True
-                                subsection.add_tag('network.static.ip', ip_str)
-                        else:
-                            subsection.add_line(f"{keyword}: {description}")
+                            subsection.add_tag('network.static.ip', ip_str)
+                    else:
+                        subsection.add_line(f"{keyword}: {description}")
 
-                        for tag in tags:
-                            subsection.add_tag(tag[0], tag[1])
-                    score_section.add_subsection(subsection)
-                    if scored_macro_uri and self.scored_macro_uri is False:
-                        self.scored_macro_uri = True
-                        scored_uri_section = ResultSection("Found network indicator(s) within macros",
-                                                           heuristic=Heuristic(27))
-                        self.ole_result.add_section(scored_uri_section)
+                    for tag in tags:
+                        subsection.add_tag(tag[0], tag[1])
+                macro_section.add_subsection(subsection)
+                if scored_macro_uri and self.scored_macro_uri is False:
+                    self.scored_macro_uri = True
+                    scored_uri_section = ResultSection("Found network indicator(s) within macros",
+                                                       heuristic=Heuristic(27))
+                    self.ole_result.add_section(scored_uri_section)
 
         except Exception as e:
             self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {str(e)}")
-
-        return score_section
 
     def rip_mhtml(self, data):
         """Parses and extracts ActiveMime Document(document/office/mhtml).
