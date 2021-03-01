@@ -119,8 +119,8 @@ class Oletools(ServiceBase):
                                  f"rtfobj v{rtfobj_version}, msodde v{msodde_version}"
 
         chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
-        with gzip.open(chain_path) as fh:
-            self.word_chains = json.load(fh)
+        with gzip.open(chain_path) as f:
+            self.word_chains = json.load(f)
 
         for k, v in self.word_chains.items():
             self.word_chains[k] = set(v)
@@ -750,27 +750,27 @@ class Oletools(ServiceBase):
         word_count = 0
         byte_count = 0
 
-        for m_cw in self.macro_words_re.finditer(macro_text):
-            cw = m_cw.group(0)
+        for macro_word in self.macro_words_re.finditer(macro_text):
+            word = macro_word.group(0)
             word_count += 1
-            byte_count += len(cw)
-            if cw in self.macro_skip_words:
+            byte_count += len(word)
+            if word in self.macro_skip_words:
                 continue
-            prefix = cw[0]
-            tc = 0
-            for i in range(1, len(cw) - 1):
-                c = cw[i:i + 2]
-                if c in self.word_chains.get(prefix, []):
-                    tc += 1
-                prefix = cw[i]
+            prefix = word[0]
+            tri_count = 0
+            for i in range(1, len(word) - 1):
+                trigraph = word[i:i + 2]
+                if trigraph in self.word_chains.get(prefix, []):
+                    tri_count += 1
+                prefix = word[i]
 
-            score += tc / float(len(cw) - 2)
+            score += tri_count / (len(word) - 2)
 
         if byte_count < 128 or word_count < 32:
             # these numbers are arbitrary, but if the sample is too short the score is worthless
             return False
 
-        # A lower score indicates more randomized text, random variable/function  names are common in malicious macros
+        # A lower score indicates more randomized text, random variable/function names are common in malicious macros
         return (score / word_count) < self.macro_score_min_alert
 
     def create_macro_sections(self, request_hash):
@@ -804,7 +804,7 @@ class Oletools(ServiceBase):
                     self.macro_section.add_subsection(macro.macro_section)
 
             # Create extracted file for all VBA script in VBA project files
-            if len(self.all_vba) > 0:
+            if self.all_vba:
                 all_vba = "\n".join(self.all_vba)
                 vba_all_sha256 = hashlib.sha256(str(all_vba).encode()).hexdigest()
                 vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
@@ -821,7 +821,7 @@ class Oletools(ServiceBase):
                 all_vba = ""
 
             # Create extracted file for all VBA script in assembled pcode
-            if len(self.all_pcode) > 0:
+            if self.all_pcode:
                 all_pcode = "\n".join(self.all_pcode)
                 pcode_all_sha256 = hashlib.sha256(str(all_pcode).encode()).hexdigest()
                 pcode_file_path = os.path.join(self.working_directory, pcode_all_sha256)
