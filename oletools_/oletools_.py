@@ -10,7 +10,6 @@ import traceback
 import unicodedata
 import zipfile
 import zlib
-from operator import attrgetter
 from collections import defaultdict
 
 import magic
@@ -35,25 +34,11 @@ from oletools_.pcodedmp import process_doc
 from oletools_.stream_parser import Ole10Native, PowerPointDoc
 
 
-class Macro(object):
-    macro_code = ''
-    macro_sha256 = ''
-    macro_section = None
-    macro_score = 0
-
-    def __init__(self, macro_code, macro_sha256, macro_section, macro_score=0):
-        self.macro_code = macro_code
-        self.macro_sha256 = macro_sha256
-        self.macro_section = macro_section
-        self.macro_score = macro_score
-
-
 class Oletools(ServiceBase):
     # OLEtools minimum version supported
     SUPPORTED_VERSION = "0.54.2"
 
     MAX_STRINGDUMP_CHARS = 500
-    MAX_MACRO_SECTIONS = 3
     MIN_MACRO_SECTION_SCORE = 50
 
     # In addition to those from olevba.py
@@ -99,7 +84,6 @@ class Oletools(ServiceBase):
         self.ioc_exact_safelist = self.config.get('ioc_exact_safelist', [])
 
         self.macro_section = None
-        self.all_macros = None
         self.all_vba = None
         self.all_pcode = None
         self.extracted_clsids = None
@@ -320,7 +304,6 @@ class Oletools(ServiceBase):
 
         self.macro_section = ResultSection("OleVBA : Macros detected")
         self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
-        self.all_macros = []
         self.all_vba = []
         self.all_pcode = []
         self.excess_extracted = []
@@ -365,7 +348,6 @@ class Oletools(ServiceBase):
         # for section in self.ole_result.sections:
         #     score_check += self.calculate_nested_scores(section)
 
-        self.all_macros = None
         self.all_vba = None
 
         request.successful = True
@@ -785,24 +767,6 @@ class Oletools(ServiceBase):
         """
         # noinspection PyBroadException
         try:
-            filtered_macros = []
-            if self.all_macros:
-                # noinspection PyBroadException
-                try:
-                    # first sort all analyzed macros by their relative score, highest first
-                    self.all_macros.sort(key=attrgetter('macro_score'), reverse=True)
-
-                    # then only keep, theoretically, the most interesting ones
-                    filtered_macros = self.all_macros[0:min(len(self.all_macros), self.MAX_MACRO_SECTIONS)]
-                except Exception:
-                    self.log.debug(f"Sort and filtering of macro scores failed for sample {self.sha}, "
-                                   "reverting to full list of extracted macros")
-                    filtered_macros = self.all_macros
-
-            for macro in filtered_macros:
-                if macro.macro_score and macro.macro_score >= self.MIN_MACRO_SECTION_SCORE:
-                    self.macro_section.add_subsection(macro.macro_section)
-
             # Create extracted file for all VBA script in VBA project files
             if self.all_vba:
                 all_vba = "\n".join(self.all_vba)
@@ -990,9 +954,8 @@ class Oletools(ServiceBase):
                             self.all_vba.append(vba_code)
                             macro_section = self.macro_section_builder(vba_code)
                             toplevel_score = self.calculate_nested_scores(macro_section)
-
-                            self.all_macros.append(Macro(vba_code, vba_code_sha256, macro_section,
-                                                         toplevel_score))
+                            if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
+                                self.macro_section.add_subsection(macro_section)
                     except Exception:
                         self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: "
                                        f"{traceback.format_exc()}")
@@ -1326,11 +1289,9 @@ class Oletools(ServiceBase):
                 macro_section.set_heuristic(33)
 
                 toplevel_score = self.calculate_nested_scores(macro_section)
+                if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
+                    self.macro_section.add_subsection(macro_section)
 
-                self.all_macros.append(Macro(ole10native.native_data,
-                                             hashlib.sha256(ole10native.native_data).hexdigest(),
-                                             macro_section,
-                                             toplevel_score))
             else:
                 # Look for suspicious strings
                 for pattern, desc in self.SUSPICIOUS_STRINGS:
