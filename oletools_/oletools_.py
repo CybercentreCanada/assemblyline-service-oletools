@@ -1014,32 +1014,28 @@ class Oletools(ServiceBase):
         macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
         macro_section.add_tag('file.ole.macro.sha256', vba_code_sha256)
 
-        dump_title = "Macro contents dump"
         analyzed_code = self.deobfuscator(vba_code)
-        req_deob = False
-        if analyzed_code != vba_code:
-            req_deob = True
-            dump_title += " [deobfuscated]"
-
-        if len(analyzed_code) > self.MAX_STRINGDUMP_CHARS:
-            dump_title += f" - Displaying only the first {self.MAX_STRINGDUMP_CHARS} characters."
-            dump_subsection = ResultSection(dump_title, body_format=BODY_FORMAT.MEMORY_DUMP)
-            dump_subsection.add_line(analyzed_code[0:self.MAX_STRINGDUMP_CHARS])
-        else:
-            dump_subsection = ResultSection(dump_title, body_format=BODY_FORMAT.MEMORY_DUMP)
-            dump_subsection.add_line(analyzed_code)
-
-        # Check for Excel 4.0 macro sheet
-        if re.search(r'Sheet Information - Excel 4\.0 macro sheet', analyzed_code):
-            dump_subsection.set_heuristic(51)
-
-        if req_deob:
-            dump_subsection.add_tag('technique.obfuscation', "VBA Macro String Functions")
 
         # Scan the analyzed code with VBA_Scanner
         self.macro_scanner(analyzed_code, macro_section)
 
+        # Display the macro contents if scanner finds something interesting
         if macro_section.subsections:
+            dump_subsection = ResultSection("Macro contents dump", body_format=BODY_FORMAT.MEMORY_DUMP)
+            if analyzed_code != vba_code:
+                dump_subsection.title_text += " [deobfuscated]"
+                dump_subsection.add_tag('technique.obfuscation', "VBA Macro String Functions")
+
+            if len(analyzed_code) > self.MAX_STRINGDUMP_CHARS:
+                dump_subsection.title_text += f" - Displaying only the first {self.MAX_STRINGDUMP_CHARS} characters."
+                dump_subsection.add_line(analyzed_code[0:self.MAX_STRINGDUMP_CHARS])
+            else:
+                dump_subsection.add_line(analyzed_code)
+
+            # Check for Excel 4.0 macro sheet
+            if re.search(r'Sheet Information - Excel 4\.0 macro sheet', analyzed_code):
+                dump_subsection.set_heuristic(51)
+
             macro_section.add_subsection(dump_subsection)
 
         # Flag macros
