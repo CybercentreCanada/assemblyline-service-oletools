@@ -1170,10 +1170,9 @@ class Oletools(ServiceBase):
 
             if len(vba_scanner.iocs) > 0:
                 subsection = ResultSection("Potential host or network IOCs")
-                subsection.set_heuristic(28)
-                subsection.heuristic.frequency = len(vba_scanner.iocs)
+                subsection.set_heuristic(27)
+                subsection.heuristic.frequency = 0
 
-                scored_macro_uri = False
                 for keyword, description in vba_scanner.iocs:
                     # olevba seems to have swapped the keyword for description during iocs extraction
                     # this holds true until at least version 0.27
@@ -1185,23 +1184,20 @@ class Oletools(ServiceBase):
                     puri, duri, tags = self.parse_uri(description)
                     if puri:
                         subsection.add_line(f"{keyword}: {duri}")
-                        scored_macro_uri = True
+                        subsection.heuristic.increment_frequency()
                     elif desc_ip:
                         ip_str = desc_ip.group(1)
                         if not is_ip_reserved(ip_str):
-                            scored_macro_uri = True
+                            subsection.heuristic.increment_frequency()
                             subsection.add_tag('network.static.ip', ip_str)
                     else:
                         subsection.add_line(f"{keyword}: {description}")
 
                     for tag in tags:
                         subsection.add_tag(tag[0], tag[1])
+                if not subsection.heuristic.frequency:
+                    subsection.heuristic = None
                 macro_section.add_subsection(subsection)
-                if scored_macro_uri and self.scored_macro_uri is False:
-                    self.scored_macro_uri = True
-                    scored_uri_section = ResultSection("Found network indicator(s) within macros",
-                                                       heuristic=Heuristic(27))
-                    self.ole_result.add_section(scored_uri_section)
 
         except Exception as e:
             self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {str(e)}")

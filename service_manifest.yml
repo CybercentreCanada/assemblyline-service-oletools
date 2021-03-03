@@ -195,13 +195,6 @@ heuristics:
     filetype: document/office
     description: Found network indicator(s) within macros
 
-  - heur_id: 28
-    name: Potential host or network IOCs
-    score: 50
-    max_score: 500
-    filetype: document/office
-    description: Potential host or network IOCs
-
   - heur_id: 30
     name: Suspicious strings or functions
     score: 50
