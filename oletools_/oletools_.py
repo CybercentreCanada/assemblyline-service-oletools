@@ -1157,7 +1157,7 @@ class Oletools(ServiceBase):
                 subsection.set_heuristic(32)
                 for keyword, description in vba_scanner.autoexec_keywords:
                     subsection.add_line(keyword)
-                    subsection.heuristic.add_signature_id(keyword)
+                    subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.suspicious_keywords) > 0:
@@ -1165,7 +1165,7 @@ class Oletools(ServiceBase):
                 subsection.set_heuristic(30)
                 for keyword, description in vba_scanner.suspicious_keywords:
                     subsection.add_line(keyword)
-                    subsection.heuristic.add_signature_id(keyword)
+                    subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.iocs) > 0:
