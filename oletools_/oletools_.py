@@ -44,6 +44,10 @@ class Oletools(ServiceBase):
     # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
+    # Safelists:
+    URI_SAFELIST = [b"http://purl.org/", b"http://xml.org/", b".openxmlformats.org/", b".oasis-open.org/",
+                    b".xmlsoap.org/", b".microsoft.com/", b".w3.org/", b".gc.ca/", b".mil.ca/", b".dublincore.org/"]
+
     # Regex's
     DOMAIN_RE = b'^((?:(?:[a-zA-Z0-9-]+).)+[a-zA-Z]{2,5})'
     EXECUTABLE_EXTENSIONS_RE = rb"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE" \
@@ -80,8 +84,10 @@ class Oletools(ServiceBase):
         self.macro_score_max_size = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
         self.metadata_size_to_extract = self.config.get('metadata_size_to_extract', 500)
-        self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist', [])
-        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist', [])
+        self.ioc_pattern_safelist = [string.encode('utf-8', errors='ignore')
+                                     for string in self.config.get('ioc_pattern_safelist', [])]
+        self.ioc_exact_safelist = [string.encode('utf-8', errors='ignore')
+                                   for string in self.config.get('ioc_exact_safelist', [])]
 
         self.macro_section = None
         self.all_vba = None
@@ -137,21 +143,18 @@ class Oletools(ServiceBase):
 
         # Plain IOCs
         if self.patterns:
-            pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org", "dublincore.org/schemas/"]
-            pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
-                        "VBE7.DLL"]
-            pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
-            excel_bin_re = re.compile(r'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
+            pat_strs = self.URI_SAFELIST
+            pat_ends = [b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
+                        b"VBE7.DLL"]
+            pat_whitelist = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
+            excel_bin_re = re.compile(rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
             if not self.request.deep_scan:
-                pat_strs += self.ioc_pattern_safelist
+                pat_strs = pat_strs + self.ioc_pattern_safelist # Using += would modify self.URI_SAFELIST
                 pat_whitelist += self.ioc_exact_safelist
 
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
                 for ioc in iocs:
-                    if isinstance(ioc, bytes):
-                        ioc = safe_str(ioc)
                     if any(string in ioc for string in pat_strs) \
                             or ioc.endswith(tuple(pat_ends)) \
                             or ioc.lower() in pat_whitelist:
@@ -160,7 +163,7 @@ class Oletools(ServiceBase):
                     if not self.request.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(ioc):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
-                    found_tags[tag_type].add(ioc)
+                    found_tags[tag_type].add(safe_str(ioc))
 
         return dict(found_tags), extract
 
@@ -398,52 +401,43 @@ class Oletools(ServiceBase):
             check_uri = check_uri.encode('utf-8', errors='ignore')
         m = re.match(self.URI_RE, check_uri)
         if m is None:
-            return False, "", tags
+            return False, b"", tags
         else:
             full_uri = m.group(0)
 
         proto, uri = full_uri.split(b'://', 1)
         if proto == b'file':
-            return False, "", tags
+            return False, b"", tags
 
-        scorable = False
-        if b"http://purl.org/" not in full_uri and \
-                b"http://xml.org/" not in full_uri and \
-                b".openxmlformats.org/" not in full_uri and \
-                b".oasis-open.org/" not in full_uri and \
-                b".xmlsoap.org/" not in full_uri and \
-                b".microsoft.com/" not in full_uri and \
-                b".w3.org/" not in full_uri and \
-                b".gc.ca/" not in full_uri and \
-                b".mil.ca/" not in full_uri:
+        if any(pattern in full_uri for pattern in self.URI_SAFELIST):
+            return False, m.group(0), tags
 
-            tags.append(('network.static.uri', full_uri))
-            scorable = True
+        tags.append(('network.static.uri', full_uri))
 
-            domain = re.match(self.DOMAIN_RE, uri)
-            ip = re.match(self.IP_RE, uri)
-            if ip:
-                ip_str = ip.group(1)
-                if not is_ip_reserved(ip_str):
-                    self.ole_result.add_tag('network.static.ip', ip_str)
-            elif domain:
-                dom_str = domain.group(1)
-                tags.append(('network.static.domain', dom_str))
+        domain = re.match(self.DOMAIN_RE, uri)
+        ip = re.match(self.IP_RE, uri)
+        if ip:
+            ip_str = ip.group(1)
+            if not is_ip_reserved(ip_str):
+                self.ole_result.add_tag('network.static.ip', ip_str)
+        elif domain:
+            dom_str = domain.group(1)
+            tags.append(('network.static.domain', dom_str))
 
-        return scorable, m.group(0), tags
+        return True, m.group(0), tags
 
     def decide_extract(self, ty, val):
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
             ty: IOC type.
-            val: String value.
+            val: IOC value (as bytes).
 
         Returns:
             Boolean value.
         """
-        foi = ['APK', 'APP', 'BAT', 'BIN', 'CLASS', 'CMD', 'DAT', 'DLL', 'EXE', 'JAR', 'JS', 'JSE', 'LNK', 'MSI',
-               'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
+        foi = [b'APK', b'APP', b'BAT', b'BIN', b'CLASS', b'CMD', b'DAT', b'DLL', b'EXE', b'JAR', b'JS', b'JSE', b'LNK', b'MSI',
+               b'OSX', b'PAF', b'PS1', b'RAR', b'SCR', b'SWF', b'SYS', b'TMP', b'VBE', b'VBS', b'WSF', b'WSH', b'ZIP']
 
         if ty == 'file.name.extracted':
             # Patterns will look for both common directories and file extensions. Ensure the value can be split.
@@ -455,7 +449,7 @@ class Oletools(ServiceBase):
                     return False
 
         elif ty == 'file.string.blacklisted':
-            if val == 'http':
+            if val == b'http':
                 return False
 
         # When deepscanning, do only minimal whitelisting
@@ -463,9 +457,9 @@ class Oletools(ServiceBase):
             return True
 
         # common false positives
-        if ty == 'file.string.api' and val == 'connect':
+        if ty == 'file.string.api' and val.lower() == b'connect':
             return False
-        blacklist_false_positives = ['connect', 'protect', 'background', 'enterprise', 'account', 'waiting', 'request']
+        blacklist_false_positives = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
         if ty == 'file.string.blacklisted' and val.lower() in blacklist_false_positives:
             return False
         return True
