@@ -191,7 +191,8 @@ heuristics:
 
   - heur_id: 27
     name: Found network indicator(s) within macros
-    score: 500
+    score: 50
+    max_score: 500
     filetype: document/office
     description: Found network indicator(s) within macros
 
