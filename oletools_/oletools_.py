@@ -44,10 +44,22 @@ class Oletools(ServiceBase):
     # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
+    # Extensions of interesting files
+    FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
+                         b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
+                         b'.SCR', b'.SWF',b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
+
+
     # Safelists
+    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
+    # substrings of URIs to ignore
     URI_SAFELIST = [b"http://purl.org/", b"http://xml.org/", b".openxmlformats.org/", b".oasis-open.org/",
                     b".xmlsoap.org/", b".microsoft.com/", b".w3.org/", b".gc.ca/", b".mil.ca/", b".dublincore.org/"]
-    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
+    # substrings at end of IoC to ignore (tuple to be compatible with .endswith())
+    PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
+                b"VBE7.DLL")
+    # Common blacklist false positives
+    BLACKLIST_IGNORE = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
 
     # Regex's
     DOMAIN_RE = b'^((?:(?:[a-zA-Z0-9-]+).)+[a-zA-Z]{2,5})'
@@ -147,13 +159,11 @@ class Oletools(ServiceBase):
 
         # Plain IOCs
         if self.patterns:
-            pat_ends = [b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
-                        b"VBE7.DLL"]
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
                 for ioc in iocs:
                     if any(string in ioc for string in self.pat_safelist) \
-                            or ioc.endswith(tuple(pat_ends)) \
+                            or ioc.endswith(self.PAT_ENDS) \
                             or ioc.lower() in self.tag_safelist:
                         continue
                     # Skip .bin files that are common in normal excel files
@@ -440,15 +450,11 @@ class Oletools(ServiceBase):
         Returns:
             Boolean value.
         """
-        foi = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE', b'.JAR',
-               b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR', b'.SCR', b'.SWF',
-               b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
-
         if ty == 'file.name.extracted':
             if val.startswith(b'oleObject'):
                 return False
             _, ext = os.path.splitext(val)
-            if ext and not ext.upper() in foi:
+            if ext and not ext.upper() in self.FILES_OF_INTEREST:
                 return False
         elif ty == 'file.string.blacklisted':
             if val == b'http':
@@ -461,8 +467,7 @@ class Oletools(ServiceBase):
         # common false positives
         if ty == 'file.string.api' and val.lower() == b'connect':
             return False
-        blacklist_fpos = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
-        if ty == 'file.string.blacklisted' and val.lower() in blacklist_fpos:
+        if ty == 'file.string.blacklisted' and val.lower() in self.BLACKLIST_IGNORE:
             return False
         return True
 
