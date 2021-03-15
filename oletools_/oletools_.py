@@ -44,6 +44,23 @@ class Oletools(ServiceBase):
     # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
+    # Extensions of interesting files
+    FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
+                         b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
+                         b'.SCR', b'.SWF',b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
+
+
+    # Safelists
+    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
+    # substrings of URIs to ignore
+    URI_SAFELIST = [b"http://purl.org/", b"http://xml.org/", b".openxmlformats.org/", b".oasis-open.org/",
+                    b".xmlsoap.org/", b".microsoft.com/", b".w3.org/", b".gc.ca/", b".mil.ca/", b".dublincore.org/"]
+    # substrings at end of IoC to ignore (tuple to be compatible with .endswith())
+    PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
+                b"VBE7.DLL")
+    # Common blacklist false positives
+    BLACKLIST_IGNORE = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
+
     # Regex's
     DOMAIN_RE = b'^((?:(?:[a-zA-Z0-9-]+).)+[a-zA-Z]{2,5})'
     EXECUTABLE_EXTENSIONS_RE = rb"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE" \
@@ -51,6 +68,7 @@ class Oletools(ServiceBase):
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     URI_RE = rb'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
+    EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
     VBS_HEX_RE = rb'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
     SUSPICIOUS_STRINGS = [
         # In maldoc.yara from decalage2/oledump-contrib/blob/master/
@@ -80,8 +98,12 @@ class Oletools(ServiceBase):
         self.macro_score_max_size = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
         self.metadata_size_to_extract = self.config.get('metadata_size_to_extract', 500)
-        self.ioc_pattern_safelist = self.config.get('ioc_pattern_safelist', [])
-        self.ioc_exact_safelist = self.config.get('ioc_exact_safelist', [])
+        self.ioc_pattern_safelist = [string.encode('utf-8', errors='ignore')
+                                     for string in self.config.get('ioc_pattern_safelist', [])]
+        self.ioc_exact_safelist = [string.encode('utf-8', errors='ignore')
+                                   for string in self.config.get('ioc_exact_safelist', [])]
+        self.pat_safelist = []
+        self.tag_safelist = []
 
         self.macro_section = None
         self.all_vba = None
@@ -137,30 +159,19 @@ class Oletools(ServiceBase):
 
         # Plain IOCs
         if self.patterns:
-            pat_strs = ["http://purl.org", "schemas.microsoft.com", "schemas.openxmlformats.org",
-                        "www.w3.org", "dublincore.org/schemas/"]
-            pat_ends = ["themeManager.xml", "MSO.DLL", "stdole2.tlb", "vbaProject.bin", "VBE6.DLL",
-                        "VBE7.DLL"]
-            pat_whitelist = ["management", "manager", "microsoft.com", "dublincore.org"]
-            excel_bin_re = re.compile(r'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin')
-            if not self.request.deep_scan:
-                pat_strs += self.ioc_pattern_safelist
-                pat_whitelist += self.ioc_exact_safelist
-
             patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
             for tag_type, iocs in patterns_found.items():
                 for ioc in iocs:
-                    if isinstance(ioc, bytes):
-                        ioc = safe_str(ioc)
-                    if any(string in ioc for string in pat_strs) \
-                            or ioc.endswith(tuple(pat_ends)) \
-                            or ioc.lower() in pat_whitelist:
+                    if any(string in ioc for string in self.pat_safelist) \
+                            or ioc.endswith(self.PAT_ENDS) \
+                            or ioc.lower() in self.tag_safelist:
                         continue
                     # Skip .bin files that are common in normal excel files
-                    if not self.request.deep_scan and tag_type == 'file.name.extracted' and excel_bin_re.match(ioc):
+                    if not self.request.deep_scan and \
+                            tag_type == 'file.name.extracted' and re.match(self.EXCEL_BIN_RE, ioc):
                         continue
                     extract = extract or self.decide_extract(tag_type, ioc)
-                    found_tags[tag_type].add(ioc)
+                    found_tags[tag_type].add(safe_str(ioc))
 
         return dict(found_tags), extract
 
@@ -307,8 +318,14 @@ class Oletools(ServiceBase):
         self.all_vba = []
         self.all_pcode = []
         self.excess_extracted = []
-
         self.vba_stomping = False
+
+        if request.deep_scan:
+            self.pat_safelist = self.URI_SAFELIST
+            self.tag_safelist = self.TAG_SAFELIST
+        else:
+            self.pat_safelist = self.URI_SAFELIST + self.ioc_pattern_safelist
+            self.tag_safelist = self.TAG_SAFELIST + self.ioc_exact_safelist
 
         path = request.file_path
         file_contents = request.file_contents
@@ -398,64 +415,49 @@ class Oletools(ServiceBase):
             check_uri = check_uri.encode('utf-8', errors='ignore')
         m = re.match(self.URI_RE, check_uri)
         if m is None:
-            return False, "", tags
+            return False, b"", tags
         else:
             full_uri = m.group(0)
 
         proto, uri = full_uri.split(b'://', 1)
         if proto == b'file':
-            return False, "", tags
+            return False, b"", tags
 
-        scorable = False
-        if b"http://purl.org/" not in full_uri and \
-                b"http://xml.org/" not in full_uri and \
-                b".openxmlformats.org/" not in full_uri and \
-                b".oasis-open.org/" not in full_uri and \
-                b".xmlsoap.org/" not in full_uri and \
-                b".microsoft.com/" not in full_uri and \
-                b".w3.org/" not in full_uri and \
-                b".gc.ca/" not in full_uri and \
-                b".mil.ca/" not in full_uri:
+        if any(pattern in full_uri for pattern in self.pat_safelist):
+            return False, m.group(0), tags
 
-            tags.append(('network.static.uri', full_uri))
-            scorable = True
+        tags.append(('network.static.uri', full_uri))
 
-            domain = re.match(self.DOMAIN_RE, uri)
-            ip = re.match(self.IP_RE, uri)
-            if ip:
-                ip_str = ip.group(1)
-                if not is_ip_reserved(ip_str):
-                    self.ole_result.add_tag('network.static.ip', ip_str)
-            elif domain:
-                dom_str = domain.group(1)
-                tags.append(('network.static.domain', dom_str))
+        domain = re.match(self.DOMAIN_RE, uri)
+        ip = re.match(self.IP_RE, uri)
+        if ip:
+            ip_str = ip.group(1)
+            if not is_ip_reserved(ip_str):
+                self.ole_result.add_tag('network.static.ip', ip_str)
+        elif domain:
+            dom_str = domain.group(1)
+            tags.append(('network.static.domain', dom_str))
 
-        return scorable, m.group(0), tags
+        return True, m.group(0), tags
 
     def decide_extract(self, ty, val):
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
             ty: IOC type.
-            val: String value.
+            val: IOC value (as bytes).
 
         Returns:
             Boolean value.
         """
-        foi = ['APK', 'APP', 'BAT', 'BIN', 'CLASS', 'CMD', 'DAT', 'DLL', 'EXE', 'JAR', 'JS', 'JSE', 'LNK', 'MSI',
-               'OSX', 'PAF', 'PS1', 'RAR', 'SCR', 'SWF', 'SYS', 'TMP', 'VBE', 'VBS', 'WSF', 'WSH', 'ZIP']
-
         if ty == 'file.name.extracted':
-            # Patterns will look for both common directories and file extensions. Ensure the value can be split.
-            if '.' in val:
-                fname, fext = val.rsplit('.', 1)
-                if not fext.upper() in foi:
-                    return False
-                if fname.startswith("oleObject"):
-                    return False
-
+            if val.startswith(b'oleObject'):
+                return False
+            _, ext = os.path.splitext(val)
+            if ext and not ext.upper() in self.FILES_OF_INTEREST:
+                return False
         elif ty == 'file.string.blacklisted':
-            if val == 'http':
+            if val == b'http':
                 return False
 
         # When deepscanning, do only minimal whitelisting
@@ -463,10 +465,9 @@ class Oletools(ServiceBase):
             return True
 
         # common false positives
-        if ty == 'file.string.api' and val == 'connect':
+        if ty == 'file.string.api' and val.lower() == b'connect':
             return False
-        blacklist_false_positives = ['connect', 'protect', 'background', 'enterprise', 'account', 'waiting', 'request']
-        if ty == 'file.string.blacklisted' and val.lower() in blacklist_false_positives:
+        if ty == 'file.string.blacklisted' and val.lower() in self.BLACKLIST_IGNORE:
             return False
         return True
 
@@ -1157,7 +1158,7 @@ class Oletools(ServiceBase):
                 subsection.set_heuristic(32)
                 for keyword, description in vba_scanner.autoexec_keywords:
                     subsection.add_line(keyword)
-                    subsection.heuristic.add_signature_id(keyword)
+                    subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.suspicious_keywords) > 0:
@@ -1165,15 +1166,14 @@ class Oletools(ServiceBase):
                 subsection.set_heuristic(30)
                 for keyword, description in vba_scanner.suspicious_keywords:
                     subsection.add_line(keyword)
-                    subsection.heuristic.add_signature_id(keyword)
+                    subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.iocs) > 0:
                 subsection = ResultSection("Potential host or network IOCs")
-                subsection.set_heuristic(28)
-                subsection.heuristic.frequency = len(vba_scanner.iocs)
+                subsection.set_heuristic(27)
+                subsection.heuristic.frequency = 0
 
-                scored_macro_uri = False
                 for keyword, description in vba_scanner.iocs:
                     # olevba seems to have swapped the keyword for description during iocs extraction
                     # this holds true until at least version 0.27
@@ -1185,23 +1185,20 @@ class Oletools(ServiceBase):
                     puri, duri, tags = self.parse_uri(description)
                     if puri:
                         subsection.add_line(f"{keyword}: {duri}")
-                        scored_macro_uri = True
+                        subsection.heuristic.increment_frequency()
                     elif desc_ip:
                         ip_str = desc_ip.group(1)
                         if not is_ip_reserved(ip_str):
-                            scored_macro_uri = True
+                            subsection.heuristic.increment_frequency()
                             subsection.add_tag('network.static.ip', ip_str)
                     else:
                         subsection.add_line(f"{keyword}: {description}")
 
                     for tag in tags:
                         subsection.add_tag(tag[0], tag[1])
+                if not subsection.heuristic.frequency:
+                    subsection.heuristic = None
                 macro_section.add_subsection(subsection)
-                if scored_macro_uri and self.scored_macro_uri is False:
-                    self.scored_macro_uri = True
-                    scored_uri_section = ResultSection("Found network indicator(s) within macros",
-                                                       heuristic=Heuristic(27))
-                    self.ole_result.add_section(scored_uri_section)
 
         except Exception as e:
             self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {str(e)}")
