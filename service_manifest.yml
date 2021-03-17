@@ -52,7 +52,7 @@ heuristics:
 
   - heur_id: 4
     name: VBA Stomping
-    score: 500
+    score: 100
     filetype: document/office
     description: The VBA source code and P-code are different, this may have been used to hide malicious code.
 
