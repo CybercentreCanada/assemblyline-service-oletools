@@ -917,9 +917,7 @@ class Oletools(ServiceBase):
 
                 ole_section.add_tag('file.ole.dde_link', link_text)
         if dde_extracted:
-            dde_section.set_heuristic(14)
-            if looksbad:
-                dde_section.set_heuristic(15)
+            dde_section.set_heuristic(16 if looksbad else 15)
             ole_section.add_section(dde_section)
 
     def check_for_macros(self, filename, file_contents, request_hash):
