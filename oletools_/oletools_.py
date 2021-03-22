@@ -382,6 +382,7 @@ class Oletools(ServiceBase):
         try:
             ole_id = OleID(filename)
             indicators = ole_id.check()
+            section = ResultSection("OleID indicators", heuristic=Heuristic(34))
 
             for indicator in indicators:
                 # ignore these OleID indicators, they aren't all that useful
@@ -389,14 +390,14 @@ class Oletools(ServiceBase):
                     continue
 
                 if indicator.value is True:
-                    section = ResultSection("OleID indicator : " + indicator.name)
                     if indicator.id not in ("word", "excel", "ppt", "visio"):
                         # good to know that the file types have been detected, but not a score-able offense
-                        section.set_heuristic(34)
+                        section.heuristic.add_signature_id(indicator.name)
+                    section.add_line(indicator.name + ": " + indicator.description
+                            if indicator.description else indicator.name)
 
-                    if indicator.description:
-                        section.add_line(indicator.description)
-                    self.ole_result.add_section(section)
+            if section.body:
+                self.ole_result.add_section(section)
         except Exception:
             self.log.debug(f"OleID analysis failed for sample {self.sha}")
 
@@ -481,13 +482,9 @@ class Oletools(ServiceBase):
             AL result object for target content, IOC content, base64 content.
         """
         xml_target_res = ResultSection("Attached External Template Targets in XML")
-        xml_ioc_res = ResultSection("IOCs content:")
-        xml_ioc_res.set_heuristic(7)
-        xml_ioc_res.heuristic.frequency = 0
+        xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
-        xml_big_res = ResultSection("Files too larged to be fully scanned")
-        xml_big_res.set_heuristic(3)
-        xml_big_res.heuristic.frequency = 0
+        xml_big_res = ResultSection("Files too larged to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
         ioc_files = defaultdict(list)
         # noinspection PyBroadException
@@ -812,8 +809,7 @@ class Oletools(ServiceBase):
             if self.vba_stomping or rawr_pcode.matches and rawr_pcode.suspicious and not rawr_vba.suspicious:
                 vba_matches = rawr_vba.matches
                 pcode_matches = rawr_pcode.matches
-                stomp_sec = ResultSection("VBA Stomping")
-                stomp_sec.set_heuristic(4)
+                stomp_sec = ResultSection("VBA Stomping", heuristic=Heuristic(4))
                 if pcode_matches:
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
                     stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
@@ -1155,26 +1151,21 @@ class Oletools(ServiceBase):
                     vba_scanner.suspicious_keywords.append((string, 'May download files from the Internet'))
 
             if len(vba_scanner.autoexec_keywords) > 0:
-                subsection = ResultSection("Autoexecution strings")
-                subsection.set_heuristic(32)
+                subsection = ResultSection("Autoexecution strings", heuristic=Heuristic(32))
                 for keyword, description in vba_scanner.autoexec_keywords:
                     subsection.add_line(keyword)
                     subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.suspicious_keywords) > 0:
-                subsection = ResultSection("Suspicious strings or functions")
-                subsection.set_heuristic(30)
+                subsection = ResultSection("Suspicious strings or functions", heuristic=Heuristic(30))
                 for keyword, description in vba_scanner.suspicious_keywords:
                     subsection.add_line(keyword)
                     subsection.heuristic.add_signature_id(keyword.lower())
                 macro_section.add_subsection(subsection)
 
             if len(vba_scanner.iocs) > 0:
-                subsection = ResultSection("Potential host or network IOCs")
-                subsection.set_heuristic(27)
-                subsection.heuristic.frequency = 0
-
+                subsection = ResultSection("Potential host or network IOCs", heuristic=Heuristic(27, frequency=0))
                 for keyword, description in vba_scanner.iocs:
                     # olevba seems to have swapped the keyword for description during iocs extraction
                     # this holds true until at least version 0.27
@@ -1569,9 +1560,7 @@ class Oletools(ServiceBase):
 
                     # Finally look for other IOC patterns, will ignore SRP streams for now
                     if self.patterns and not re.match(r'__SRP_[0-9]*', stream):
-                        ole_ioc_res = ResultSection(f"IOCs in {stream}:")
-                        ole_ioc_res.set_heuristic(9)
-                        ole_ioc_res.heuristic.frequency = 0
+                        ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
                         iocs, extract_stream = self.check_for_patterns(data)
                         for tag_type, tags in iocs.items():
                             ole_ioc_res.add_line(
