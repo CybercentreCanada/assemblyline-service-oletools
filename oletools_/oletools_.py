@@ -744,6 +744,12 @@ class Oletools(ServiceBase):
         """
         # noinspection PyBroadException
         try:
+            for macro in self.macros:
+                macro_section = self.macro_section_builder(macro)
+                macro_section.set_heuristic(33)
+                toplevel_score = self.calculate_nested_scores(macro_section)
+                if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
+                    self.macro_section.add_subsection(macro_section)
             # Create extracted file for all VBA script in VBA project files
             if self.macros:
                 all_vba = "\n".join(self.macros)
@@ -918,10 +924,6 @@ class Oletools(ServiceBase):
                                 continue
 
                             self.macros.append(vba_code)
-                            macro_section = self.macro_section_builder(vba_code)
-                            toplevel_score = self.calculate_nested_scores(macro_section)
-                            if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
-                                self.macro_section.add_subsection(macro_section)
                     except Exception:
                         self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: "
                                        f"{traceback.format_exc()}")
@@ -1234,13 +1236,6 @@ class Oletools(ServiceBase):
                     ole10native.filename.endswith(".vbs"):
 
                 self.macros.append(ole10native.native_data)
-                macro_section = self.macro_section_builder(ole10native.native_data)
-                macro_section.set_heuristic(33)
-
-                toplevel_score = self.calculate_nested_scores(macro_section)
-                if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
-                    self.macro_section.add_subsection(macro_section)
-
             else:
                 # Look for suspicious strings
                 for pattern, desc in self.SUSPICIOUS_STRINGS:
