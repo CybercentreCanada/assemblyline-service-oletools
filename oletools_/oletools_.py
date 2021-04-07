@@ -92,8 +92,6 @@ class Oletools(ServiceBase):
         self.sha = ''
         self.ole_result: Optional[Result] = None
 
-        self.macro_section: Optional[ResultSection] = None
-
         self.word_chains: Optional[Dict[str,Set[str]]] = None
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
@@ -313,8 +311,6 @@ class Oletools(ServiceBase):
         self.scored_macro_uri = False
         self.extracted_clsids = set()
 
-        self.macro_section = ResultSection("OleVBA : Macros detected")
-        self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         self.macros = []
         self.pcode = []
         self.excess_extracted = []
@@ -742,14 +738,17 @@ class Oletools(ServiceBase):
         Args:
             request_hash: Original submitted sample's sha256hash.
         """
+        macro_section = ResultSection("OleVBA : Macros detected")
+        macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         # noinspection PyBroadException
         try:
             for macro in self.macros:
-                macro_section = self.macro_section_builder(macro)
-                macro_section.set_heuristic(33)
-                toplevel_score = self.calculate_nested_scores(macro_section)
+                macro_subsection = macro_section_builder(macro)
+                macro_subsection.set_heuristic(33)
+                toplevel_score = self.calculate_nested_scores(macro_subsection)
                 if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
-                    self.macro_section.add_subsection(macro_section)
+                    macro_section.add_subsection(macro_subsection)
+
             # Create extracted file for all VBA script in VBA project files
             if self.macros:
                 all_vba = "\n".join(self.macros)
@@ -807,15 +806,15 @@ class Oletools(ServiceBase):
                     if not vba_matches:
                         vba_stomp_sec.add_line("None.")
 
-                self.macro_section.add_subsection(stomp_sec)
+                macro_section.add_subsection(stomp_sec)
 
         except Exception as e:
             self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: "
                            f"{traceback.format_exc()}")
             section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
-            self.macro_section.add_subsection(section)
-        if self.macro_section.subsections:
-            self.ole_result.add_section(self.macro_section)
+            macro_section.add_subsection(section)
+        if macro_section.subsections:
+            self.ole_result.add_section(macro_section)
 
     def check_for_dde_links(self, filepath: str) -> None:
         """Use msodde in OLETools to report on DDE links in document.
