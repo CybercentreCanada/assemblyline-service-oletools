@@ -84,7 +84,7 @@ class Oletools(ServiceBase):
          rb'|\.oneOfChild)', b"embedded javascript")
     ]
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[Dict] = None) -> None:
         super().__init__(config)
         self._oletools_version = ''
         self.request: Optional[ServiceRequest] = None
@@ -109,8 +109,8 @@ class Oletools(ServiceBase):
         self.tag_safelist: List[bytes] = []
 
         self.patterns = PatternMatch()
-        self.all_vba: List[str] = []
-        self.all_pcode: List[str] = []
+        self.macros: List[str] = []
+        self.pcode: List[str] = []
         self.extracted_clsids: Set[str] = set()
         self.excess_extracted: List[str] = []
         self.vba_stomping = False
@@ -315,8 +315,8 @@ class Oletools(ServiceBase):
 
         self.macro_section = ResultSection("OleVBA : Macros detected")
         self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
-        self.all_vba = []
-        self.all_pcode = []
+        self.macros = []
+        self.pcode = []
         self.excess_extracted = []
         self.vba_stomping = False
 
@@ -362,8 +362,6 @@ class Oletools(ServiceBase):
 
         Args:
             filename: Path to original OLE sample.
-        Returns:
-            None.
         """
         # noinspection PyBroadException
         try:
@@ -747,8 +745,8 @@ class Oletools(ServiceBase):
         # noinspection PyBroadException
         try:
             # Create extracted file for all VBA script in VBA project files
-            if self.all_vba:
-                all_vba = "\n".join(self.all_vba)
+            if self.macros:
+                all_vba = "\n".join(self.macros)
                 vba_all_sha256 = hashlib.sha256(str(all_vba).encode()).hexdigest()
                 vba_file_path = os.path.join(self.working_directory, vba_all_sha256)
                 if vba_all_sha256 != request_hash:
@@ -764,8 +762,8 @@ class Oletools(ServiceBase):
                 all_vba = ""
 
             # Create extracted file for all VBA script in assembled pcode
-            if self.all_pcode:
-                all_pcode = "\n".join(self.all_pcode)
+            if self.pcode:
+                all_pcode = "\n".join(self.pcode)
                 pcode_all_sha256 = hashlib.sha256(str(all_pcode).encode()).hexdigest()
                 pcode_file_path = os.path.join(self.working_directory, pcode_all_sha256)
                 try:
@@ -919,7 +917,7 @@ class Oletools(ServiceBase):
                             if vba_code_sha256 == request_hash:
                                 continue
 
-                            self.all_vba.append(vba_code)
+                            self.macros.append(vba_code)
                             macro_section = self.macro_section_builder(vba_code)
                             toplevel_score = self.calculate_nested_scores(macro_section)
                             if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
@@ -943,7 +941,7 @@ class Oletools(ServiceBase):
                         self.vba_stomping = True
                     pcode_res = process_doc(vba_parser)
                     if pcode_res:
-                        self.all_pcode.append(pcode_res)
+                        self.pcode.append(pcode_res)
             except Exception as e:
                 self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
 
@@ -1235,7 +1233,7 @@ class Oletools(ServiceBase):
                     ole10native.command.endswith(".vbs") or \
                     ole10native.filename.endswith(".vbs"):
 
-                self.all_vba.append(ole10native.native_data)
+                self.macros.append(ole10native.native_data)
                 macro_section = self.macro_section_builder(ole10native.native_data)
                 macro_section.set_heuristic(33)
 
