@@ -120,7 +120,7 @@ class Oletools(ServiceBase):
         self.all_vba: List[str] = []
         self.all_pcode: List[str] = []
         self.extracted_clsids: Set[str] = set()
-        self.excess_extracted: List[str] = []
+        self.excess_extracted: int = 0
         self.vba_stomping = False
         self.scored_macro_uri = False
 
@@ -325,7 +325,7 @@ class Oletools(ServiceBase):
         self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         self.all_vba = []
         self.all_pcode = []
-        self.excess_extracted = []
+        self.excess_extracted = 0
         self.vba_stomping = False
 
         if request.deep_scan:
@@ -362,7 +362,7 @@ class Oletools(ServiceBase):
 
         if self.excess_extracted:
             self.log.error(f"Too many files extracted for sample {self.sha}."
-                           f" {len(self.excess_extracted)} files were not extracted")
+                           f" {self.excess_extracted} files were not extracted")
         request.set_service_context(self._oletools_version)
 
     def check_for_indicators(self, filename: str) -> None:
@@ -489,6 +489,7 @@ class Oletools(ServiceBase):
             uris = []
             zip_uris = []
             xml_extracted = set()
+            extracted_added = 0
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
@@ -528,8 +529,10 @@ class Oletools(ServiceBase):
 
                                 self.request.add_extracted(xml_file_path, xml_sha256, f"zipped file {f} contents")
                                 xml_extracted.add(xml_sha256)
+                                extracted_added += 1
                             except MaxExtractedExceeded:
-                                self.excess_extracted.append(xml_sha256)
+                                self.excess_extracted += len(z.namelist()) - extracted_added
+                                break
                             except Exception as e:
                                 self.log.error(f"Error while adding extracted content {xml_file_path} for "
                                                f"sample {self.sha}: {str(e)}")
@@ -1184,6 +1187,7 @@ class Oletools(ServiceBase):
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
 
         mhtml = email.message_from_bytes(data)
+        extracted_added = 0
         # find all the attached files:
         for part in mhtml.walk():
             content_type = part.get_content_type()
@@ -1200,8 +1204,10 @@ class Oletools(ServiceBase):
                             mime_res.add_line(part_filename)
                             self.request.add_extracted(part_path, os.path.basename(part_path),
                                                        "ActiveMime x-mso from multipart/related.")
+                            extracted_added += 1
                         except MaxExtractedExceeded:
-                            self.excess_extracted.append(part_filename)
+                            self.excess_extracted += len(mhtml.walk()) - extracted_added
+                            break
                         except Exception as e:
                             self.log.error(f"Error submitting extracted file for sample {self.sha}: {str(e)}")
                     except Exception as e:
