@@ -15,12 +15,7 @@ from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
 import magic
 import olefile
-import oletools.rtfobj as rtfparse
-from oletools import mraptor, msodde, oleobj
-from oletools.common import clsid
-from oletools.oleid import OleID
-from oletools.olevba import VBA_Parser, VBA_Scanner
-from oletools.thirdparty.xxxswf import xxxswf
+from oletools.common import clsid, log_helper
 
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.str_utils import safe_str
@@ -30,12 +25,26 @@ from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
 
-from oletools_.cleaver import OLEDeepParser
-from oletools_.pcodedmp import process_doc
-from oletools_.stream_parser import Ole10Native, PowerPointDoc
+
+def disable_root_logging(self, use_json, level, log_format=None, stream=None):
+    return
+
+
+# Overwrites the method to NOT initialize the root logger
+log_helper.log_helper.enable_logging = disable_root_logging
 
 
 class Oletools(ServiceBase):
+    import oletools.rtfobj as rtfparse
+    from oletools import mraptor, msodde, oleobj
+    from oletools.oleid import OleID
+    from oletools.olevba import VBA_Parser, VBA_Scanner
+    from oletools.thirdparty.xxxswf import xxxswf
+
+    from oletools_.cleaver import OLEDeepParser
+    from oletools_.pcodedmp import process_doc
+    from oletools_.stream_parser import Ole10Native, PowerPointDoc
+
     # OLEtools minimum version supported
     SUPPORTED_VERSION = "0.54.2"
 
@@ -48,8 +57,7 @@ class Oletools(ServiceBase):
     # Extensions of interesting files
     FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
-                         b'.SCR', b'.SWF',b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
-
+                         b'.SCR', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
 
     # Safelists
     TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
@@ -94,7 +102,7 @@ class Oletools(ServiceBase):
 
         self.macro_section: Optional[ResultSection] = None
 
-        self.word_chains: Optional[Dict[str,Set[str]]] = None
+        self.word_chains: Optional[Dict[str, Set[str]]] = None
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
 
@@ -381,7 +389,7 @@ class Oletools(ServiceBase):
                         # good to know that the file types have been detected, but not a score-able offense
                         section.heuristic.add_signature_id(indicator.name)
                     section.add_line(indicator.name + ": " + indicator.description
-                            if indicator.description else indicator.name)
+                                     if indicator.description else indicator.name)
 
             if section.body:
                 self.ole_result.add_section(section)
@@ -491,11 +499,10 @@ class Oletools(ServiceBase):
                         xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
 
-                    has_external = external_re.search(data) # Extract all files with external targets
-                    has_dde = dde_re.search(data) # Extract all files with dde links
-                    has_script = script_re.search(data) # Extract all files with javascript
+                    has_external = external_re.search(data)  # Extract all files with external targets
+                    has_dde = dde_re.search(data)  # Extract all files with dde links
+                    has_script = script_re.search(data)  # Extract all files with javascript
                     extract_regex = has_external or has_dde or has_script
-
 
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self.check_for_patterns(data)
@@ -529,7 +536,7 @@ class Oletools(ServiceBase):
 
                 z.close()
 
-                tags_all: List[Tuple[str,bytes]] = []
+                tags_all: List[Tuple[str, bytes]] = []
                 for uri in zip_uris:
                     puri, duri, tag_list = self.parse_uri(uri)
                     if puri:
@@ -544,7 +551,7 @@ class Oletools(ServiceBase):
                     xml_target_res.set_heuristic(38)
                     xml_target_res.add_lines(uris)
                     self.ole_result.add_section(xml_target_res)
-                    #xml_target_res.set_heuristic(1)
+                    # xml_target_res.set_heuristic(1)
 
                 if tags_all:
                     for tag_type, tag in tags_all:
