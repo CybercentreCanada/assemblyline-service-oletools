@@ -1405,7 +1405,7 @@ class Oletools(ServiceBase):
                 docmeta_sec_json_body[prop] = safe_str(value)
                 # Add Tags
                 if prop in ole_tags and value:
-                    docmeta_sec.add_tag(ole_tags[prop], value)
+                    docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
         if docmeta_sec_json_body:
             docmeta_sec.body = json.dumps(docmeta_sec_json_body)
 
