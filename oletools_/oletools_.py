@@ -483,6 +483,7 @@ class Oletools(ServiceBase):
             zip_uris = []
             xml_extracted = set()
             extracted_added = 0
+            extract_exceeded = False
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
@@ -512,7 +513,8 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if not extract_exceeded and \
+                            (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
@@ -525,7 +527,7 @@ class Oletools(ServiceBase):
                                 extracted_added += 1
                             except MaxExtractedExceeded:
                                 self.excess_extracted += len(z.namelist()) - extracted_added
-                                break
+                                extract_exceeded = True
                             except Exception as e:
                                 self.log.error(f"Error while adding extracted content {xml_file_path} for "
                                                f"sample {self.sha}: {str(e)}")
