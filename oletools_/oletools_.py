@@ -13,6 +13,7 @@ import zlib
 from collections import defaultdict
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
+import logging
 import magic
 import olefile
 from oletools.common import clsid, log_helper
@@ -25,26 +26,18 @@ from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
 
+import oletools.rtfobj as rtfparse
+from oletools import mraptor, msodde, oleobj
+from oletools.oleid import OleID
+from oletools.olevba import VBA_Parser, VBA_Scanner
+from oletools.thirdparty.xxxswf import xxxswf
 
-def disable_root_logging(self, use_json, level, log_format=None, stream=None):
-    return
-
-
-# Overwrites the method to NOT initialize the root logger
-log_helper.log_helper.enable_logging = disable_root_logging
+from oletools_.cleaver import OLEDeepParser
+from oletools_.pcodedmp import process_doc
+from oletools_.stream_parser import Ole10Native, PowerPointDoc
 
 
 class Oletools(ServiceBase):
-    import oletools.rtfobj as rtfparse
-    from oletools import mraptor, msodde, oleobj
-    from oletools.oleid import OleID
-    from oletools.olevba import VBA_Parser, VBA_Scanner
-    from oletools.thirdparty.xxxswf import xxxswf
-
-    from oletools_.cleaver import OLEDeepParser
-    from oletools_.pcodedmp import process_doc
-    from oletools_.stream_parser import Ole10Native, PowerPointDoc
-
     # OLEtools minimum version supported
     SUPPORTED_VERSION = "0.54.2"
 
@@ -833,6 +826,9 @@ class Oletools(ServiceBase):
         try:
             # TODO -- undetermined if other fields could be misused.. maybe do 2 passes, 1 filtered & 1 not
             links_text = msodde.process_file(filepath=filepath, field_filter_mode=msodde.FIELD_FILTER_DDE)
+
+            # TODO -- Workaround: remove root handler(s) that was added with implicit log_helper.enable_logging() call
+            logging.getLogger().handlers = []
 
             links_text = links_text.strip()
             if not links_text:
