@@ -1166,7 +1166,7 @@ class Oletools(ServiceBase):
                         subsection.add_line(f"{keyword}: {safe_str(duri)}")
                         subsection.heuristic.increment_frequency()
                     elif desc_ip:
-                        ip_str = desc_ip.group(1)
+                        ip_str = safe_str(desc_ip.group(1))
                         if not is_ip_reserved(ip_str):
                             subsection.heuristic.increment_frequency()
                             subsection.add_tag('network.static.ip', ip_str)
