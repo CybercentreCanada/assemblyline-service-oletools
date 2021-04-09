@@ -492,7 +492,11 @@ class Oletools(ServiceBase):
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
-                    data = z.open(f).read()
+                    try:
+                        data = z.open(f).read()
+                    except zipfile.BadZipFile:
+                        continue
+
                     if len(data) > 500000:
                         data = data[:500000]
                         xml_big_res.add_line(f'{f}')
