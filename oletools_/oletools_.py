@@ -414,7 +414,7 @@ class Oletools(ServiceBase):
         ip = re.match(self.IP_RE, uri)
         if ip:
             ip_str = ip.group(1)
-            if not is_ip_reserved(ip_str):
+            if not is_ip_reserved(safe_str(ip_str)):
                 tags.append(('network.static.ip', ip_str))
         elif domain:
             dom_str = domain.group(1)
@@ -1142,7 +1142,7 @@ class Oletools(ServiceBase):
                         network.heuristic.increment_frequency()
                     elif desc_ip:
                         ip_str = desc_ip.group(1)
-                        if not is_ip_reserved(ip_str):
+                        if not is_ip_reserved(safe_str(ip_str)):
                             network.heuristic.increment_frequency()
                             network.add_tag('network.static.ip', ip_str)
                     else:
@@ -1151,7 +1151,7 @@ class Oletools(ServiceBase):
                         network.add_tag(tag[0], tag[1])
 
         except Exception as e:
-            self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {str(e)}")
+            self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {traceback.format_exc()}")
 
     def rip_mhtml(self, data: bytes) -> None:
         """Parses and extracts ActiveMime Document(document/office/mhtml).
@@ -1209,8 +1209,8 @@ class Oletools(ServiceBase):
             ole10_stream_file = os.path.join(self.working_directory,
                                              hashlib.sha256(ole10native.native_data).hexdigest())
 
-            with open(ole10_stream_file, 'w') as fh:
-                fh.write(ole10native.native_data)
+            with open(ole10_stream_file, 'wb') as f:
+                f.write(ole10native.native_data)
 
             stream_desc = f"{stream_name} ({ole10native.label}):\n\tFilename: {ole10native.filename}\n\t" \
                           f"Data Length: {ole10native.native_data_size}"
@@ -1223,7 +1223,7 @@ class Oletools(ServiceBase):
                     ole10native.command.endswith(".vbs") or \
                     ole10native.filename.endswith(".vbs"):
 
-                self.macros.append(ole10native.native_data)
+                self.macros.append(ole10native.native_data.decode(errors='ignore'))
             else:
                 # Look for suspicious strings
                 for pattern, desc in self.SUSPICIOUS_STRINGS:
