@@ -13,6 +13,7 @@ import zlib
 from collections import defaultdict
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
+import logging
 import magic
 import olefile
 import oletools.rtfobj as rtfparse
@@ -29,6 +30,12 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
+
+import oletools.rtfobj as rtfparse
+from oletools import mraptor, msodde, oleobj
+from oletools.oleid import OleID
+from oletools.olevba import VBA_Parser, VBA_Scanner
+from oletools.thirdparty.xxxswf import xxxswf
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
@@ -48,8 +55,7 @@ class Oletools(ServiceBase):
     # Extensions of interesting files
     FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
-                         b'.SCR', b'.SWF',b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
-
+                         b'.SCR', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
 
     # Safelists
     TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
@@ -94,7 +100,7 @@ class Oletools(ServiceBase):
 
         self.macro_section: Optional[ResultSection] = None
 
-        self.word_chains: Optional[Dict[str,Set[str]]] = None
+        self.word_chains: Optional[Dict[str, Set[str]]] = None
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
 
@@ -112,7 +118,7 @@ class Oletools(ServiceBase):
         self.all_vba: List[str] = []
         self.all_pcode: List[str] = []
         self.extracted_clsids: Set[str] = set()
-        self.excess_extracted: List[str] = []
+        self.excess_extracted: int = 0
         self.vba_stomping = False
         self.scored_macro_uri = False
 
@@ -317,7 +323,7 @@ class Oletools(ServiceBase):
         self.macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         self.all_vba = []
         self.all_pcode = []
-        self.excess_extracted = []
+        self.excess_extracted = 0
         self.vba_stomping = False
 
         if request.deep_scan:
@@ -354,7 +360,7 @@ class Oletools(ServiceBase):
 
         if self.excess_extracted:
             self.log.error(f"Too many files extracted for sample {self.sha}."
-                           f" {len(self.excess_extracted)} files were not extracted")
+                           f" {self.excess_extracted} files were not extracted")
         request.set_service_context(self._oletools_version)
 
     def check_for_indicators(self, filename: str) -> None:
@@ -381,7 +387,7 @@ class Oletools(ServiceBase):
                         # good to know that the file types have been detected, but not a score-able offense
                         section.heuristic.add_signature_id(indicator.name)
                     section.add_line(indicator.name + ": " + indicator.description
-                            if indicator.description else indicator.name)
+                                     if indicator.description else indicator.name)
 
             if section.body:
                 self.ole_result.add_section(section)
@@ -481,21 +487,26 @@ class Oletools(ServiceBase):
             uris = []
             zip_uris = []
             xml_extracted = set()
+            extracted_added = 0
+            extract_exceeded = False
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
-                    data = z.open(f).read()
+                    try:
+                        data = z.open(f).read()
+                    except zipfile.BadZipFile:
+                        continue
+
                     if len(data) > 500000:
                         data = data[:500000]
                         xml_big_res.add_line(f'{f}')
                         xml_big_res.heuristic.increment_frequency()
                     zip_uris.extend(template_re.findall(data))
 
-                    has_external = external_re.search(data) # Extract all files with external targets
-                    has_dde = dde_re.search(data) # Extract all files with dde links
-                    has_script = script_re.search(data) # Extract all files with javascript
+                    has_external = external_re.search(data)  # Extract all files with external targets
+                    has_dde = dde_re.search(data)  # Extract all files with dde links
+                    has_script = script_re.search(data)  # Extract all files with javascript
                     extract_regex = has_external or has_dde or has_script
-
 
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self.check_for_patterns(data)
@@ -511,7 +522,8 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if not extract_exceeded and \
+                            (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             xml_file_path = os.path.join(self.working_directory, xml_sha256)
@@ -521,15 +533,17 @@ class Oletools(ServiceBase):
 
                                 self.request.add_extracted(xml_file_path, xml_sha256, f"zipped file {f} contents")
                                 xml_extracted.add(xml_sha256)
+                                extracted_added += 1
                             except MaxExtractedExceeded:
-                                self.excess_extracted.append(xml_sha256)
+                                self.excess_extracted += len(z.namelist()) - extracted_added
+                                extract_exceeded = True
                             except Exception as e:
                                 self.log.error(f"Error while adding extracted content {xml_file_path} for "
                                                f"sample {self.sha}: {str(e)}")
 
                 z.close()
 
-                tags_all: List[Tuple[str,bytes]] = []
+                tags_all: List[Tuple[str, bytes]] = []
                 for uri in zip_uris:
                     puri, duri, tag_list = self.parse_uri(uri)
                     if puri:
@@ -544,7 +558,7 @@ class Oletools(ServiceBase):
                     xml_target_res.set_heuristic(38)
                     xml_target_res.add_lines(uris)
                     self.ole_result.add_section(xml_target_res)
-                    #xml_target_res.set_heuristic(1)
+                    # xml_target_res.set_heuristic(1)
 
                 if tags_all:
                     for tag_type, tag in tags_all:
@@ -823,6 +837,9 @@ class Oletools(ServiceBase):
         try:
             # TODO -- undetermined if other fields could be misused.. maybe do 2 passes, 1 filtered & 1 not
             links_text = msodde.process_file(filepath=filepath, field_filter_mode=msodde.FIELD_FILTER_DDE)
+
+            # TODO -- Workaround: remove root handler(s) that was added with implicit log_helper.enable_logging() call
+            logging.getLogger().handlers = []
 
             links_text = links_text.strip()
             if not links_text:
@@ -1149,7 +1166,7 @@ class Oletools(ServiceBase):
                         subsection.add_line(f"{keyword}: {safe_str(duri)}")
                         subsection.heuristic.increment_frequency()
                     elif desc_ip:
-                        ip_str = desc_ip.group(1)
+                        ip_str = safe_str(desc_ip.group(1))
                         if not is_ip_reserved(ip_str):
                             subsection.heuristic.increment_frequency()
                             subsection.add_tag('network.static.ip', ip_str)
@@ -1177,6 +1194,7 @@ class Oletools(ServiceBase):
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
 
         mhtml = email.message_from_bytes(data)
+        extracted_added = 0
         # find all the attached files:
         for part in mhtml.walk():
             content_type = part.get_content_type()
@@ -1193,8 +1211,10 @@ class Oletools(ServiceBase):
                             mime_res.add_line(part_filename)
                             self.request.add_extracted(part_path, os.path.basename(part_path),
                                                        "ActiveMime x-mso from multipart/related.")
+                            extracted_added += 1
                         except MaxExtractedExceeded:
-                            self.excess_extracted.append(part_filename)
+                            self.excess_extracted += len(mhtml.walk()) - extracted_added
+                            break
                         except Exception as e:
                             self.log.error(f"Error submitting extracted file for sample {self.sha}: {str(e)}")
                     except Exception as e:
@@ -1292,7 +1312,7 @@ class Oletools(ServiceBase):
 
                     ole_hash = hashlib.sha256(obj.raw).hexdigest()
                     ole_obj_filename = os.path.join(self.working_directory, f"{ole_hash}.pp_ole")
-                    with open(ole_obj_filename, 'w') as fh:
+                    with open(ole_obj_filename, 'wb') as fh:
                         fh.write(obj.raw)
 
                     streams_section.add_line(f"\tPowerPoint Embedded OLE Storage:\n\t\tSHA-256: {ole_hash}\n\t\t"
@@ -1389,7 +1409,7 @@ class Oletools(ServiceBase):
                 docmeta_sec_json_body[prop] = safe_str(value)
                 # Add Tags
                 if prop in ole_tags and value:
-                    docmeta_sec.add_tag(ole_tags[prop], value)
+                    docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
         if docmeta_sec_json_body:
             docmeta_sec.body = json.dumps(docmeta_sec_json_body)
 
