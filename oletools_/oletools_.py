@@ -52,10 +52,10 @@ class Oletools(ServiceBase):
 
 
     # Safelists
-    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com", b"dublincore.org"]
+    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com"]
     # substrings of URIs to ignore
-    URI_SAFELIST = [b"http://purl.org/", b"http://xml.org/", b".openxmlformats.org/", b".oasis-open.org/",
-                    b".xmlsoap.org/", b".microsoft.com/", b".w3.org/", b".gc.ca/", b".mil.ca/", b".dublincore.org/"]
+    URI_SAFELIST = [b"http://purl.org/", b"http://xml.org/", b".openxmlformats.org", b".oasis-open.org",
+                    b".xmlsoap.org", b".microsoft.com", b".w3.org", b".gc.ca", b".mil.ca", b"dublincore.org"]
     # substrings at end of IoC to ignore (tuple to be compatible with .endswith())
     PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
                 b"VBE7.DLL")
