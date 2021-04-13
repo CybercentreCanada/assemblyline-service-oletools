@@ -177,6 +177,7 @@ heuristics:
     score: 500
     filetype: document/office
     description: Suspicious executable string found in the stream
+
   - heur_id: 25
     name: Suspicious string found
     score: 500

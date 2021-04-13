@@ -760,7 +760,7 @@ class Oletools(ServiceBase):
         return rawr_combined.suspicious, rawr_combined.matches
 
     def create_macro_sections(self, request_hash: str) -> None:
-        """Creates result section for embedded macros of sample. Also extracts all macros and pcode content to
+        """ Creates result section for embedded macros of sample. Also extracts all macros and pcode content to
         individual files (all_vba_[hash].vba and all_pcode_[hash].data).
 
         Args:
@@ -771,25 +771,37 @@ class Oletools(ServiceBase):
         subsections = []
         # noinspection PyBroadException
         try:
-            autoexecution = ResultSection("Autoexecution strings", heuristic=Heuristic(32))
-            suspicious = ResultSection("Suspicious strings or functions", heuristic=Heuristic(30))
-            network = ResultSection("Potential host or network IOCs", heuristic=Heuristic(27, frequency=0))
+            auto_exec: Set[str] = set()
+            suspicious: Set[str] = set()
+            network: Set[str] = set()
+            network_section = ResultSection("Potential host or network IOCs", heuristic=Heuristic(27, frequency=0))
             for vba_code in self.macros:
                 analyzed_code = self.deobfuscator(vba_code)
-                self.macro_scanner(analyzed_code, autoexecution, suspicious, network)
-                subsections.append(self.macro_section_builder(vba_code, analyzed_code))
-            if autoexecution.body:
-                macro_section.add_subsection(autoexecution)
-            if suspicious.body:
-                macro_section.add_subsection(suspicious)
-            if network.body:
-                if not network.heuristic.frequency:
-                    network.heuristic = None
-                macro_section.add_subsection(network)
+                subsection = self.macro_section_builder(vba_code, analyzed_code)
+                if (self.macro_scanner(analyzed_code, auto_exec, suspicious, network, network_section)
+                        or subsection.heuristic):
+                    subsections.append(subsection)
+            if auto_exec:
+                autoexecution = ResultSection("Autoexecution strings",
+                        heuristic=Heuristic(32),
+                        parent=macro_section,
+                        body='\n'.join(auto_exec))
+                for keyword in auto_exec:
+                    autoexecution.heuristic.add_signature_id(keyword)
+            if suspicious:
+                sus_section = ResultSection("Suspicious strings or functions",
+                        heuristic=Heuristic(30),
+                        parent=macro_section,
+                        body='\n'.join(suspicious))
+                for keyword in suspicious:
+                    sus_section.heuristic.add_signature_id(keyword)
+            if network:
+                if network_section.heuristic.frequency == 0:
+                    network_section.heuristic = None
+                network_section.add_line('\n'.join(network))
+
             for subsection in subsections: # Add dump sections after string sections
-                toplevel_score = self.calculate_nested_scores(subsection)
-                if toplevel_score > self.MIN_MACRO_SECTION_SCORE:
-                    macro_section.add_subsection(subsection)
+                macro_section.add_subsection(subsection)
 
             # Compare suspicious content macros to pcode, macros may have been stomped
             vba_sus, vba_matches = self.mraptor_check(self.macros, "all_vba", "vba_code", request_hash)
@@ -953,24 +965,6 @@ class Oletools(ServiceBase):
             self.log.debug(f"OleVBA VBA_Parser constructor failed for sample {self.sha}, "
                            f"may not be a supported OLE document")
 
-    def calculate_nested_scores(self, section: ResultSection) -> int:
-        """Calculate the sum of scores for entire AL result section (including subsections).
-
-        Args:
-            section: AL result section.
-
-        Returns:
-           Score as int.
-        """
-        if section.heuristic:
-            score = section.heuristic.score
-        else:
-            score = 0
-        if len(section.subsections) > 0:
-            for subsection in section.subsections:
-                score = score + self.calculate_nested_scores(subsection)
-        return score
-
     def macro_section_builder(self, vba_code: str, analyzed_code: str) -> ResultSection:
         """Build an AL result section for Macro (VBA code) content.
 
@@ -1000,7 +994,6 @@ class Oletools(ServiceBase):
         # Check for Excel 4.0 macro sheet
         if re.search(r'Sheet Information - Excel 4\.0 macro sheet', analyzed_code):
             dump_subsection.set_heuristic(51)
-
 
         return dump_subsection
 
@@ -1096,15 +1089,16 @@ class Oletools(ServiceBase):
 
         return deobf
 
-    def macro_scanner(self, text: str, autoexecution: ResultSection, suspicious: ResultSection,
-            network: ResultSection) -> None:
-        """ Scan the text of a macro with VBA_Scanner and add the results to macro_section
+    def macro_scanner(self, text: str, autoexecution: Set[str], suspicious: Set[str],
+            network: Set[str], network_section: ResultSection) -> bool:
+        """ Scan the text of a macro with VBA_Scanner and collect results
 
         Args:
             text: Original VBA code.
-            autoexecution: section for autoexecution results
-            suspicious: section for suspicious results
-            network: section for host/network results
+            autoexecution: set for adding autoexecution strings
+            suspicious: set for adding suspicious strings
+            network: set for adding host/network strings
+            network_section: section for tagging network results
         Returns:
             Whether interesting results were found
         """
@@ -1115,43 +1109,43 @@ class Oletools(ServiceBase):
             for string in self.ADDITIONAL_SUSPICIOUS_KEYWORDS:
                 if re.search(string, text, re.IGNORECASE):
                     # play nice with detect_suspicious from olevba.py
-                    vba_scanner.suspicious_keywords.append((string, 'May download files from the Internet'))
+                    suspicious.add(string.lower())
 
-            if len(vba_scanner.autoexec_keywords) > 0:
-                for keyword, description in vba_scanner.autoexec_keywords:
-                    autoexecution.add_line(keyword)
-                    autoexecution.heuristic.add_signature_id(keyword.lower())
+            for keyword, description in vba_scanner.autoexec_keywords:
+                autoexecution.add(keyword.lower())
 
-            if len(vba_scanner.suspicious_keywords) > 0:
-                for keyword, description in vba_scanner.suspicious_keywords:
-                    suspicious.add_line(keyword)
-                    suspicious.heuristic.add_signature_id(keyword.lower())
+            for keyword, description in vba_scanner.suspicious_keywords:
+                suspicious.add(keyword.lower())
 
-            if len(vba_scanner.iocs) > 0:
-                for keyword, description in vba_scanner.iocs:
-                    # olevba seems to have swapped the keyword for description during iocs extraction
-                    # this holds true until at least version 0.27
+            freq = network_section.heuristic.frequency
+            for keyword, description in vba_scanner.iocs:
+                # olevba seems to have swapped the keyword for description during iocs extraction
+                # this holds true until at least version 0.27
+                if isinstance(description, str):
+                    description = description.encode('utf-8', errors='ignore')
 
-                    if isinstance(description, str):
-                        description = description.encode('utf-8', errors='ignore')
+                desc_ip = re.match(self.IP_RE, description)
+                puri, duri, tags = self.parse_uri(description)
+                if puri:
+                    network.add(f"{keyword}: {safe_str(duri)}")
+                    network_section.heuristic.increment_frequency()
+                elif desc_ip:
+                    ip_str = desc_ip.group(1)
+                    if not is_ip_reserved(safe_str(ip_str)):
+                        network_section.heuristic.increment_frequency()
+                        network_section.add_tag('network.static.ip', ip_str)
+                else:
+                    network.add(f"{keyword}: {safe_str(description)}")
+                for tag in tags:
+                    network_section.add_tag(tag[0], tag[1])
 
-                    desc_ip = re.match(self.IP_RE, description)
-                    puri, duri, tags = self.parse_uri(description)
-                    if puri:
-                        network.add_line(f"{keyword}: {safe_str(duri)}")
-                        network.heuristic.increment_frequency()
-                    elif desc_ip:
-                        ip_str = desc_ip.group(1)
-                        if not is_ip_reserved(safe_str(ip_str)):
-                            network.heuristic.increment_frequency()
-                            network.add_tag('network.static.ip', ip_str)
-                    else:
-                        network.add_line(f"{keyword}: {description}")
-                    for tag in tags:
-                        network.add_tag(tag[0], tag[1])
+            return (vba_scanner.autoexec_keywords
+                    or vba_scanner.suspicious_keywords
+                    or freq < network_section.heuristic.frequency)
 
-        except Exception as e:
+        except Exception:
             self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {traceback.format_exc()}")
+            return False
 
     def rip_mhtml(self, data: bytes) -> None:
         """Parses and extracts ActiveMime Document(document/office/mhtml).
