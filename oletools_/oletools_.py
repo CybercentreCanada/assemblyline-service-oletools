@@ -765,6 +765,8 @@ class Oletools(ServiceBase):
                         f.write(combined)
                     self.request.add_extracted(combined_file_path,
                             f"{filename}_{combined_sha256[:15]}.data", description)
+                except MaxExtractedExceeded:
+                    self.excess_extracted += 1
                 except Exception as e:
                     self.log.error(f"Error while adding extracted {description} {combined_file_path} for "
                                    f"sample {self.sha}: {str(e)}")
