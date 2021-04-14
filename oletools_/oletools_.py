@@ -3,6 +3,7 @@ import email
 import gzip
 import hashlib
 import json
+import logging
 import os
 import re
 import struct
@@ -10,10 +11,10 @@ import traceback
 import unicodedata
 import zipfile
 import zlib
+
 from collections import defaultdict
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
-import logging
 import magic
 import olefile
 import oletools.rtfobj as rtfparse
@@ -30,12 +31,6 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
-
-import oletools.rtfobj as rtfparse
-from oletools import mraptor, msodde, oleobj
-from oletools.oleid import OleID
-from oletools.olevba import VBA_Parser, VBA_Scanner
-from oletools.thirdparty.xxxswf import xxxswf
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
