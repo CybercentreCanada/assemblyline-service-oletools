@@ -152,6 +152,25 @@ class Oletools(ServiceBase):
     def get_tool_version(self) -> str:
         return self._oletools_version
 
+    def extract_file(self, data: bytes, file_name: str, description: str) -> None:
+        """
+        Adds data as an extracted file
+
+        Checks that there the service hasn't hit the extraction limit before extracting
+        """
+        if self.excess_extracted:
+            self.excess_extracted += 1
+        else:
+            try:
+                file_path = os.path.join(self.working_directory, file_name)
+                with open(file_path, 'wb') as f:
+                    f.write(data)
+                self.request.add_extracted(file_path, file_name, description)
+            except MaxExtractedExceeded:
+                self.excess_extracted += 1
+            except Exception:
+                self.log.error("Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
+
     def check_for_patterns(self, data: bytes) -> Tuple[Mapping[str, Set[bytes]], bool]:
         """Use FrankenStrings module to find strings of interest.
 
@@ -220,18 +239,12 @@ class Oletools(ServiceBase):
                     m = magic.Magic(mime=True)
                     ftype = m.from_buffer(base64data)
                     if 'octet-stream' not in ftype:
-                        b64_file_path = os.path.join(self.working_directory, f"{sha256hash[0:10]}_b64_decoded")
-                        with open(b64_file_path, 'wb') as b64_file:
-                            b64_file.write(base64data)
-                            self.log.debug(f"Submitted dropped file for analysis: {b64_file_path}")
-
-                        self.request.add_extracted(b64_file_path, os.path.basename(b64_file_path),
-                                                   "Extracted b64 file during OLETools analysis")
-
+                        self.extract_file(base64data,
+                                f"{sha256hash[0:10]}_b64_decoded",
+                                "Extracted b64 file during OLETools analysis")
                         b64results[sha256hash] = [len(b64_string), b64_string[0:50],
                                                   f"[Possible base64 file contents in {dataname}. "
                                                   "See extracted files.]", "", "", []]
-
                         extract = True
                         b64_extracted.add(sha256hash)
                         break
@@ -296,15 +309,7 @@ class Oletools(ServiceBase):
         if len(b64_ascii_content) > 0:
             all_b64 = b"\n".join(b64_ascii_content)
             b64_all_sha256 = hashlib.sha256(all_b64).hexdigest()
-            b64_file_path = os.path.join(self.working_directory, b64_all_sha256)
-            try:
-                with open(b64_file_path, 'wb') as fh:
-                    fh.write(all_b64)
-                self.request.add_extracted(b64_file_path, f"b64_{b64_all_sha256[:7]}.txt", f"b64 for {dataname}")
-            except Exception as e:
-                self.log.error("Error while adding extracted "
-                               f"b64 content {b64_file_path} for sample {self.sha}: {str(e)}")
-
+            self.extract_file(all_b64, f"b64_{b64_all_sha256}.txt", f"b64 for {dataname}")
         return b64_res, extract
 
     def execute(self, request: ServiceRequest) -> None:
@@ -481,8 +486,6 @@ class Oletools(ServiceBase):
             uris = []
             zip_uris = []
             xml_extracted = set()
-            extracted_added = 0
-            extract_exceeded = False
             if zipfile.is_zipfile(path):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
@@ -516,24 +519,11 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if not extract_exceeded and \
-                            (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
-                            xml_file_path = os.path.join(self.working_directory, xml_sha256)
-                            try:
-                                with open(xml_file_path, 'wb') as fh:
-                                    fh.write(data)
-
-                                self.request.add_extracted(xml_file_path, xml_sha256, f"zipped file {f} contents")
-                                xml_extracted.add(xml_sha256)
-                                extracted_added += 1
-                            except MaxExtractedExceeded:
-                                self.excess_extracted += len(z.namelist()) - extracted_added
-                                extract_exceeded = True
-                            except Exception as e:
-                                self.log.error(f"Error while adding extracted content {xml_file_path} for "
-                                               f"sample {self.sha}: {str(e)}")
+                            self.extract_file(data, xml_sha256, "zipped file {f} contents")
+                            xml_extracted.add(xml_sha256)
 
                 z.close()
 
@@ -666,11 +656,7 @@ class Oletools(ServiceBase):
             if swf is None:
                 continue
             swf_md5 = hashlib.sha256(swf).hexdigest()
-            swf_path = os.path.join(self.working_directory, f'{swf_md5}.swf')
-            with open(swf_path, 'wb') as f:
-                f.write(swf)
-            self.request.add_extracted(swf_path, os.path.basename(swf_path),
-                                       "Flash file extracted during sample analysis")
+            self.extract_file(swf, f'{swf_md5}.swf', "Flash file extracted during sample analysis")
             swf_found = True
         return swf_found
 
@@ -694,12 +680,7 @@ class Oletools(ServiceBase):
             # If it fails, assuming not a real byte sequence
             return False
         hex_md5 = hashlib.sha256(decoded).hexdigest()
-        hex_path = os.path.join(self.working_directory, f'{hex_md5}.hex.decoded')
-        with open(hex_path, 'wb') as f:
-            f.write(decoded)
-        self.request.add_extracted(hex_path, os.path.basename(hex_path),
-                                   "Large hex encoded chunks detected during sample analysis")
-
+        self.extract_file(decoded, f'{hex_md5}.hex.decoded', 'Large hex encoded chunks detected during sample analysis')
         return True
 
     def flag_macro(self, macro_text: str) -> bool:
@@ -757,19 +738,10 @@ class Oletools(ServiceBase):
         """
         combined = '\n'.join(macros)
         if combined:
-            combined_sha256 = hashlib.sha256(str(combined).encode()).hexdigest()
-            combined_file_path = os.path.join(self.working_directory, combined_sha256)
+            data = combined.encode()
+            combined_sha256 = hashlib.sha256(data).hexdigest()
             if combined_sha256 != request_hash:
-                try:
-                    with open(combined_file_path, 'w') as f:
-                        f.write(combined)
-                    self.request.add_extracted(combined_file_path,
-                            f"{filename}_{combined_sha256[:15]}.data", description)
-                except MaxExtractedExceeded:
-                    self.excess_extracted += 1
-                except Exception as e:
-                    self.log.error(f"Error while adding extracted {description} {combined_file_path} for "
-                                   f"sample {self.sha}: {str(e)}")
+                self.extract_file(data, f"{filename}_{combined_sha256[:15]}.data", description)
 
         rawr_combined = mraptor.MacroRaptor(combined)
         rawr_combined.scan()
@@ -880,10 +852,7 @@ class Oletools(ServiceBase):
             ole_section: OLE AL result.
         """
         ddeout_name = f'{self.sha}.ddelinks.original'
-        ddeout_path = os.path.join(self.working_directory, ddeout_name)
-        with open(ddeout_path, 'w') as f:
-            f.write(links_text)
-        self.request.add_extracted(ddeout_path, "Original DDE Links", ddeout_name)
+        self.extract_file(links_text.encode(), ddeout_name, "Original DDE Links")
 
         """ typical results look like this:
         DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
@@ -917,11 +886,8 @@ class Oletools(ServiceBase):
                 dde_section.add_line("\n\n")
                 dde_extracted = True
 
-                ddeout_name = f'{hashlib.sha256(link_text.encode()).hexdigest()}.ddelinks'
-                ddeout_path = os.path.join(self.working_directory, ddeout_name)
-                with open(ddeout_path, 'w') as f:
-                    f.write(link_text)
-                self.request.add_extracted(ddeout_path, "Tweaked DDE Link", ddeout_name)
+                data = links_text.encode()
+                self.extract_file(data, f'{hashlib.sha256(data).hexdigest()}.ddelinks', "Tweaked DDE Link")
 
                 link_text_lower = link_text.lower()
                 if any(x in link_text_lower for x in suspicious_keywords):
@@ -1174,11 +1140,8 @@ class Oletools(ServiceBase):
         """
         if self.task.file_type != 'document/office/mhtml':
             return
-
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
-
         mhtml = email.message_from_bytes(data)
-        extracted_added = 0
         # find all the attached files:
         for part in mhtml.walk():
             content_type = part.get_content_type()
@@ -1188,19 +1151,8 @@ class Oletools(ServiceBase):
                     try:
                         part_data = zlib.decompress(part_data[0x32:])  # Grab  the zlib-compressed data
                         part_filename = part.get_filename(None) or hashlib.sha256(part_data).hexdigest()
-                        part_path = os.path.join(self.working_directory, part_filename)
-                        with open(part_path, 'w') as fh:
-                            fh.write(part_data)
-                        try:
-                            mime_res.add_line(part_filename)
-                            self.request.add_extracted(part_path, os.path.basename(part_path),
-                                                       "ActiveMime x-mso from multipart/related.")
-                            extracted_added += 1
-                        except MaxExtractedExceeded:
-                            self.excess_extracted += len(mhtml.walk()) - extracted_added
-                            break
-                        except Exception as e:
-                            self.log.error(f"Error submitting extracted file for sample {self.sha}: {str(e)}")
+                        self.extract_file(part_data, part_filename, "ActiveMime x-mso from multipart/related.")
+                        mime_res.add_line(part_filename)
                     except Exception as e:
                         self.log.debug(f"Could not decompress ActiveMime part for sample {self.sha}: {str(e)}")
 
@@ -1222,17 +1174,12 @@ class Oletools(ServiceBase):
         try:
             ole10native = Ole10Native(data)
 
-            ole10_stream_file = os.path.join(self.working_directory,
-                                             hashlib.sha256(ole10native.native_data).hexdigest())
-
-            with open(ole10_stream_file, 'wb') as f:
-                f.write(ole10native.native_data)
-
+            self.extract_file(ole10native.native_data,
+                    hashlib.sha256(ole10native.native_data).hexdigest(),
+                    f"Embedded OLE Stream {stream_name}")
             stream_desc = f"{stream_name} ({ole10native.label}):\n\tFilename: {ole10native.filename}\n\t" \
                           f"Data Length: {ole10native.native_data_size}"
             streams_section.add_line(stream_desc)
-            self.request.add_extracted(ole10_stream_file, os.path.basename(ole10_stream_file),
-                                       f"Embedded OLE Stream {stream_name}")
 
             # handle embedded native macros
             if ole10native.label.endswith(".vbs") or \
@@ -1288,15 +1235,12 @@ class Oletools(ServiceBase):
                         continue
 
                     ole_hash = hashlib.sha256(obj.raw).hexdigest()
-                    ole_obj_filename = os.path.join(self.working_directory, f"{ole_hash}.pp_ole")
-                    with open(ole_obj_filename, 'wb') as fh:
-                        fh.write(obj.raw)
-
+                    self.extract_file(obj.raw,
+                            f"{ole_hash}.pp_ole",
+                            "Embedded Ole Storage within PowerPoint Document Stream")
                     streams_section.add_line(f"\tPowerPoint Embedded OLE Storage:\n\t\tSHA-256: {ole_hash}\n\t\t"
                                              f"Length: {len(obj.raw)}\n\t\tCompressed: {obj.compressed}")
-                    self.log.debug(f"Added OLE stream within a PowerPoint Document Stream: {ole_obj_filename}")
-                    self.request.add_extracted(ole_obj_filename, f"ExeOleObjStg_{ole_hash}",
-                                               "Embedded OLE Storage within PowerPoint Document Stream")
+                    self.log.debug(f"Added OLE stream within a PowerPoint Document Stream: {ole_hash}.pp_ole")
             return True
         except Exception as e:
             self.log.warning(f"Failed to parse PowerPoint Document stream for sample {self.sha}: {str(e)}")
@@ -1337,22 +1281,15 @@ class Oletools(ServiceBase):
             if value is not None and value not in ['"', "'", ""]:
                 if prop == "thumbnail":
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
-                    meta_path = os.path.join(self.working_directory, meta_name)
-                    with open(meta_path, 'wb') as fh:
-                        fh.write(value)
-                    self.request.add_extracted(meta_path, os.path.basename(meta_path),
-                                               "OLE metadata thumbnail extracted")
+                    self.extract_file(value, meta_name, "OLE metadata thumbnail extracted")
                     summeta_sec_json_body[prop] = "[see extracted files]"
                     summeta_sec.set_heuristic(18)
                     continue
                 # Extract data over n bytes
                 if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
-                    meta_name = f'{hashlib.sha256(value.encode()).hexdigest()[0:15]}.{prop}.data'
-                    meta_path = os.path.join(self.working_directory, meta_name)
-                    with open(meta_path, 'w') as f:
-                        f.write(value)
-                    self.request.add_extracted(meta_path, os.path.basename(meta_path),
-                                               f"OLE metadata from {prop.upper()} attribute")
+                    data = value.encode()
+                    meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
+                    self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
                     summeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
                                                   f"see extracted files]"
                     summeta_sec.set_heuristic(17)
@@ -1373,12 +1310,9 @@ class Oletools(ServiceBase):
                 if isinstance(value, str):
                     # Extract data over n bytes
                     if len(value) > self.metadata_size_to_extract:
-                        meta_name = f'{hashlib.sha256(value.encode()).hexdigest()[0:15]}.{prop}.data'
-                        meta_path = os.path.join(self.working_directory, meta_name)
-                        with open(meta_path, 'w') as f:
-                            f.write(value)
-                        self.request.add_extracted(meta_path, os.path.basename(meta_path),
-                                                   f"OLE metadata from {prop.upper()} attribute")
+                        data = value.encode()
+                        meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
+                        self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
                         docmeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
                                                       f"see extracted files]"
                         docmeta_sec.set_heuristic(17)
@@ -1425,7 +1359,7 @@ class Oletools(ServiceBase):
         for dir_entry in listdir:
             if "\x05HwpSummaryInformation" in dir_entry:
                 decompress = True
-        decompress_macros = []
+        decompress_macros: List[bytes] = []
 
         stream_num = 0
         exstr_sec = None
@@ -1544,12 +1478,7 @@ class Oletools(ServiceBase):
                     # All streams are extracted with deep scan (see below)
                     if extract_stream and not self.request.deep_scan:
                         stream_num += 1
-                        stream_name = f'{stm_sha}.ole_stream'
-                        stream_path = os.path.join(self.working_directory, stream_name)
-                        with open(stream_path, 'wb') as fh:
-                            fh.write(data)
-                        self.request.add_extracted(stream_path, os.path.basename(stream_path),
-                                                   f"Embedded OLE Stream {stream}")
+                        self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
                         if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                             decompress_macros.append(data)
 
@@ -1557,12 +1486,7 @@ class Oletools(ServiceBase):
                     if self.request.deep_scan:
                         stream_num += 1
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
-                        stream_name = f'{stm_sha}.ole_stream'
-                        stream_path = os.path.join(self.working_directory, stream_name)
-                        with open(stream_path, 'wb') as fh:
-                            fh.write(data)
-                        self.request.add_extracted(stream_path, os.path.basename(stream_path),
-                                                   f"Embedded OLE Stream {stream}")
+                        self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
                         if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                             decompress_macros.append(data)
 
@@ -1588,12 +1512,9 @@ class Oletools(ServiceBase):
             # HWP Files
             ResultSection("Compressed macros found, see extracted files", heuristic=Heuristic(22),
                           parent=streams_section)
-            macros = "\n".join(decompress_macros)
-            stream_name = f'{hashlib.sha256(macros.encode()).hexdigest()}.macros'
-            stream_path = os.path.join(self.working_directory, stream_name)
-            with open(stream_path, 'w') as f:
-                f.write(macros)
-            self.request.add_extracted(stream_path, "all_macros.ps", "Combined macros")
+            macros = b'\n'.join(decompress_macros)
+            stream_name = f'{hashlib.sha256(macros).hexdigest()}.macros'
+            self.extract_file(macros, stream_name, "Combined macros")
 
     # noinspection PyBroadException
     def extract_streams(self, file_name: str, file_contents: bytes) -> None:
@@ -1698,11 +1619,7 @@ class Oletools(ServiceBase):
                         fname = self.sanitize_filename(rtfobj.filename)
                     else:
                         fname = f'object_{rtfobj.start}.noname'
-                    extracted_obj = os.path.join(self.working_directory, fname)
-                    with open(extracted_obj, 'wb') as fh:
-                        fh.write(rtfobj.olepkgdata)
-                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
-                                               f'OLE Package in object #{i}:')
+                    self.extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
 
                 # When format_id=TYPE_LINKED, oledata_size=None
                 elif rtfobj.is_ole and rtfobj.oledata_size is not None:
@@ -1715,19 +1632,11 @@ class Oletools(ServiceBase):
                     else:
                         ext = 'bin'
                     fname = f'object_{hex(rtfobj.start)}.{ext}'
-                    extracted_obj = os.path.join(self.working_directory, fname)
-                    with open(extracted_obj, 'wb') as fh:
-                        fh.write(rtfobj.oledata)
-                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
-                                               f'Embedded in OLE object #{i}:')
+                    self.extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
 
                 else:
                     fname = f'object_{hex(rtfobj.start)}.raw'
-                    extracted_obj = os.path.join(self.working_directory, fname)
-                    with open(extracted_obj, 'wb') as fh:
-                        fh.write(rtfobj.rawdata)
-                    self.request.add_extracted(extracted_obj, os.path.basename(extracted_obj),
-                                               f'Raw data in object #{i}:')
+                    self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
 
             if len(embedded) > 0:
                 emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
