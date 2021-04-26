@@ -468,7 +468,7 @@ class Oletools(ServiceBase):
         xml_target_res = ResultSection("Attached External Template Targets in XML")
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
-        xml_big_res = ResultSection("Files too larged to be fully scanned", heuristic=Heuristic(3, frequency=0))
+        xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
