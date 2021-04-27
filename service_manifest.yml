@@ -44,11 +44,11 @@ heuristics:
       used to obfuscate malicious content.
 
   - heur_id: 3
-    name: Massive document
+    name: Too Large
     score: 0
     filetype: document/office
     description: >-
-      File contains parts which are massive. Could not scan entire document.
+      File contains parts which are too large to be scanned.
 
   - heur_id: 4
     name: VBA Stomping

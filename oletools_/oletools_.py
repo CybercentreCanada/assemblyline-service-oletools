@@ -468,7 +468,7 @@ class Oletools(ServiceBase):
         xml_target_res = ResultSection("Attached External Template Targets in XML")
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
-        xml_big_res = ResultSection("Files too larged to be fully scanned", heuristic=Heuristic(3, frequency=0))
+        xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
@@ -790,20 +790,18 @@ class Oletools(ServiceBase):
             vba_sus, vba_matches = self.mraptor_check(self.macros, "all_vba", "vba_code", request_hash)
             pcode_sus, pcode_matches = self.mraptor_check(self.macros, "all_pcode", "pcode", request_hash)
 
-            if self.vba_stomping or vba_matches and pcode_sus and not vba_sus:
+            if self.vba_stomping or pcode_matches and pcode_sus and not vba_sus:
                 stomp_sec = ResultSection("VBA Stomping", heuristic=Heuristic(4))
-                if pcode_matches:
+                pcode_results = '\n'.join(m for m in pcode_matches if m not in set(vba_matches))
+                if pcode_results:
+                    stomp_sec.add_subsection(ResultSection("Suspicious content in pcode dump not found in macro dump:",
+                            body=pcode_results))
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
                     stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
-                    pcode_stomp_sec = ResultSection("Pcode dump suspicious content:", parent=stomp_sec)
-                    for m in pcode_matches:
-                        pcode_stomp_sec.add_line(m)
-                    vba_stomp_sec = ResultSection("Macro dump suspicious content:", parent=stomp_sec)
-                    for m in vba_matches:
-                        vba_stomp_sec.add_line(m)
+                    vba_stomp_sec = ResultSection("Suspicious content in macro dump:", parent=stomp_sec)
+                    vba_stomp_sec.add_lines(vba_matches)
                     if not vba_matches:
                         vba_stomp_sec.add_line("None.")
-
                 macro_section.add_subsection(stomp_sec)
 
         except Exception as e:
