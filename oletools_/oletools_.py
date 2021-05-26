@@ -164,7 +164,7 @@ class Oletools(ServiceBase):
             except MaxExtractedExceeded:
                 self.excess_extracted += 1
             except Exception:
-                self.log.error("Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
+                self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
     def check_for_patterns(self, data: bytes) -> Tuple[Mapping[str, Set[bytes]], bool]:
         """Use FrankenStrings module to find strings of interest.
