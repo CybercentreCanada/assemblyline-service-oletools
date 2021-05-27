@@ -517,7 +517,7 @@ class Oletools(ServiceBase):
                     if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(data).hexdigest()
                         if xml_sha256 not in xml_extracted:
-                            self.extract_file(data, xml_sha256, "zipped file {f} contents")
+                            self.extract_file(data, xml_sha256, f"zipped file {f} contents")
                             xml_extracted.add(xml_sha256)
 
                 z.close()
