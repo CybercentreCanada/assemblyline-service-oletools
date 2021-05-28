@@ -1520,7 +1520,6 @@ class Oletools(ServiceBase):
         oles: Set[str] = set()
         try:
             streams_res = ResultSection("Embedded document stream(s)")
-            sep = "-----------------------------------------"
             is_zip = False
             is_ole = False
             # Get the OLEs from PK package
@@ -1548,131 +1547,134 @@ class Oletools(ServiceBase):
                 try:
                     with olefile.OleFileIO(ole_filename) as ole_stream:
                         self.process_ole_stream(ole_stream, streams_res)
-
                 except Exception:
                     self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-            # RTF Package
-            rtfp = rtfparse.RtfObjParser(file_contents)
-            rtfp.parse()
-            embedded = []
-            linked = []
-            unknown = []
-            # RTF objdata
-            for rtfobj in rtfp.objects:
-                res_txt = ""
-                res_alert = ""
-                if rtfobj.is_ole:
-                    res_txt += f'format_id: {rtfobj.format_id}\n'
-                    res_txt += f'class name: {rtfobj.class_name}\n'
-                    # if the object is linked and not embedded, data_size=None:
-                    if rtfobj.oledata_size is None:
-                        res_txt += 'data size: N/A\n'
-                    else:
-                        res_txt += f'data size: {rtfobj.oledata_size}\n'
-                    if rtfobj.is_package:
-                        res_txt = f'Filename: {rtfobj.filename}\n'
-                        res_txt += f'Source path: {rtfobj.src_path}\n'
-                        res_txt += f'Temp path = {rtfobj.temp_path}\n'
+            self.extract_rtf(file_contents, streams_res)
 
-                        # check if the file extension is executable:
-                        _, ext = os.path.splitext(rtfobj.filename)
-
-                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
-                            res_alert += 'CODE/EXECUTABLE FILE'
-                        else:
-                            # check if the file content is executable:
-                            m = magic.Magic()
-                            ftype = m.from_buffer(rtfobj.olepkgdata)
-                            if "executable" in ftype:
-                                res_alert += 'CODE/EXECUTABLE FILE'
-                    else:
-                        res_txt += 'Not an OLE Package'
-                    # Detect OLE2Link exploit
-                    # http://www.kb.cert.org/vuls/id/921560
-                    if rtfobj.class_name == 'OLE2Link':
-                        res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
-                else:
-                    res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
-                    if len(rtfobj.rawdata) > 4999:
-                        res_alert += "Data of malformed OLE object over 5000 bytes"
-                    streams_res.set_heuristic(19)
-
-                if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
-                    embedded.append((res_txt, res_alert))
-                elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
-                    linked.append((res_txt, res_alert))
-                else:
-                    unknown.append((res_txt, res_alert))
-
-                # Write object content to extracted file
-                i = rtfp.objects.index(rtfobj)
-                if rtfobj.is_package:
-                    if rtfobj.filename:
-                        fname = self.sanitize_filename(rtfobj.filename)
-                    else:
-                        fname = f'object_{rtfobj.start}.noname'
-                    self.extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
-
-                # When format_id=TYPE_LINKED, oledata_size=None
-                elif rtfobj.is_ole and rtfobj.oledata_size is not None:
-                    # set a file extension according to the class name:
-                    class_name = rtfobj.class_name.lower()
-                    if class_name.startswith(b'word'):
-                        ext = 'doc'
-                    elif class_name.startswith(b'package'):
-                        ext = 'package'
-                    else:
-                        ext = 'bin'
-                    fname = f'object_{hex(rtfobj.start)}.{ext}'
-                    self.extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
-
-                else:
-                    fname = f'object_{hex(rtfobj.start)}.raw'
-                    self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
-
-            if len(embedded) > 0:
-                emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                        heuristic=Heuristic(21))
-                for txt, alert in embedded:
-                    emb_sec.add_line(sep)
-                    emb_sec.add_line(txt)
-                    if alert != "":
-                        emb_sec.set_heuristic(11)
-                        if "CVE" in alert.lower():
-                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                            for cve in cves:
-                                emb_sec.add_tag('attribution.exploit', cve)
-                        emb_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(emb_sec)
-            if len(linked) > 0:
-                lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                        heuristic=Heuristic(13))
-                for txt, alert in linked:
-                    lik_sec.add_line(txt)
-                    if alert != "":
-                        if "CVE" in alert.lower():
-                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                            for cve in cves:
-                                lik_sec.add_tag('attribution.exploit', cve)
-                        lik_sec.set_heuristic(12)
-                        lik_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(lik_sec)
-            if len(unknown) > 0:
-                unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
-                for txt, alert in unknown:
-                    unk_sec.add_line(txt)
-                    if alert != "":
-                        if "CVE" in alert.lower():
-                            cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                            for cve in cves:
-                                unk_sec.add_tag('attribution.exploit', cve)
-                        unk_sec.set_heuristic(14)
-                        unk_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(unk_sec)
-
-            if streams_res.body or len(streams_res.subsections) > 0:
+            if streams_res.body or streams_res.subsections:
                 self.ole_result.add_section(streams_res)
 
         except Exception:
             self.log.debug(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
+
+    def extract_rtf(self, file_contents: bytes, streams_res: ResultSection) -> None:
+        """ Handle RTF Packages """
+        sep = "-----------------------------------------"
+        rtfp = rtfparse.RtfObjParser(file_contents)
+        rtfp.parse()
+        embedded = []
+        linked = []
+        unknown = []
+        # RTF objdata
+        for rtfobj in rtfp.objects:
+            res_txt = ""
+            res_alert = ""
+            if rtfobj.is_ole:
+                res_txt += f'format_id: {rtfobj.format_id}\n'
+                res_txt += f'class name: {rtfobj.class_name}\n'
+                # if the object is linked and not embedded, data_size=None:
+                if rtfobj.oledata_size is None:
+                    res_txt += 'data size: N/A\n'
+                else:
+                    res_txt += f'data size: {rtfobj.oledata_size}\n'
+                if rtfobj.is_package:
+                    res_txt = f'Filename: {rtfobj.filename}\n'
+                    res_txt += f'Source path: {rtfobj.src_path}\n'
+                    res_txt += f'Temp path = {rtfobj.temp_path}\n'
+
+                    # check if the file extension is executable:
+                    _, ext = os.path.splitext(rtfobj.filename)
+
+                    if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
+                        res_alert += 'CODE/EXECUTABLE FILE'
+                    else:
+                        # check if the file content is executable:
+                        m = magic.Magic()
+                        ftype = m.from_buffer(rtfobj.olepkgdata)
+                        if "executable" in ftype:
+                            res_alert += 'CODE/EXECUTABLE FILE'
+                else:
+                    res_txt += 'Not an OLE Package'
+                # Detect OLE2Link exploit
+                # http://www.kb.cert.org/vuls/id/921560
+                if rtfobj.class_name == 'OLE2Link':
+                    res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
+            else:
+                res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                if len(rtfobj.rawdata) > 4999:
+                    res_alert += "Data of malformed OLE object over 5000 bytes"
+                streams_res.set_heuristic(19)
+
+            if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
+                embedded.append((res_txt, res_alert))
+            elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
+                linked.append((res_txt, res_alert))
+            else:
+                unknown.append((res_txt, res_alert))
+
+            # Write object content to extracted file
+            i = rtfp.objects.index(rtfobj)
+            if rtfobj.is_package:
+                if rtfobj.filename:
+                    fname = self.sanitize_filename(rtfobj.filename)
+                else:
+                    fname = f'object_{rtfobj.start}.noname'
+                self.extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
+
+            # When format_id=TYPE_LINKED, oledata_size=None
+            elif rtfobj.is_ole and rtfobj.oledata_size is not None:
+                # set a file extension according to the class name:
+                class_name = rtfobj.class_name.lower()
+                if class_name.startswith(b'word'):
+                    ext = 'doc'
+                elif class_name.startswith(b'package'):
+                    ext = 'package'
+                else:
+                    ext = 'bin'
+                fname = f'object_{hex(rtfobj.start)}.{ext}'
+                self.extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
+
+            else:
+                fname = f'object_{hex(rtfobj.start)}.raw'
+                self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
+
+        if len(embedded) > 0:
+            emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(21))
+            for txt, alert in embedded:
+                emb_sec.add_line(sep)
+                emb_sec.add_line(txt)
+                if alert != "":
+                    emb_sec.set_heuristic(11)
+                    if "CVE" in alert.lower():
+                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                        for cve in cves:
+                            emb_sec.add_tag('attribution.exploit', cve)
+                    emb_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(emb_sec)
+        if len(linked) > 0:
+            lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(13))
+            for txt, alert in linked:
+                lik_sec.add_line(txt)
+                if alert != "":
+                    if "CVE" in alert.lower():
+                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                        for cve in cves:
+                            lik_sec.add_tag('attribution.exploit', cve)
+                    lik_sec.set_heuristic(12)
+                    lik_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(lik_sec)
+        if len(unknown) > 0:
+            unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
+            for txt, alert in unknown:
+                unk_sec.add_line(txt)
+                if alert != "":
+                    if "CVE" in alert.lower():
+                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
+                        for cve in cves:
+                            unk_sec.add_tag('attribution.exploit', cve)
+                    unk_sec.set_heuristic(14)
+                    unk_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(unk_sec)
