@@ -772,12 +772,12 @@ class Oletools(ServiceBase):
                 for keyword in auto_exec:
                     autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
-                sus_section = ResultSection("Suspicious strings or functions",
-                        heuristic=Heuristic(30),
-                        parent=macro_section,
-                        body='\n'.join(suspicious))
-                for keyword in suspicious:
-                    sus_section.heuristic.add_signature_id(keyword)
+                signatures = {keyword: 1 for keyword in suspicious
+                        if keyword not in ('hex strings', 'base64 strings')}
+                heuristic = Heuristic(30, signatures=signatures) if signatures else None
+                macro_section.add_subsection(ResultSection("Suspicious strings or functions",
+                        heuristic=heuristic,
+                        body='\n'.join(suspicious)))
             if network:
                 if network_section.heuristic.frequency == 0:
                     network_section.heuristic = None
