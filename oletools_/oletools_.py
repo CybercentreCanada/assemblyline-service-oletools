@@ -1517,7 +1517,7 @@ class Oletools(ServiceBase):
             file_name: Path to original sample.
             file_contents: Original sample file content.
         """
-        oles = {}
+        oles: Set[str] = set()
         try:
             streams_res = ResultSection("Embedded document stream(s)")
             sep = "-----------------------------------------"
@@ -1526,28 +1526,28 @@ class Oletools(ServiceBase):
             # Get the OLEs from PK package
             if zipfile.is_zipfile(file_name):
                 is_zip = True
-                z = zipfile.ZipFile(file_name)
-                for f in z.namelist():
-                    if f in oles:
-                        continue
-                    bin_data = z.open(f).read()
-                    bin_fname = os.path.join(self.working_directory, f"{hashlib.sha256(bin_data).hexdigest()}.tmp")
-                    with open(bin_fname, 'wb') as bin_fh:
-                        bin_fh.write(bin_data)
-                    if olefile.isOleFile(bin_fname):
-                        oles[f] = olefile.OleFileIO(bin_fname)
-                z.close()
+                with zipfile.ZipFile(file_name) as z:
+                    for f in z.namelist():
+                        if f in oles:
+                            continue
+                        bin_data = z.open(f).read()
+                        bin_fname = os.path.join(self.working_directory, f"{hashlib.sha256(bin_data).hexdigest()}.tmp")
+                        with open(bin_fname, 'wb') as bin_fh:
+                            bin_fh.write(bin_data)
+                        if olefile.isOleFile(bin_fname):
+                            oles.add(f)
 
             if olefile.isOleFile(file_name):
                 is_ole = True
-                oles[file_name] = olefile.OleFileIO(file_name)
+                oles.add(file_name)
 
             if is_zip and is_ole:
                 streams_res.set_heuristic(2)
 
-            for ole_filename in oles.keys():
+            for ole_filename in oles:
                 try:
-                    self.process_ole_stream(oles[ole_filename], streams_res)
+                    with olefile.OleFileIO(ole_filename) as ole_stream:
+                        self.process_ole_stream(ole_stream, streams_res)
 
                 except Exception:
                     self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
@@ -1676,10 +1676,3 @@ class Oletools(ServiceBase):
 
         except Exception:
             self.log.debug(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
-
-        finally:
-            for fd in oles.values():
-                try:
-                    fd.close()
-                except Exception:
-                    pass
