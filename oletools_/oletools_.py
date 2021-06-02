@@ -63,7 +63,7 @@ class Oletools(ServiceBase):
     # Common blacklist false positives
     BLACKLIST_IGNORE = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
 
-    # Regex's
+    # Bytes Regex's
     DOMAIN_RE = b'^((?:(?:[a-zA-Z0-9-]+).)+[a-zA-Z]{2,5})'
     EXECUTABLE_EXTENSIONS_RE = rb"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE" \
                                rb"|VB|JSE|JS|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR" \
@@ -85,6 +85,9 @@ class Oletools(ServiceBase):
          rb'|\.oneOfChild)', b"embedded javascript")
     ]
 
+    # String Regex's
+    CVE_RE = r'CVE-[0-9]{4}-[0-9]*'
+
     def __init__(self, config: Optional[Dict] = None) -> None:
         super().__init__(config)
         self._oletools_version = ''
@@ -93,7 +96,7 @@ class Oletools(ServiceBase):
         self.sha = ''
         self.ole_result: Optional[Result] = None
 
-        self.word_chains: Optional[Dict[str,Set[str]]] = None
+        self.word_chains: Dict[str,Set[str]] = {}
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
 
@@ -1293,6 +1296,7 @@ class Oletools(ServiceBase):
                     summeta_sec.add_tag(ole_tags[prop], safe_str(value))
         if summeta_sec_json_body:
             summeta_sec.body = json.dumps(summeta_sec_json_body)
+            meta_sec.add_subsection(summeta_sec)
 
         # Document Summary
         docmeta_sec_json_body = dict()
@@ -1316,12 +1320,9 @@ class Oletools(ServiceBase):
                     docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
         if docmeta_sec_json_body:
             docmeta_sec.body = json.dumps(docmeta_sec_json_body)
+            meta_sec.add_subsection(docmeta_sec)
 
-        if summeta_sec.body or docmeta_sec.body:
-            if summeta_sec.body:
-                meta_sec.add_subsection(summeta_sec)
-            if docmeta_sec.body:
-                meta_sec.add_subsection(docmeta_sec)
+        if meta_sec.subsections:
             streams_section.add_subsection(meta_sec)
 
         # CLSIDS: Report, tag and flag known malicious
@@ -1334,8 +1335,7 @@ class Oletools(ServiceBase):
             clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
             mal_msg = ""
             if 'CVE' in clsid_desc:
-                cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', clsid_desc)
-                for cve in cves:
+                for cve in re.findall(self.CVE_RE, clsid_desc):
                     clsid_sec.add_tag('attribution.exploit', cve)
                 clsid_sec.set_heuristic(52)
                 mal_msg = " FLAGGED MALICIOUS"
@@ -1639,42 +1639,36 @@ class Oletools(ServiceBase):
                 fname = f'object_{hex(rtfobj.start)}.raw'
                 self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
 
-        if len(embedded) > 0:
+        if embedded:
             emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
                                     heuristic=Heuristic(21))
             for txt, alert in embedded:
                 emb_sec.add_line(sep)
                 emb_sec.add_line(txt)
-                if alert != "":
+                if alert != '':
                     emb_sec.set_heuristic(11)
-                    if "CVE" in alert.lower():
-                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                        for cve in cves:
-                            emb_sec.add_tag('attribution.exploit', cve)
+                    for cve in re.findall(self.CVE_RE, alert):
+                        emb_sec.add_tag('attribution.exploit', cve)
                     emb_sec.add_line(f"Malicious Properties found: {alert}")
             streams_res.add_subsection(emb_sec)
-        if len(linked) > 0:
+        if linked:
             lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
                                     heuristic=Heuristic(13))
             for txt, alert in linked:
                 lik_sec.add_line(txt)
-                if alert != "":
-                    if "CVE" in alert.lower():
-                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                        for cve in cves:
-                            lik_sec.add_tag('attribution.exploit', cve)
+                if alert != '':
+                    for cve in re.findall(self.CVE_RE, alert):
+                        lik_sec.add_tag('attribution.exploit', cve)
                     lik_sec.set_heuristic(12)
                     lik_sec.add_line(f"Malicious Properties found: {alert}")
             streams_res.add_subsection(lik_sec)
-        if len(unknown) > 0:
+        if unknown:
             unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
             for txt, alert in unknown:
                 unk_sec.add_line(txt)
-                if alert != "":
-                    if "CVE" in alert.lower():
-                        cves = re.findall(r'CVE-[0-9]{4}-[0-9]*', alert)
-                        for cve in cves:
-                            unk_sec.add_tag('attribution.exploit', cve)
+                if alert != '':
+                    for cve in re.findall(self.CVE_RE, alert):
+                        unk_sec.add_tag('attribution.exploit', cve)
                     unk_sec.set_heuristic(14)
                     unk_sec.add_line(f"Malicious Properties found: {alert}")
             streams_res.add_subsection(unk_sec)
