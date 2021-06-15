@@ -788,7 +788,7 @@ class Oletools(ServiceBase):
 
             # Compare suspicious content macros to pcode, macros may have been stomped
             vba_sus, vba_matches = self.mraptor_check(self.macros, "all_vba", "vba_code", request_hash)
-            pcode_sus, pcode_matches = self.mraptor_check(self.macros, "all_pcode", "pcode", request_hash)
+            pcode_sus, pcode_matches = self.mraptor_check(self.pcode, "all_pcode", "pcode", request_hash)
 
             if self.vba_stomping or pcode_matches and pcode_sus and not vba_sus:
                 stomp_sec = ResultSection("VBA Stomping", heuristic=Heuristic(4))
