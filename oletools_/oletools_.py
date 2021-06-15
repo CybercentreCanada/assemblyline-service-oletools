@@ -158,7 +158,7 @@ class Oletools(ServiceBase):
         else:
             try:
                 file_path = os.path.join(self.working_directory, file_name)
-                with open(file_path, 'wb') as f:
+                with open(file_path, 'wb+') as f:
                     f.write(data)
                 self.request.add_extracted(file_path, file_name, description)
             except MaxExtractedExceeded:
