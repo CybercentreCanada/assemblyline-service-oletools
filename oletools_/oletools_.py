@@ -93,7 +93,7 @@ class Oletools(ServiceBase):
         self.sha = ''
         self.ole_result: Optional[Result] = None
 
-        self.word_chains: Optional[Dict[str,Set[str]]] = None
+        self.word_chains: Optional[Dict[str, Set[str]]] = None
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
 
@@ -157,8 +157,11 @@ class Oletools(ServiceBase):
             self.excess_extracted += 1
         else:
             try:
+                # If for some reason the directory doesn't exist, create it
+                if not os.path.exists(self.working_directory):
+                    os.makedirs(self.working_directory)
                 file_path = os.path.join(self.working_directory, file_name)
-                with open(file_path, 'wb+') as f:
+                with open(file_path, 'wb') as f:
                     f.write(data)
                 self.request.add_extracted(file_path, file_name, description)
             except MaxExtractedExceeded:
@@ -235,8 +238,8 @@ class Oletools(ServiceBase):
                     ftype = m.from_buffer(base64data)
                     if 'octet-stream' not in ftype:
                         self.extract_file(base64data,
-                                f"{sha256hash[0:10]}_b64_decoded",
-                                "Extracted b64 file during OLETools analysis")
+                                          f"{sha256hash[0:10]}_b64_decoded",
+                                          "Extracted b64 file during OLETools analysis")
                         b64results[sha256hash] = [len(b64_string), b64_string[0:50],
                                                   f"[Possible base64 file contents in {dataname}. "
                                                   "See extracted files.]", "", "", []]
@@ -721,8 +724,8 @@ class Oletools(ServiceBase):
         # A lower score indicates more randomized text, random variable/function names are common in malicious macros
         return (score / word_count) < self.macro_score_min_alert
 
-    def mraptor_check(self, macros: List[str], filename:str, description: str,
-            request_hash: str) -> Tuple[bool, List[str]]:
+    def mraptor_check(self, macros: List[str], filename: str, description: str,
+                      request_hash: str) -> Tuple[bool, List[str]]:
         """ Extract macros and analyze with MacroRaptor
 
         macros: list of macros to check
@@ -766,24 +769,24 @@ class Oletools(ServiceBase):
                     subsections.append(subsection)
             if auto_exec:
                 autoexecution = ResultSection("Autoexecution strings",
-                        heuristic=Heuristic(32),
-                        parent=macro_section,
-                        body='\n'.join(auto_exec))
+                                              heuristic=Heuristic(32),
+                                              parent=macro_section,
+                                              body='\n'.join(auto_exec))
                 for keyword in auto_exec:
                     autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
                 signatures = {keyword: 1 for keyword in suspicious
-                        if keyword not in ('hex strings', 'base64 strings')}
+                              if keyword not in ('hex strings', 'base64 strings')}
                 heuristic = Heuristic(30, signatures=signatures) if signatures else None
                 macro_section.add_subsection(ResultSection("Suspicious strings or functions",
-                        heuristic=heuristic,
-                        body='\n'.join(suspicious)))
+                                                           heuristic=heuristic,
+                                                           body='\n'.join(suspicious)))
             if network:
                 if network_section.heuristic.frequency == 0:
                     network_section.heuristic = None
                 network_section.add_line('\n'.join(network))
 
-            for subsection in subsections: # Add dump sections after string sections
+            for subsection in subsections:  # Add dump sections after string sections
                 macro_section.add_subsection(subsection)
 
             # Compare suspicious content macros to pcode, macros may have been stomped
@@ -795,7 +798,7 @@ class Oletools(ServiceBase):
                 pcode_results = '\n'.join(m for m in pcode_matches if m not in set(vba_matches))
                 if pcode_results:
                     stomp_sec.add_subsection(ResultSection("Suspicious content in pcode dump not found in macro dump:",
-                            body=pcode_results))
+                                                           body=pcode_results))
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
                     stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
                     vba_stomp_sec = ResultSection("Suspicious content in macro dump:", parent=stomp_sec)
@@ -1068,7 +1071,7 @@ class Oletools(ServiceBase):
         return deobf
 
     def macro_scanner(self, text: str, autoexecution: Set[str], suspicious: Set[str],
-            network: Set[str], network_section: ResultSection) -> bool:
+                      network: Set[str], network_section: ResultSection) -> bool:
         """ Scan the text of a macro with VBA_Scanner and collect results
 
         Args:
@@ -1168,8 +1171,8 @@ class Oletools(ServiceBase):
             ole10native = Ole10Native(data)
 
             self.extract_file(ole10native.native_data,
-                    hashlib.sha256(ole10native.native_data).hexdigest(),
-                    f"Embedded OLE Stream {stream_name}")
+                              hashlib.sha256(ole10native.native_data).hexdigest(),
+                              f"Embedded OLE Stream {stream_name}")
             stream_desc = f"{stream_name} ({ole10native.label}):\n\tFilename: {ole10native.filename}\n\t" \
                           f"Data Length: {ole10native.native_data_size}"
             streams_section.add_line(stream_desc)
@@ -1229,8 +1232,8 @@ class Oletools(ServiceBase):
 
                     ole_hash = hashlib.sha256(obj.raw).hexdigest()
                     self.extract_file(obj.raw,
-                            f"{ole_hash}.pp_ole",
-                            "Embedded Ole Storage within PowerPoint Document Stream")
+                                      f"{ole_hash}.pp_ole",
+                                      "Embedded Ole Storage within PowerPoint Document Stream")
                     streams_section.add_line(f"\tPowerPoint Embedded OLE Storage:\n\t\tSHA-256: {ole_hash}\n\t\t"
                                              f"Length: {len(obj.raw)}\n\t\tCompressed: {obj.compressed}")
                     self.log.debug(f"Added OLE stream within a PowerPoint Document Stream: {ole_hash}.pp_ole")
