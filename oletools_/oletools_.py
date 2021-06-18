@@ -524,12 +524,12 @@ class Oletools(ServiceBase):
         except Exception:
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
-        for link_type, link in set(external_links):
-            link_type = safe_str(link_type)
+        for ty, link in set(external_links):
+            link_type = safe_str(ty)
             puri, duri, tag_list = self.parse_uri(link)
             if puri:
                 xml_target_res.add_line(f'{link_type} link: {safe_str(duri)}')
-                xml_target_res.heurisitic.add_signature_id(link_type)
+                xml_target_res.heuristic.add_signature_id(link_type)
             for tag_type, tag in tag_list:
                 if tag_type == 'network.static.ip':
                     xml_target_res.heuristic.add_signature_id('ExternalLinkIP')
