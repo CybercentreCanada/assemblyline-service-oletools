@@ -477,7 +477,7 @@ class Oletools(ServiceBase):
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
-            external_re = re.compile(rb'/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
+            external_re = re.compile(rb'[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
             dde_re = re.compile(rb'ddeLink')
             script_re = re.compile(rb'script.{1,512}("JScript"|javascript)', re.DOTALL)
@@ -529,10 +529,10 @@ class Oletools(ServiceBase):
             puri, duri, tag_list = self.parse_uri(link)
             if puri:
                 xml_target_res.add_line(f'{link_type} link: {safe_str(duri)}')
-                xml_target_res.heuristic.add_signature_id(link_type)
+                xml_target_res.heuristic.add_signature_id(link_type.lower())
             for tag_type, tag in tag_list:
                 if tag_type == 'network.static.ip':
-                    xml_target_res.heuristic.add_signature_id('ExternalLinkIP')
+                    xml_target_res.heuristic.add_signature_id('external_link_ip')
                 xml_target_res.add_tag(tag_type, tag)
 
         if external_links:

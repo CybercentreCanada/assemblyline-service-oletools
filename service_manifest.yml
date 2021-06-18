@@ -31,10 +31,10 @@ heuristics:
     name: External Link
     score: 0
     signature_score_map:
-      attachedTemplate: 500
-      subDocument: 500
+      attachedtemplate: 500
+      subdocument: 500
       frame: 500
-      ExternalLinkIP: 500
+      external_link_ip: 500
     filetype: document/office
     description: >-
       XML relationship with external link as the target.
