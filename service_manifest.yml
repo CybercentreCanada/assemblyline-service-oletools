@@ -28,12 +28,18 @@ config:
 
 heuristics:
   - heur_id: 1
-    name: Attached Document Template
+    name: External Link
     score: 0
+    signature_score_map:
+      attachedTemplate: 500
+      subDocument: 500
+      frame: 500
+      ExternalLinkIP: 500
     filetype: document/office
     description: >-
-      Attached template specified in xml relationships (pointing to external source).
-      This can be used for malicious purposes.
+      XML relationship with external link as the target.
+      External attached templates, subdocuments, and frames
+      can all be used for malicious purposes.
 
   - heur_id: 2
     name: Multi-embedded documents
@@ -222,12 +228,6 @@ heuristics:
     score: 10
     filetype: document/office
     description: OleID indicator object found
-
-  - heur_id: 38
-    name: Attached External Template Targets in XML
-    score: 500
-    filetype: document/office
-    description: Attached External Template Targets in XML
 
   - heur_id: 40
     name: Root[0] Does Not Exist
