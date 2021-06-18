@@ -344,6 +344,7 @@ class Oletools(ServiceBase):
             self.check_for_macros(path, file_contents, request.sha256)
             self.rip_mhtml(file_contents)
             self.extract_streams(path, file_contents)
+            self.extract_rtf(file_contents)
             self.create_macro_sections(request.sha256)
             self.check_xml_strings(path)
         except Exception as e:
@@ -1246,16 +1247,21 @@ class Oletools(ServiceBase):
             self.log.warning(f"Failed to parse PowerPoint Document stream for sample {self.sha}: {str(e)}")
             return False
 
-    def process_ole_stream(self, ole: olefile.OleFileIO, streams_section: ResultSection) -> None:
+    def process_ole_file(self, name: str, ole_path: str) -> Optional[ResultSection]:
         """Parses OLE data and reports on metadata and suspicious properties.
 
         Args:
-            ole: OLE stream data.
-            streams_section: Streams AL result section.
+            name: ole document name
+            ole: path to ole file
 
         Returns:
-            None.
+            A result section if there are results to be reported
         """
+        if not olefile.isOleFile(ole_path):
+            return None
+
+        streams_section = ResultSection(f"OLE Document {name}")
+
         ole_tags = {
             'title': 'file.ole.summary.title',
             'subject': 'file.ole.summary.subject',
@@ -1270,227 +1276,231 @@ class Oletools(ServiceBase):
             'codepage': 'file.ole.summary.codepage',
         }
 
-        # OLE Meta
-        meta = ole.get_metadata()
-        meta_sec = ResultSection("OLE Metadata:")
-        # Summary Information
-        summeta_sec_json_body = dict()
-        summeta_sec = ResultSection("Properties from the Summary Information Stream:")
-        for prop in meta.SUMMARY_ATTRIBS:
-            value = getattr(meta, prop)
-            if value is not None and value not in ['"', "'", ""]:
-                if prop == "thumbnail":
-                    meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
-                    self.extract_file(value, meta_name, "OLE metadata thumbnail extracted")
-                    summeta_sec_json_body[prop] = "[see extracted files]"
-                    summeta_sec.set_heuristic(18)
-                    continue
-                # Extract data over n bytes
-                if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
-                    data = value.encode()
-                    meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
-                    self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                    summeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
-                                                  f"see extracted files]"
-                    summeta_sec.set_heuristic(17)
-                    continue
-                summeta_sec_json_body[prop] = safe_str(value, force_str=True)
-                # Add Tags
-                if prop in ole_tags and value:
-                    summeta_sec.add_tag(ole_tags[prop], safe_str(value))
-        if summeta_sec_json_body:
-            summeta_sec.body = json.dumps(summeta_sec_json_body)
-            meta_sec.add_subsection(summeta_sec)
-
-        # Document Summary
-        docmeta_sec_json_body = dict()
-        docmeta_sec = ResultSection("Properties from the Document Summary Information Stream:")
-        for prop in meta.DOCSUM_ATTRIBS:
-            value = getattr(meta, prop)
-            if value is not None and value not in ['"', "'", ""]:
-                if isinstance(value, str):
-                    # Extract data over n bytes
-                    if len(value) > self.metadata_size_to_extract:
-                        data = value.encode()
-                        meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
-                        self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                        docmeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
-                                                      f"see extracted files]"
-                        docmeta_sec.set_heuristic(17)
-                        continue
-                docmeta_sec_json_body[prop] = safe_str(value)
-                # Add Tags
-                if prop in ole_tags and value:
-                    docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
-        if docmeta_sec_json_body:
-            docmeta_sec.body = json.dumps(docmeta_sec_json_body)
-            meta_sec.add_subsection(docmeta_sec)
-
-        if meta_sec.subsections:
-            streams_section.add_subsection(meta_sec)
-
-        # CLSIDS: Report, tag and flag known malicious
-        clsid_sec_json_body = dict()
-        clsid_sec = ResultSection("CLSIDs:")
-        ole_clsid = ole.root.clsid
-        if ole_clsid is not None and ole_clsid not in ['"', "'", ""] and ole_clsid not in self.extracted_clsids:
-            self.extracted_clsids.add(ole_clsid)
-            clsid_sec.add_tag('file.ole.clsid', f"{safe_str(ole_clsid)}")
-            clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
-            mal_msg = ""
-            if 'CVE' in clsid_desc:
-                for cve in re.findall(self.CVE_RE, clsid_desc):
-                    clsid_sec.add_tag('attribution.exploit', cve)
-                clsid_sec.set_heuristic(52)
-                mal_msg = " FLAGGED MALICIOUS"
-            clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
-        if clsid_sec_json_body:
-            clsid_sec.body = json.dumps(clsid_sec_json_body)
-
-        if clsid_sec.body:
-            streams_section.add_subsection(clsid_sec)
-
-        listdir = ole.listdir()
-
-        decompress = False
-        for dir_entry in listdir:
-            if "\x05HwpSummaryInformation" in dir_entry:
-                decompress = True
-        decompress_macros: List[bytes] = []
-
-        stream_num = 0
-        exstr_sec = None
-        if self.request.deep_scan:
-            exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
-        ole10_res = False
-        ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
-        pwrpnt_res = False
-        pwrpnt_sec = ResultSection("Extracted Powerpoint streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
-        swf_res = False
-        swf_sec = ResultSection("Flash objects detected in OLE stream:", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                heuristic=Heuristic(5))
-        hex_res = False
-        hex_sec = ResultSection("VB hex notation:", heuristic=Heuristic(6))
-        sus_res = False
-        sus_sec = ResultSection("Suspicious stream content:")
-
-        ole_dir_examined = set()
-        for direntry in ole.direntries:
-            extract_stream = False
-            if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
-                stream = safe_str(direntry.name)
-                self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
-
-                # noinspection PyProtectedMember
-                fio = ole._open(direntry.isectStart, direntry.size)
-
-                data = fio.getvalue()
-                stm_sha = hashlib.sha256(data).hexdigest()
-                # Only process unique content
-                if stm_sha in ole_dir_examined:
-                    continue
-                ole_dir_examined.add(stm_sha)
-
-                # noinspection PyBroadException
-                try:
-
-                    if "Ole10Native" in stream:
-                        if self.process_ole10native(stream, data, ole10_sec) is True:
-                            ole10_res = True
+        try:
+            with olefile.OleFileIO(ole_path) as ole:
+                # OLE Meta
+                meta = ole.get_metadata()
+                meta_sec = ResultSection("OLE Metadata:")
+                # Summary Information
+                summeta_sec_json_body = dict()
+                summeta_sec = ResultSection("Properties from the Summary Information Stream:")
+                for prop in meta.SUMMARY_ATTRIBS:
+                    value = getattr(meta, prop)
+                    if value is not None and value not in ['"', "'", ""]:
+                        if prop == "thumbnail":
+                            meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
+                            self.extract_file(value, meta_name, "OLE metadata thumbnail extracted")
+                            summeta_sec_json_body[prop] = "[see extracted files]"
+                            summeta_sec.set_heuristic(18)
                             continue
-
-                    elif "PowerPoint Document" in stream:
-                        if self.process_powerpoint_stream(data, pwrpnt_sec) is True:
-                            pwrpnt_res = True
+                        # Extract data over n bytes
+                        if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
+                            data = value.encode()
+                            meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
+                            self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
+                            summeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
+                                                          f"see extracted files]"
+                            summeta_sec.set_heuristic(17)
                             continue
+                        summeta_sec_json_body[prop] = safe_str(value, force_str=True)
+                        # Add Tags
+                        if prop in ole_tags and value:
+                            summeta_sec.add_tag(ole_tags[prop], safe_str(value))
+                if summeta_sec_json_body:
+                    summeta_sec.body = json.dumps(summeta_sec_json_body)
+                    meta_sec.add_subsection(summeta_sec)
 
-                    if decompress:
+                # Document Summary
+                docmeta_sec_json_body = dict()
+                docmeta_sec = ResultSection("Properties from the Document Summary Information Stream:")
+                for prop in meta.DOCSUM_ATTRIBS:
+                    value = getattr(meta, prop)
+                    if value is not None and value not in ['"', "'", ""]:
+                        if isinstance(value, str):
+                            # Extract data over n bytes
+                            if len(value) > self.metadata_size_to_extract:
+                                data = value.encode()
+                                meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
+                                self.extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
+                                docmeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
+                                                              f"see extracted files]"
+                                docmeta_sec.set_heuristic(17)
+                                continue
+                        docmeta_sec_json_body[prop] = safe_str(value)
+                        # Add Tags
+                        if prop in ole_tags and value:
+                            docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
+                if docmeta_sec_json_body:
+                    docmeta_sec.body = json.dumps(docmeta_sec_json_body)
+                    meta_sec.add_subsection(docmeta_sec)
+
+                if meta_sec.subsections:
+                    streams_section.add_subsection(meta_sec)
+
+                # CLSIDS: Report, tag and flag known malicious
+                clsid_sec_json_body = dict()
+                clsid_sec = ResultSection("CLSIDs:")
+                ole_clsid = ole.root.clsid
+                if ole_clsid is not None and ole_clsid not in ['"', "'", ""] and ole_clsid not in self.extracted_clsids:
+                    self.extracted_clsids.add(ole_clsid)
+                    clsid_sec.add_tag('file.ole.clsid', f"{safe_str(ole_clsid)}")
+                    clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
+                    mal_msg = ""
+                    if 'CVE' in clsid_desc:
+                        for cve in re.findall(self.CVE_RE, clsid_desc):
+                            clsid_sec.add_tag('attribution.exploit', cve)
+                        clsid_sec.set_heuristic(52)
+                        mal_msg = " FLAGGED MALICIOUS"
+                    clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
+                if clsid_sec_json_body:
+                    clsid_sec.body = json.dumps(clsid_sec_json_body)
+
+                if clsid_sec.body:
+                    streams_section.add_subsection(clsid_sec)
+
+                listdir = ole.listdir()
+
+                decompress = False
+                for dir_entry in listdir:
+                    if "\x05HwpSummaryInformation" in dir_entry:
+                        decompress = True
+                decompress_macros: List[bytes] = []
+
+                stream_num = 0
+                exstr_sec = None
+                if self.request.deep_scan:
+                    exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
+                ole10_res = False
+                ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
+                pwrpnt_res = False
+                pwrpnt_sec = ResultSection("Extracted Powerpoint streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
+                swf_res = False
+                swf_sec = ResultSection("Flash objects detected in OLE stream:", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                        heuristic=Heuristic(5))
+                hex_res = False
+                hex_sec = ResultSection("VB hex notation:", heuristic=Heuristic(6))
+                sus_res = False
+                sus_sec = ResultSection("Suspicious stream content:")
+
+                ole_dir_examined = set()
+                for direntry in ole.direntries:
+                    extract_stream = False
+                    if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
+                        stream = safe_str(direntry.name)
+                        self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
+
+                        # noinspection PyProtectedMember
+                        fio = ole._open(direntry.isectStart, direntry.size)
+
+                        data = fio.getvalue()
+                        stm_sha = hashlib.sha256(data).hexdigest()
+                        # Only process unique content
+                        if stm_sha in ole_dir_examined:
+                            continue
+                        ole_dir_examined.add(stm_sha)
+
+                        # noinspection PyBroadException
                         try:
-                            data = zlib.decompress(data, -15)
-                        except zlib.error:
-                            pass
 
-                    # Find flash objects in streams
-                    if b'FWS' in data or b'CWS' in data:
-                        swf_found = self.extract_swf_objects(fio)
-                        if swf_found:
-                            extract_stream = True
-                            swf_res = True
-                            swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
-                            swf_sec.set_heuristic(5)
+                            if "Ole10Native" in stream:
+                                if self.process_ole10native(stream, data, ole10_sec) is True:
+                                    ole10_res = True
+                                    continue
 
-                    # Find hex encoded chunks
-                    for vbshex in re.findall(self.VBS_HEX_RE, data):
-                        decoded = self.extract_vb_hex(vbshex)
-                        if decoded:
-                            extract_stream = True
-                            hex_res = True
-                            hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
-                            hex_sec.set_heuristic(6)
+                            elif "PowerPoint Document" in stream:
+                                if self.process_powerpoint_stream(data, pwrpnt_sec) is True:
+                                    pwrpnt_res = True
+                                    continue
 
-                    # Find suspicious strings
-                    # Look for suspicious strings
-                    for pattern, desc in self.SUSPICIOUS_STRINGS:
-                        matched = re.search(pattern, data, re.M)
-                        if matched:
-                            if "_VBA_PROJECT" not in stream:
+                            if decompress:
+                                try:
+                                    data = zlib.decompress(data, -15)
+                                except zlib.error:
+                                    pass
+
+                            # Find flash objects in streams
+                            if b'FWS' in data or b'CWS' in data:
+                                swf_found = self.extract_swf_objects(fio)
+                                if swf_found:
+                                    extract_stream = True
+                                    swf_res = True
+                                    swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
+                                    swf_sec.set_heuristic(5)
+
+                            # Find hex encoded chunks
+                            for vbshex in re.findall(self.VBS_HEX_RE, data):
+                                decoded = self.extract_vb_hex(vbshex)
+                                if decoded:
+                                    extract_stream = True
+                                    hex_res = True
+                                    hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
+                                    hex_sec.set_heuristic(6)
+
+                            # Find suspicious strings
+                            # Look for suspicious strings
+                            for pattern, desc in self.SUSPICIOUS_STRINGS:
+                                matched = re.search(pattern, data, re.M)
+                                if matched:
+                                    if "_VBA_PROJECT" not in stream:
+                                        extract_stream = True
+                                        sus_res = True
+                                        body = f"'{safe_str(matched.group(0))}' string found in stream " \
+                                               f"{stream}, indicating {safe_str(desc)}"
+                                        if b'javascript' in desc:
+                                            sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
+                                                                                 body=body,
+                                                                                 heuristic=Heuristic(23)))
+                                        elif b'executable' in desc:
+                                            sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
+                                                                                 body=body,
+                                                                                 heuristic=Heuristic(24)))
+                                        else:
+                                            sus_sec.add_subsection(ResultSection("Suspicious string found",
+                                                                                 body=body,
+                                                                                 heuristic=Heuristic(25)))
+
+                            # Finally look for other IOC patterns, will ignore SRP streams for now
+                            if not re.match(r'__SRP_[0-9]*', stream):
+                                ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
+                                iocs, extract_stream = self.check_for_patterns(data)
+                                for tag_type, tags in iocs.items():
+                                    ole_ioc_res.add_line(
+                                        f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
+                                    ole_ioc_res.add_line(b'  |  '.join(tags).decode())
+                                    ole_ioc_res.heuristic.increment_frequency(len(tags))
+                                    for tag in tags:
+                                        ole_ioc_res.add_tag(tag_type, tag)
+                                if iocs:
+                                    sus_res = True
+                                    sus_sec.add_subsection(ole_ioc_res)
+                            ole_b64_res, _ = self.check_for_b64(data, stream)
+                            if ole_b64_res:
+                                ole_b64_res.set_heuristic(10)
                                 extract_stream = True
                                 sus_res = True
-                                body = f"'{safe_str(matched.group(0))}' string found in stream " \
-                                       f"{stream}, indicating {safe_str(desc)}"
-                                if b'javascript' in desc:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(23)))
-                                elif b'executable' in desc:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(24)))
-                                else:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(25)))
+                                sus_sec.add_subsection(ole_b64_res)
 
-                    # Finally look for other IOC patterns, will ignore SRP streams for now
-                    if not re.match(r'__SRP_[0-9]*', stream):
-                        ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
-                        iocs, extract_stream = self.check_for_patterns(data)
-                        for tag_type, tags in iocs.items():
-                            ole_ioc_res.add_line(
-                                f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                            ole_ioc_res.add_line(b'  |  '.join(tags).decode())
-                            ole_ioc_res.heuristic.increment_frequency(len(tags))
-                            for tag in tags:
-                                ole_ioc_res.add_tag(tag_type, tag)
-                        if iocs:
-                            sus_res = True
-                            sus_sec.add_subsection(ole_ioc_res)
-                    ole_b64_res, _ = self.check_for_b64(data, stream)
-                    if ole_b64_res:
-                        ole_b64_res.set_heuristic(10)
-                        extract_stream = True
-                        sus_res = True
-                        sus_sec.add_subsection(ole_b64_res)
+                            # All streams are extracted with deep scan (see below)
+                            if extract_stream and not self.request.deep_scan:
+                                stream_num += 1
+                                self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
+                                if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                                    decompress_macros.append(data)
 
-                    # All streams are extracted with deep scan (see below)
-                    if extract_stream and not self.request.deep_scan:
-                        stream_num += 1
-                        self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
-                        if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
-                            decompress_macros.append(data)
+                            # Only write all streams with deep scan.
+                            if self.request.deep_scan:
+                                stream_num += 1
+                                exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
+                                self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
+                                if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                                    decompress_macros.append(data)
 
-                    # Only write all streams with deep scan.
-                    if self.request.deep_scan:
-                        stream_num += 1
-                        exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
-                        self.extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
-                        if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
-                            decompress_macros.append(data)
-
-                except Exception:
-                    self.log.warning(f"Error adding extracted stream {stream} for sample "
-                                     f"{self.sha}:\t{traceback.format_exc()}")
-                    continue
+                        except Exception:
+                            self.log.warning(f"Error adding extracted stream {stream} for sample "
+                                             f"{self.sha}:\t{traceback.format_exc()}")
+                            continue
+        except Exception:
+            self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
         if exstr_sec and stream_num > 0:
             streams_section.add_subsection(exstr_sec)
@@ -1521,158 +1531,156 @@ class Oletools(ServiceBase):
             file_name: Path to original sample.
             file_contents: Original sample file content.
         """
-        oles: Set[str] = set()
         try:
-            streams_res = ResultSection("Embedded document stream(s)")
-            is_zip = False
-            is_ole = False
-            # Get the OLEs from PK package
-            if zipfile.is_zipfile(file_name):
-                is_zip = True
-                with zipfile.ZipFile(file_name) as z:
-                    for f in z.namelist():
-                        if f in oles:
-                            continue
-                        bin_data = z.open(f).read()
-                        bin_fname = os.path.join(self.working_directory, f"{hashlib.sha256(bin_data).hexdigest()}.tmp")
-                        with open(bin_fname, 'wb') as bin_fh:
-                            bin_fh.write(bin_data)
-                        if olefile.isOleFile(bin_fname):
-                            oles.add(f)
+            # Streams in the submitted ole file
+            ole_res = self.process_ole_file(self.sha, file_name)
+            if ole_res is not None:
+                self.ole_result.add_section(ole_res)
 
-            if olefile.isOleFile(file_name):
-                is_ole = True
-                oles.add(file_name)
+            if not zipfile.is_zipfile(file_name):
+                return # File is not ODF
 
-            if is_zip and is_ole:
-                streams_res.set_heuristic(2)
+            # Streams in ole files embedded in submitted ODF file
+            subdoc_res = ResultSection("Embedded OLE files")
+            if ole_res: # File is both OLE and ODF
+                subdoc_res.set_heuristic(2)
+            with zipfile.ZipFile(file_name) as z:
+                for f in z.namelist():
+                    bin_data = z.open(f).read()
+                    bin_fname = os.path.join(self.working_directory, f"{hashlib.sha256(bin_data).hexdigest()}.tmp")
+                    with open(bin_fname, 'wb') as bin_fh:
+                        bin_fh.write(bin_data)
+                    ole_stream_res = self.process_ole_file(f, bin_fname)
+                    if ole_stream_res is not None:
+                        subdoc_res.add_subsection(ole_stream_res)
 
-            for ole_filename in oles:
-                try:
-                    with olefile.OleFileIO(ole_filename) as ole_stream:
-                        self.process_ole_stream(ole_stream, streams_res)
-                except Exception:
-                    self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
-
-            self.extract_rtf(file_contents, streams_res)
-
-            if streams_res.body or streams_res.subsections:
-                self.ole_result.add_section(streams_res)
-
+            if subdoc_res.heuristic or subdoc_res.subsections:
+                self.ole_result.add_section(subdoc_res)
         except Exception:
             self.log.debug(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-    def extract_rtf(self, file_contents: bytes, streams_res: ResultSection) -> None:
+    def extract_rtf(self, file_contents: bytes) -> None:
         """ Handle RTF Packages """
+        stream_res = ResultSection("RTF objects")
         sep = "-----------------------------------------"
-        rtfp = rtfparse.RtfObjParser(file_contents)
-        rtfp.parse()
+        try:
+            rtfp = rtfparse.RtfObjParser(file_contents)
+            rtfp.parse()
+        except Exception e:
+            self.log.debug(f'RtfObjParser failed to parse {self.sha}: {str(e)}')
+            return # Can't continue
         embedded = []
         linked = []
         unknown = []
-        # RTF objdata
-        for rtfobj in rtfp.objects:
-            res_txt = ""
-            res_alert = ""
-            if rtfobj.is_ole:
-                res_txt += f'format_id: {rtfobj.format_id}\n'
-                res_txt += f'class name: {rtfobj.class_name}\n'
-                # if the object is linked and not embedded, data_size=None:
-                if rtfobj.oledata_size is None:
-                    res_txt += 'data size: N/A\n'
-                else:
-                    res_txt += f'data size: {rtfobj.oledata_size}\n'
-                if rtfobj.is_package:
-                    res_txt = f'Filename: {rtfobj.filename}\n'
-                    res_txt += f'Source path: {rtfobj.src_path}\n'
-                    res_txt += f'Temp path = {rtfobj.temp_path}\n'
-
-                    # check if the file extension is executable:
-                    _, ext = os.path.splitext(rtfobj.filename)
-
-                    if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
-                        res_alert += 'CODE/EXECUTABLE FILE'
+        try:
+            # RTF objdata
+            for rtfobj in rtfp.objects:
+                res_txt = ""
+                res_alert = ""
+                if rtfobj.is_ole:
+                    res_txt += f'format_id: {rtfobj.format_id}\n'
+                    res_txt += f'class name: {rtfobj.class_name}\n'
+                    # if the object is linked and not embedded, data_size=None:
+                    if rtfobj.oledata_size is None:
+                        res_txt += 'data size: N/A\n'
                     else:
-                        # check if the file content is executable:
-                        m = magic.Magic()
-                        ftype = m.from_buffer(rtfobj.olepkgdata)
-                        if "executable" in ftype:
+                        res_txt += f'data size: {rtfobj.oledata_size}\n'
+                    if rtfobj.is_package:
+                        res_txt = f'Filename: {rtfobj.filename}\n'
+                        res_txt += f'Source path: {rtfobj.src_path}\n'
+                        res_txt += f'Temp path = {rtfobj.temp_path}\n'
+
+                        # check if the file extension is executable:
+                        _, ext = os.path.splitext(rtfobj.filename)
+
+                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
                             res_alert += 'CODE/EXECUTABLE FILE'
+                        else:
+                            # check if the file content is executable:
+                            m = magic.Magic()
+                            ftype = m.from_buffer(rtfobj.olepkgdata)
+                            if "executable" in ftype:
+                                res_alert += 'CODE/EXECUTABLE FILE'
+                    else:
+                        res_txt += 'Not an OLE Package'
+                    # Detect OLE2Link exploit
+                    # http://www.kb.cert.org/vuls/id/921560
+                    if rtfobj.class_name == 'OLE2Link':
+                        res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
-                    res_txt += 'Not an OLE Package'
-                # Detect OLE2Link exploit
-                # http://www.kb.cert.org/vuls/id/921560
-                if rtfobj.class_name == 'OLE2Link':
-                    res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
-            else:
-                res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
-                if len(rtfobj.rawdata) > 4999:
-                    res_alert += "Data of malformed OLE object over 5000 bytes"
-                streams_res.set_heuristic(19)
+                    res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    if len(rtfobj.rawdata) > 4999:
+                        res_alert += "Data of malformed OLE object over 5000 bytes"
+                    streams_res.set_heuristic(19)
 
-            if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
-                embedded.append((res_txt, res_alert))
-            elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
-                linked.append((res_txt, res_alert))
-            else:
-                unknown.append((res_txt, res_alert))
-
-            # Write object content to extracted file
-            i = rtfp.objects.index(rtfobj)
-            if rtfobj.is_package:
-                if rtfobj.filename:
-                    fname = self.sanitize_filename(rtfobj.filename)
+                if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
+                    embedded.append((res_txt, res_alert))
+                elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
+                    linked.append((res_txt, res_alert))
                 else:
-                    fname = f'object_{rtfobj.start}.noname'
-                self.extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
+                    unknown.append((res_txt, res_alert))
 
-            # When format_id=TYPE_LINKED, oledata_size=None
-            elif rtfobj.is_ole and rtfobj.oledata_size is not None:
-                # set a file extension according to the class name:
-                class_name = rtfobj.class_name.lower()
-                if class_name.startswith(b'word'):
-                    ext = 'doc'
-                elif class_name.startswith(b'package'):
-                    ext = 'package'
+                # Write object content to extracted file
+                i = rtfp.objects.index(rtfobj)
+                if rtfobj.is_package:
+                    if rtfobj.filename:
+                        fname = self.sanitize_filename(rtfobj.filename)
+                    else:
+                        fname = f'object_{rtfobj.start}.noname'
+                    self.extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
+
+                # When format_id=TYPE_LINKED, oledata_size=None
+                elif rtfobj.is_ole and rtfobj.oledata_size is not None:
+                    # set a file extension according to the class name:
+                    class_name = rtfobj.class_name.lower()
+                    if class_name.startswith(b'word'):
+                        ext = 'doc'
+                    elif class_name.startswith(b'package'):
+                        ext = 'package'
+                    else:
+                        ext = 'bin'
+                    fname = f'object_{hex(rtfobj.start)}.{ext}'
+                    self.extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
+
                 else:
-                    ext = 'bin'
-                fname = f'object_{hex(rtfobj.start)}.{ext}'
-                self.extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
+                    fname = f'object_{hex(rtfobj.start)}.raw'
+                    self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
 
-            else:
-                fname = f'object_{hex(rtfobj.start)}.raw'
-                self.extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
+            if embedded:
+                emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                        heuristic=Heuristic(21))
+                for txt, alert in embedded:
+                    emb_sec.add_line(sep)
+                    emb_sec.add_line(txt)
+                    if alert != '':
+                        emb_sec.set_heuristic(11)
+                        for cve in re.findall(self.CVE_RE, alert):
+                            emb_sec.add_tag('attribution.exploit', cve)
+                        emb_sec.add_line(f"Malicious Properties found: {alert}")
+                streams_res.add_subsection(emb_sec)
+            if linked:
+                lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                        heuristic=Heuristic(13))
+                for txt, alert in linked:
+                    lik_sec.add_line(txt)
+                    if alert != '':
+                        for cve in re.findall(self.CVE_RE, alert):
+                            lik_sec.add_tag('attribution.exploit', cve)
+                        lik_sec.set_heuristic(12)
+                        lik_sec.add_line(f"Malicious Properties found: {alert}")
+                streams_res.add_subsection(lik_sec)
+            if unknown:
+                unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
+                for txt, alert in unknown:
+                    unk_sec.add_line(txt)
+                    if alert != '':
+                        for cve in re.findall(self.CVE_RE, alert):
+                            unk_sec.add_tag('attribution.exploit', cve)
+                        unk_sec.set_heuristic(14)
+                        unk_sec.add_line(f"Malicious Properties found: {alert}")
+                streams_res.add_subsection(unk_sec)
 
-        if embedded:
-            emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(21))
-            for txt, alert in embedded:
-                emb_sec.add_line(sep)
-                emb_sec.add_line(txt)
-                if alert != '':
-                    emb_sec.set_heuristic(11)
-                    for cve in re.findall(self.CVE_RE, alert):
-                        emb_sec.add_tag('attribution.exploit', cve)
-                    emb_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(emb_sec)
-        if linked:
-            lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(13))
-            for txt, alert in linked:
-                lik_sec.add_line(txt)
-                if alert != '':
-                    for cve in re.findall(self.CVE_RE, alert):
-                        lik_sec.add_tag('attribution.exploit', cve)
-                    lik_sec.set_heuristic(12)
-                    lik_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(lik_sec)
-        if unknown:
-            unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
-            for txt, alert in unknown:
-                unk_sec.add_line(txt)
-                if alert != '':
-                    for cve in re.findall(self.CVE_RE, alert):
-                        unk_sec.add_tag('attribution.exploit', cve)
-                    unk_sec.set_heuristic(14)
-                    unk_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(unk_sec)
+            if streams_res.body or streams_res.subsections:
+                self.ole_result.add_section(streams_res)
+        except Exception e:
+            self.log.warning(f"Failed to process RTF objects for sample {self.sha}: {traceback.format_exc()}")
