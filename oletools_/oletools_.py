@@ -488,10 +488,11 @@ class Oletools(ServiceBase):
                 z = zipfile.ZipFile(path)
                 for f in z.namelist():
                     try:
-                        data = z.open(f).read()
+                        contents = z.open(f).read()
                     except zipfile.BadZipFile:
                         continue
 
+                    data = contents
                     if len(data) > 500000:
                         data = data[:500000]
                         xml_big_res.add_line(f'{f}')
@@ -518,9 +519,9 @@ class Oletools(ServiceBase):
 
                     # all vba extracted anyways
                     if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
-                        xml_sha256 = hashlib.sha256(data).hexdigest()
+                        xml_sha256 = hashlib.sha256(contents).hexdigest()
                         if xml_sha256 not in xml_extracted:
-                            self.extract_file(data, xml_sha256, f"zipped file {f} contents")
+                            self.extract_file(contents, xml_sha256, f"zipped file {f} contents")
                             xml_extracted.add(xml_sha256)
 
                 z.close()
