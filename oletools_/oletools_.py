@@ -472,24 +472,23 @@ class Oletools(ServiceBase):
         Args:
             path: Path to original sample.
         """
-        xml_target_res = ResultSection("Attached External Template Targets in XML")
+        xml_target_res = ResultSection("Attached External Template Targets in XML", heuristic=Heuristic(1))
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
+        external_links: List[Tuple[bytes, bytes]] = []
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
-            template_re = re.compile(rb'/(?:attachedTemplate|subDocument)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
+            external_re = re.compile(rb'[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
                                      rb'[Tt]argetMode="External"', re.DOTALL)
-            external_re = re.compile(rb'[Tt]arget="[^"]+".{1,512}[Tt]argetMode="External"', re.DOTALL)
             dde_re = re.compile(rb'ddeLink')
             script_re = re.compile(rb'script.{1,512}("JScript"|javascript)', re.DOTALL)
-            uris = []
-            zip_uris = []
             xml_extracted = set()
-            if zipfile.is_zipfile(path):
-                z = zipfile.ZipFile(path)
+            if not zipfile.is_zipfile(path):
+                return # Not an Open XML format file
+            with zipfile.ZipFile(path) as z:
                 for f in z.namelist():
                     try:
                         contents = z.open(f).read()
@@ -501,12 +500,12 @@ class Oletools(ServiceBase):
                         data = data[:500000]
                         xml_big_res.add_line(f'{f}')
                         xml_big_res.heuristic.increment_frequency()
-                    zip_uris.extend(template_re.findall(data))
 
-                    has_external = external_re.search(data)  # Extract all files with external targets
+                    has_external = external_re.findall(data) # Extract all files with external targets
+                    external_links.extend(has_external)
                     has_dde = dde_re.search(data)  # Extract all files with dde links
                     has_script = script_re.search(data)  # Extract all files with javascript
-                    extract_regex = has_external or has_dde or has_script
+                    extract_regex = bool(has_external or has_dde or has_script)
 
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self.check_for_patterns(data)
@@ -527,33 +526,22 @@ class Oletools(ServiceBase):
                         if xml_sha256 not in xml_extracted:
                             self.extract_file(contents, xml_sha256, f"zipped file {f} contents")
                             xml_extracted.add(xml_sha256)
-
-                z.close()
-
-                tags_all: List[Tuple[str, bytes]] = []
-                for uri in zip_uris:
-                    puri, duri, tag_list = self.parse_uri(uri)
-                    if puri:
-                        uris.append(safe_str(duri))
-
-                    if tag_list:
-                        tags_all.extend(tag_list)
-
-                uris = list(set(uris))
-                # If there are domains or IPs, report them
-                if uris:
-                    xml_target_res.set_heuristic(38)
-                    xml_target_res.add_lines(uris)
-                    self.ole_result.add_section(xml_target_res)
-                    # xml_target_res.set_heuristic(1)
-
-                if tags_all:
-                    for tag_type, tag in tags_all:
-                        xml_target_res.add_tag(tag_type, tag)
-
         except Exception:
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
+        for ty, link in set(external_links):
+            link_type = safe_str(ty)
+            puri, duri, tag_list = self.parse_uri(link)
+            if puri:
+                xml_target_res.add_line(f'{link_type} link: {safe_str(duri)}')
+                xml_target_res.heuristic.add_signature_id(link_type.lower())
+            for tag_type, tag in tag_list:
+                if tag_type == 'network.static.ip':
+                    xml_target_res.heuristic.add_signature_id('external_link_ip')
+                xml_target_res.add_tag(tag_type, tag)
+
+        if external_links:
+            self.ole_result.add_section(xml_target_res)
         if xml_big_res.body:
             self.ole_result.add_section(xml_big_res)
         if xml_ioc_res.tags:
@@ -564,7 +552,7 @@ class Oletools(ServiceBase):
                     xml_ioc_res.add_line('')
                     xml_ioc_res.heuristic.increment_frequency()
             self.ole_result.add_section(xml_ioc_res)
-        if len(xml_b64_res.subsections) > 0:
+        if xml_b64_res.subsections:
             self.ole_result.add_section(xml_b64_res)
 
     @staticmethod
