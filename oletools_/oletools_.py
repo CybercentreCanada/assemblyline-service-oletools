@@ -394,11 +394,10 @@ class Oletools(ServiceBase):
         streams_section = ResultSection(f"OLE Document {name}")
 
         with olefile.OleFileIO(ole_path) as ole:
-            # OLE Meta
             meta_sec = self._process_ole_metadata(ole.get_metadata())
             if meta_sec.subsections:
                 streams_section.add_subsection(meta_sec)
-            # CLSIDS: Report, tag and flag known malicious
+
             clsid_sec = self._process_ole_clsids(ole)
             if clsid_sec.body:
                 streams_section.add_subsection(clsid_sec)
@@ -425,113 +424,114 @@ class Oletools(ServiceBase):
             ole_dir_examined = set()
             for direntry in ole.direntries:
                 extract_stream = False
-                if direntry is not None and direntry.entry_type == olefile.STGTY_STREAM:
-                    stream = safe_str(direntry.name)
-                    self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
+                if direntry is None or direntry.entry_type == olefile.STGTY_STREAM:
+                    continue
+                stream = safe_str(direntry.name)
+                self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
 
-                    # noinspection PyProtectedMember
-                    fio = ole._open(direntry.isectStart, direntry.size)
+                # noinspection PyProtectedMember
+                fio = ole._open(direntry.isectStart, direntry.size)
 
-                    data = fio.getvalue()
-                    stm_sha = hashlib.sha256(data).hexdigest()
-                    # Only process unique content
-                    if stm_sha in ole_dir_examined:
-                        continue
-                    ole_dir_examined.add(stm_sha)
+                data = fio.getvalue()
+                stm_sha = hashlib.sha256(data).hexdigest()
+                # Only process unique content
+                if stm_sha in ole_dir_examined:
+                    continue
+                ole_dir_examined.add(stm_sha)
 
-                    # noinspection PyBroadException
-                    try:
+                # noinspection PyBroadException
+                try:
 
-                        if "Ole10Native" in stream:
-                            if self._process_ole10native(stream, data, ole10_sec) is True:
-                                ole10_res = True
-                                continue
+                    if "Ole10Native" in stream:
+                        if self._process_ole10native(stream, data, ole10_sec) is True:
+                            ole10_res = True
+                            continue
 
-                        elif "PowerPoint Document" in stream:
-                            if self._process_powerpoint_stream(data, pwrpnt_sec) is True:
-                                pwrpnt_res = True
-                                continue
+                    elif "PowerPoint Document" in stream:
+                        if self._process_powerpoint_stream(data, pwrpnt_sec) is True:
+                            pwrpnt_res = True
+                            continue
 
-                        if decompress:
-                            try:
-                                data = zlib.decompress(data, -15)
-                            except zlib.error:
-                                pass
+                    if decompress:
+                        try:
+                            data = zlib.decompress(data, -15)
+                        except zlib.error:
+                            pass
 
-                        # Find flash objects in streams
-                        if b'FWS' in data or b'CWS' in data:
-                            swf_found = self._extract_swf_objects(fio)
-                            if swf_found:
-                                extract_stream = True
-                                swf_res = True
-                                swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
-                                swf_sec.set_heuristic(5)
-
-                        # Find hex encoded chunks
-                        for vbshex in re.findall(self.VBS_HEX_RE, data):
-                            decoded = self._extract_vb_hex(vbshex)
-                            if decoded:
-                                extract_stream = True
-                                hex_res = True
-                                hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
-                                hex_sec.set_heuristic(6)
-
-                        # Find suspicious strings
-                        # Look for suspicious strings
-                        for pattern, desc in self.SUSPICIOUS_STRINGS:
-                            matched = re.search(pattern, data, re.M)
-                            if matched:
-                                if "_VBA_PROJECT" not in stream:
-                                    extract_stream = True
-                                    sus_res = True
-                                    body = f"'{safe_str(matched.group(0))}' string found in stream " \
-                                           f"{stream}, indicating {safe_str(desc)}"
-                                    if b'javascript' in desc:
-                                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
-                                                                             body=body,
-                                                                             heuristic=Heuristic(23)))
-                                    elif b'executable' in desc:
-                                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                             body=body,
-                                                                             heuristic=Heuristic(24)))
-                                    else:
-                                        sus_sec.add_subsection(ResultSection("Suspicious string found",
-                                                                             body=body,
-                                                                             heuristic=Heuristic(25)))
-
-                        # Finally look for other IOC patterns, will ignore SRP streams for now
-                        if not re.match(r'__SRP_[0-9]*', stream):
-                            ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
-                            iocs, extract_stream = self._check_for_patterns(data)
-                            for tag_type, tags in iocs.items():
-                                ole_ioc_res.add_line(
-                                    f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                                ole_ioc_res.add_line(b'  |  '.join(tags).decode())
-                                ole_ioc_res.heuristic.increment_frequency(len(tags))
-                                for tag in tags:
-                                    ole_ioc_res.add_tag(tag_type, tag)
-                            if iocs:
-                                sus_res = True
-                                sus_sec.add_subsection(ole_ioc_res)
-                        ole_b64_res, _ = self._check_for_b64(data, stream)
-                        if ole_b64_res:
-                            ole_b64_res.set_heuristic(10)
+                    # Find flash objects in streams
+                    if b'FWS' in data or b'CWS' in data:
+                        swf_found = self._extract_swf_objects(fio)
+                        if swf_found:
                             extract_stream = True
+                            swf_res = True
+                            swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
+                            swf_sec.set_heuristic(5)
+
+                    # Find hex encoded chunks
+                    for vbshex in re.findall(self.VBS_HEX_RE, data):
+                        decoded = self._extract_vb_hex(vbshex)
+                        if decoded:
+                            extract_stream = True
+                            hex_res = True
+                            hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
+                            hex_sec.set_heuristic(6)
+
+                    # Find suspicious strings
+                    # Look for suspicious strings
+                    for pattern, desc in self.SUSPICIOUS_STRINGS:
+                        matched = re.search(pattern, data, re.M)
+                        if matched:
+                            if "_VBA_PROJECT" not in stream:
+                                extract_stream = True
+                                sus_res = True
+                                body = f"'{safe_str(matched.group(0))}' string found in stream " \
+                                       f"{stream}, indicating {safe_str(desc)}"
+                                if b'javascript' in desc:
+                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
+                                                                         body=body,
+                                                                         heuristic=Heuristic(23)))
+                                elif b'executable' in desc:
+                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
+                                                                         body=body,
+                                                                         heuristic=Heuristic(24)))
+                                else:
+                                    sus_sec.add_subsection(ResultSection("Suspicious string found",
+                                                                         body=body,
+                                                                         heuristic=Heuristic(25)))
+
+                    # Finally look for other IOC patterns, will ignore SRP streams for now
+                    if not re.match(r'__SRP_[0-9]*', stream):
+                        ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
+                        iocs, extract_stream = self._check_for_patterns(data)
+                        for tag_type, tags in iocs.items():
+                            ole_ioc_res.add_line(
+                                f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
+                            ole_ioc_res.add_line(b'  |  '.join(tags).decode())
+                            ole_ioc_res.heuristic.increment_frequency(len(tags))
+                            for tag in tags:
+                                ole_ioc_res.add_tag(tag_type, tag)
+                        if iocs:
                             sus_res = True
-                            sus_sec.add_subsection(ole_b64_res)
+                            sus_sec.add_subsection(ole_ioc_res)
+                    ole_b64_res, _ = self._check_for_b64(data, stream)
+                    if ole_b64_res:
+                        ole_b64_res.set_heuristic(10)
+                        extract_stream = True
+                        sus_res = True
+                        sus_sec.add_subsection(ole_b64_res)
 
-                        # All streams are extracted with deep scan
-                        if extract_stream or self.request.deep_scan:
-                            stream_num += 1
-                            if self.request.deep_scan:
-                                exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
-                            self._extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
-                            if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
-                                decompress_macros.append(data)
+                    # All streams are extracted with deep scan
+                    if extract_stream or self.request.deep_scan:
+                        stream_num += 1
+                        if self.request.deep_scan:
+                            exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
+                        self._extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
+                        if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                            decompress_macros.append(data)
 
-                    except Exception:
-                        self.log.warning(f"Error adding extracted stream {stream} for sample "
-                                         f"{self.sha}:\t{traceback.format_exc()}")
+                except Exception:
+                    self.log.warning(f"Error adding extracted stream {stream} for sample "
+                                     f"{self.sha}:\t{traceback.format_exc()}")
 
         if exstr_sec and stream_num > 0:
             streams_section.add_subsection(exstr_sec)
