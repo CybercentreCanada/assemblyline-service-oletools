@@ -403,10 +403,7 @@ class Oletools(ServiceBase):
             if clsid_sec.body:
                 streams_section.add_subsection(clsid_sec)
 
-            decompress = False
-            for dir_entry in ole.listdir():
-                if "\x05HwpSummaryInformation" in dir_entry:
-                    decompress = True
+            decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
             decompress_macros: List[bytes] = []
 
             stream_num = 0
@@ -523,17 +520,11 @@ class Oletools(ServiceBase):
                             sus_res = True
                             sus_sec.add_subsection(ole_b64_res)
 
-                        # All streams are extracted with deep scan (see below)
-                        if extract_stream and not self.request.deep_scan:
+                        # All streams are extracted with deep scan
+                        if extract_stream or self.request.deep_scan:
                             stream_num += 1
-                            self._extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
-                            if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
-                                decompress_macros.append(data)
-
-                        # Only write all streams with deep scan.
-                        if self.request.deep_scan:
-                            stream_num += 1
-                            exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
+                            if self.request.deep_scan:
+                                exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
                             self._extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
                             if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                                 decompress_macros.append(data)
