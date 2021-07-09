@@ -442,15 +442,13 @@ class Oletools(ServiceBase):
                 # noinspection PyBroadException
                 try:
 
-                    if "Ole10Native" in stream:
-                        if self._process_ole10native(stream, data, ole10_sec) is True:
-                            ole10_res = True
-                            continue
+                    if "Ole10Native" in stream and self._process_ole10native(stream, data, ole10_sec):
+                        ole10_res = True
+                        continue
 
-                    elif "PowerPoint Document" in stream:
-                        if self._process_powerpoint_stream(data, pwrpnt_sec) is True:
-                            pwrpnt_res = True
-                            continue
+                    elif "PowerPoint Document" in stream and self._process_powerpoint_stream(data, pwrpnt_sec):
+                        pwrpnt_res = True
+                        continue
 
                     if decompress:
                         try:
@@ -460,44 +458,39 @@ class Oletools(ServiceBase):
 
                     # Find flash objects in streams
                     if b'FWS' in data or b'CWS' in data:
-                        swf_found = self._extract_swf_objects(fio)
-                        if swf_found:
+                        if self._extract_swf_objects(fio):
                             extract_stream = True
                             swf_res = True
                             swf_sec.add_line(f"Flash object detected in OLE stream {stream}")
-                            swf_sec.set_heuristic(5)
 
                     # Find hex encoded chunks
                     for vbshex in re.findall(self.VBS_HEX_RE, data):
-                        decoded = self._extract_vb_hex(vbshex)
-                        if decoded:
+                        if self._extract_vb_hex(vbshex):
                             extract_stream = True
                             hex_res = True
                             hex_sec.add_line(f"Found large chunk of VBA hex notation in stream {stream}")
-                            hex_sec.set_heuristic(6)
 
                     # Find suspicious strings
                     # Look for suspicious strings
                     for pattern, desc in self.SUSPICIOUS_STRINGS:
                         matched = re.search(pattern, data, re.M)
-                        if matched:
-                            if "_VBA_PROJECT" not in stream:
-                                extract_stream = True
-                                sus_res = True
-                                body = f"'{safe_str(matched.group(0))}' string found in stream " \
-                                       f"{stream}, indicating {safe_str(desc)}"
-                                if b'javascript' in desc:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(23)))
-                                elif b'executable' in desc:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(24)))
-                                else:
-                                    sus_sec.add_subsection(ResultSection("Suspicious string found",
-                                                                         body=body,
-                                                                         heuristic=Heuristic(25)))
+                        if matched and "_VBA_PROJECT" not in stream:
+                            extract_stream = True
+                            sus_res = True
+                            body = f"'{safe_str(matched.group(0))}' string found in stream " \
+                                   f"{stream}, indicating {safe_str(desc)}"
+                            if b'javascript' in desc:
+                                sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
+                                                                     body=body,
+                                                                     heuristic=Heuristic(23)))
+                            elif b'executable' in desc:
+                                sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
+                                                                     body=body,
+                                                                     heuristic=Heuristic(24)))
+                            else:
+                                sus_sec.add_subsection(ResultSection("Suspicious string found",
+                                                                     body=body,
+                                                                     heuristic=Heuristic(25)))
 
                     # Finally look for other IOC patterns, will ignore SRP streams for now
                     if not re.match(r'__SRP_[0-9]*', stream):
