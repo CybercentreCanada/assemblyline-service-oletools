@@ -13,6 +13,7 @@ import zipfile
 import zlib
 
 from collections import defaultdict
+from itertools import chain
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
 import magic
@@ -392,14 +393,13 @@ class Oletools(ServiceBase):
             return None
 
         streams_section = ResultSection(f"OLE Document {name}")
-
         with olefile.OleFileIO(ole_path) as ole:
             meta_sec = self._process_ole_metadata(ole.get_metadata())
-            if meta_sec.subsections:
+            if meta_sec is not None:
                 streams_section.add_subsection(meta_sec)
 
             clsid_sec = self._process_ole_clsids(ole)
-            if clsid_sec.body:
+            if clsid_sec is not None:
                 streams_section.add_subsection(clsid_sec)
 
             decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
@@ -419,7 +419,7 @@ class Oletools(ServiceBase):
             hex_res = False
             hex_sec = ResultSection("VB hex notation:", heuristic=Heuristic(6))
             sus_res = False
-            sus_sec = ResultSection("Suspicious stream content:")
+            sus_sec = ResultSection("Suspicious stream content:", heuristic=Heuristic(9))
 
             ole_dir_examined = set()
             for direntry in ole.direntries:
@@ -496,6 +496,7 @@ class Oletools(ServiceBase):
                     if not re.match(r'__SRP_[0-9]*', stream):
                         ole_ioc_res = ResultSection(f"IOCs in {stream}:", heuristic=Heuristic(9, frequency=0))
                         iocs, extract_stream = self._check_for_patterns(data)
+                        if sus_sec
                         for tag_type, tags in iocs.items():
                             ole_ioc_res.add_line(
                                 f"Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
@@ -549,7 +550,7 @@ class Oletools(ServiceBase):
 
         return streams_section
 
-    def _process_ole_metadata(self, meta) -> ResultSection:
+    def _process_ole_metadata(self, meta) -> Optional[ResultSection]:
         """ Create sections for ole metadata """
         meta_sec = ResultSection("OLE Metadata:")
 
@@ -567,60 +568,37 @@ class Oletools(ServiceBase):
             'codepage': 'file.ole.summary.codepage',
         }
         # Summary Information
-        summeta_sec_json_body = dict()
-        summeta_sec = ResultSection("Properties from the Summary Information Stream:")
-        for prop in meta.SUMMARY_ATTRIBS:
+        meta_sec_json_body = dict()
+        for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
                 if prop == "thumbnail":
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(value, meta_name, "OLE metadata thumbnail extracted")
-                    summeta_sec_json_body[prop] = "[see extracted files]"
-                    summeta_sec.set_heuristic(18)
+                    meta_sec_json_body[prop] = "[see extracted files]"
+                    # Todo: is thumbnail useful as a heuristic?
+                    # Doesn't score and causes error how its currently set.
+                    # meta_sec.set_heuristic(18)
                     continue
                 # Extract data over n bytes
                 if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
                     data = value.encode()
                     meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                    summeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
+                    meta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
                                                   f"see extracted files]"
-                    summeta_sec.set_heuristic(17)
+                    meta_sec.set_heuristic(17)
                     continue
-                summeta_sec_json_body[prop] = safe_str(value, force_str=True)
+                meta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
                 if prop in ole_tags and value:
-                    summeta_sec.add_tag(ole_tags[prop], safe_str(value))
-        if summeta_sec_json_body:
-            summeta_sec.body = json.dumps(summeta_sec_json_body)
-            meta_sec.add_subsection(summeta_sec)
+                    meta_sec.add_tag(ole_tags[prop], safe_str(value))
+        if meta_sec_json_body:
+            meta_sec.body = json.dumps(summeta_sec_json_body)
+            return meta_sec
+        return None
 
-        # Document Summary
-        docmeta_sec_json_body = dict()
-        docmeta_sec = ResultSection("Properties from the Document Summary Information Stream:")
-        for prop in meta.DOCSUM_ATTRIBS:
-            value = getattr(meta, prop)
-            if value is not None and value not in ['"', "'", ""]:
-                if isinstance(value, str):
-                    # Extract data over n bytes
-                    if len(value) > self.metadata_size_to_extract:
-                        data = value.encode()
-                        meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
-                        self._extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                        docmeta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
-                                                      f"see extracted files]"
-                        docmeta_sec.set_heuristic(17)
-                        continue
-                docmeta_sec_json_body[prop] = safe_str(value)
-                # Add Tags
-                if prop in ole_tags and value:
-                    docmeta_sec.add_tag(ole_tags[prop], safe_str(value))
-        if docmeta_sec_json_body:
-            docmeta_sec.body = json.dumps(docmeta_sec_json_body)
-            meta_sec.add_subsection(docmeta_sec)
-        return meta_sec
-
-    def _process_ole_clsids(self, ole) -> ResultSection:
+    def _process_ole_clsids(self, ole) -> Optional[ResultSection]:
         """ Create section for ole clsids """
         clsid_sec_json_body = dict()
         clsid_sec = ResultSection("CLSIDs:")
@@ -638,7 +616,8 @@ class Oletools(ServiceBase):
             clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
         if clsid_sec_json_body:
             clsid_sec.body = json.dumps(clsid_sec_json_body)
-        return clsid_sec
+            return clsid_sec
+        return None
 
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
         """Parses ole10native data and reports on suspicious content.
