@@ -203,6 +203,12 @@ heuristics:
     filetype: document/office
     description: Found network indicator(s) within macros
 
+  - heur_id: 28
+    name: Error parsing ExOleObjStg stream
+    score: 50
+    filetype: document/office
+    description: Error parsing ExOleObjStg stream
+
   - heur_id: 30
     name: Suspicious strings or functions
     score: 50
