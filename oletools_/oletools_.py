@@ -97,7 +97,7 @@ class Oletools(ServiceBase):
         self.sha = ''
         self.ole_result: Optional[Result] = None
 
-        self.word_chains: Dict[str,Set[str]] = {}
+        self.word_chains: Dict[str, Set[str]] = {}
         self.macro_skip_words: Set[str] = set()
         self.macro_words_re = re.compile("[a-z]{3,}")
 
