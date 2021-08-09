@@ -43,11 +43,16 @@ class Oletools(ServiceBase):
     SUPPORTED_VERSION = "0.54.2"
 
     MAX_STRINGDUMP_CHARS = 500
+    MAX_BASE64_CHARS = 8_000_000
+    MAX_XML_SCAN_CHARS = 500_000
     MIN_MACRO_SECTION_SCORE = 50
 
     # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
 
+    # Suspicious keywords for dde links
+    DDE_SUS_KEYWORDS = ('powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
+                               'bitstransfer', 'cscript.exe', 'wscript.exe')
     # Extensions of interesting files
     FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
@@ -71,6 +76,9 @@ class Oletools(ServiceBase):
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     URI_RE = rb'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
+    EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}' \
+                       rb'[Tt]argetMode="External"'
+    JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
     VBS_HEX_RE = rb'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
     SUSPICIOUS_STRINGS = [
@@ -88,6 +96,7 @@ class Oletools(ServiceBase):
 
     # String Regex's
     CVE_RE = r'CVE-[0-9]{4}-[0-9]*'
+    MACRO_WORDS_RE = r'[a-z]{3,}'
 
     def __init__(self, config: Optional[Dict] = None) -> None:
         super().__init__(config)
@@ -99,7 +108,6 @@ class Oletools(ServiceBase):
 
         self.word_chains: Dict[str, Set[str]] = {}
         self.macro_skip_words: Set[str] = set()
-        self.macro_words_re = re.compile("[a-z]{3,}")
 
         self.macro_score_max_size: Optional[int] = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
@@ -285,8 +293,6 @@ class Oletools(ServiceBase):
         dde_extracted = False
         looksbad = False
 
-        suspicious_keywords = ('powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
-                               'bitstransfer', 'cscript.exe', 'wscript.exe')
         for line in links_text.splitlines():
             if ' ' in line:
                 (link_type, link_text) = line.strip().split(' ', 1)
@@ -305,7 +311,7 @@ class Oletools(ServiceBase):
                 self._extract_file(data, f'{hashlib.sha256(data).hexdigest()}.ddelinks', "Tweaked DDE Link")
 
                 link_text_lower = link_text.lower()
-                if any(x in link_text_lower for x in suspicious_keywords):
+                if any(x in link_text_lower for x in self.DDE_SUS_KEYWORDS):
                     looksbad = True
 
                 dde_section.add_tag('file.ole.dde_link', link_text)
@@ -1215,7 +1221,7 @@ class Oletools(ServiceBase):
         word_count = 0
         byte_count = 0
 
-        for macro_word in self.macro_words_re.finditer(macro_text):
+        for macro_word in re.finditer(self.MACRO_WORDS_RE, macro_text):
             word = macro_word.group(0)
             word_count += 1
             byte_count += len(word)
@@ -1243,7 +1249,7 @@ class Oletools(ServiceBase):
         """ Scan the text of a macro with VBA_Scanner and collect results
 
         Args:
-            text:_ Original VBA code.
+            text: Original VBA code.
             autoexecution: set for adding autoexecution strings
             suspicious: set for adding suspicious strings
             network: set for adding host/network strings
@@ -1334,10 +1340,6 @@ class Oletools(ServiceBase):
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
-            external_re = re.compile(rb'[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}'
-                                     rb'[Tt]argetMode="External"', re.DOTALL)
-            dde_re = re.compile(rb'ddeLink')
-            script_re = re.compile(rb'script.{1,512}("JScript"|javascript)', re.DOTALL)
             xml_extracted = set()
             if not zipfile.is_zipfile(path):
                 return # Not an Open XML format file
@@ -1349,15 +1351,15 @@ class Oletools(ServiceBase):
                         continue
 
                     data = contents
-                    if len(data) > 500000:
-                        data = data[:500000]
+                    if len(data) > self.MAX_XML_SCAN_CHARS:
+                        data = data[:self.MAX_XML_SCAN_CHARS]
                         xml_big_res.add_line(f'{f}')
                         xml_big_res.heuristic.increment_frequency()
 
-                    has_external = external_re.findall(data) # Extract all files with external targets
+                    has_external = re.findall(self.EXTERNAL_LINK_RE, data) # Extract all files with external targets
                     external_links.extend(has_external)
-                    has_dde = dde_re.search(data)  # Extract all files with dde links
-                    has_script = script_re.search(data)  # Extract all files with javascript
+                    has_dde = re.search(rb'ddeLink', data)  # Extract all files with dde links
+                    has_script = re.search(self.JAVASCRIPT_RE, data)  # Extract all files with javascript
                     extract_regex = bool(has_external or has_dde or has_script)
 
                     # Check for IOC and b64 data in XML
@@ -1528,7 +1530,7 @@ class Oletools(ServiceBase):
                 if sha256hash in b64_extracted:
                     continue
                 # Search for embedded files of interest
-                if 500 < len(base64data) < 8000000:
+                if self.MAX_STRINGDUMP_CHARS < len(base64data) < self.MAX_BASE64_CHARS:
                     m = magic.Magic(mime=True)
                     ftype = m.from_buffer(base64data)
                     if 'octet-stream' not in ftype:
