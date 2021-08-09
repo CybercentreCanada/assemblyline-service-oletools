@@ -420,9 +420,10 @@ class Oletools(ServiceBase):
         ole_dir_examined = set()
         for direntry in ole.direntries:
             extract_stream = False
-            if direntry is None or direntry.entry_type == olefile.STGTY_STREAM:
+            if direntry is None or direntry.entry_type != olefile.STGTY_STREAM:
                 continue
             stream = safe_str(direntry.name)
+            print(stream)
             self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
 
             # noinspection PyProtectedMember
@@ -506,7 +507,7 @@ class Oletools(ServiceBase):
                 if extract_stream or swf_sec.body or hex_sec.body or self.request.deep_scan:
                     if self.request.deep_scan:
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
-                    self._extract_file(data, f'{stm_sha}.ole_stream', "Embedded OLE Stream {stream}")
+                    self._extract_file(data, f'{stm_sha}.ole_stream', f"Embedded OLE Stream {stream}")
                     if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
                         decompress_macros.append(data)
 
