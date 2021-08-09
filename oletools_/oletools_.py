@@ -99,6 +99,11 @@ class Oletools(ServiceBase):
     MACRO_WORDS_RE = r'[a-z]{3,}'
 
     def __init__(self, config: Optional[Dict] = None) -> None:
+        """Creates an instance of the Oletools service
+
+        Args:
+            config: service configuration (defaults to the configuration in the service manifest)
+        """
         super().__init__(config)
         self._oletools_version = ''
         self.request: Optional[ServiceRequest] = None
@@ -128,6 +133,7 @@ class Oletools(ServiceBase):
         self.scored_macro_uri = False
 
     def start(self) -> None:
+        """ Initializes the service """
         self.log.debug("Service started")
 
         from oletools.olevba import __version__ as olevba_version
@@ -156,6 +162,7 @@ class Oletools(ServiceBase):
                                  'error', 'else', 'number', 'chr', 'sub', 'loop'}
 
     def get_tool_version(self) -> str:
+        """ Returns the version of oletools used by the service """
         return self._oletools_version
 
     def execute(self, request: ServiceRequest) -> None:
@@ -546,7 +553,14 @@ class Oletools(ServiceBase):
         return streams_section
 
     def _process_ole_metadata(self, meta) -> Optional[ResultSection]:
-        """ Create sections for ole metadata """
+        """ Create sections for ole metadata
+
+        Args:
+            meta: ole metadata
+
+        Returns:
+            A result section with metadata info if any metadata was found
+        """
         meta_sec = ResultSection("OLE Metadata:")
 
         ole_tags = {
@@ -593,8 +607,14 @@ class Oletools(ServiceBase):
             return meta_sec
         return None
 
-    def _process_ole_clsids(self, ole) -> Optional[ResultSection]:
-        """ Create section for ole clsids """
+    def _process_ole_clsids(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
+        """ Create section for ole clsids
+
+        Args:
+            ole: the olefile
+        Returns:
+            A result section with the clsid of the file if it can be identified
+        """
         clsid_sec_json_body = dict()
         clsid_sec = ResultSection("CLSIDs:")
         ole_clsid = ole.root.clsid
@@ -712,7 +732,7 @@ class Oletools(ServiceBase):
             f: Sample content.
 
         Returns:
-           If Flash content is found
+            If Flash content is found
         """
         swf_found = False
         # Taken from oletools.thirdparty.xxpyswf disneyland module
@@ -741,7 +761,7 @@ class Oletools(ServiceBase):
             x: Start of possible embedded flash content.
 
         Returns:
-           Flash content if confirmed, or None.
+            Flash content if confirmed, or None.
         """
         # Slightly modified code taken from oletools.thirdparty.xxpyswf verifySWF
         # Start of SWF
@@ -779,7 +799,7 @@ class Oletools(ServiceBase):
             encodedchunk: Data that may contain hex encoding.
 
         Returns:
-           True if hex content converted.
+            True if hex content converted.
         """
         decoded = b''
 
@@ -799,7 +819,11 @@ class Oletools(ServiceBase):
 #-- RTF objects --
 
     def _extract_rtf(self, file_contents: bytes) -> None:
-        """ Handle RTF Packages """
+        """ Handle RTF Packages
+
+        Args:
+            file_contents: contents of the submission
+        """
         streams_res = ResultSection("RTF objects")
         sep = "-----------------------------------------"
         try:
