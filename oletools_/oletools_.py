@@ -46,6 +46,21 @@ class Oletools(ServiceBase):
     MAX_BASE64_CHARS = 8_000_000
     MAX_XML_SCAN_CHARS = 500_000
     MIN_MACRO_SECTION_SCORE = 50
+    LARGE_MALFORMED_BYTES = 5000
+
+    METADATA_TO_TAG = {
+        'title': 'file.ole.summary.title',
+        'subject': 'file.ole.summary.subject',
+        'author': 'file.ole.summary.author',
+        'comments': 'file.ole.summary.comment',
+        'last_saved_by': 'file.ole.summary.last_saved_by',
+        'last_printed': 'file.ole.summary.last_printed',
+        'create_time': 'file.ole.summary.create_time',
+        'last_saved_time': 'file.ole.summary.last_saved_time',
+        'manager': 'file.ole.summary.manager',
+        'company': 'file.ole.summary.company',
+        'codepage': 'file.ole.summary.codepage',
+    }
 
     # In addition to those from olevba.py
     ADDITIONAL_SUSPICIOUS_KEYWORDS = ('WinHttp', 'WinHttpRequest', 'WinInet', 'Lib "kernel32" Alias')
@@ -78,6 +93,7 @@ class Oletools(ServiceBase):
     URI_RE = rb'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
     EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}' \
                        rb'[Tt]argetMode="External"'
+    BASE64_RE = b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2e})'
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
     VBS_HEX_RE = rb'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
@@ -97,6 +113,12 @@ class Oletools(ServiceBase):
     # String Regex's
     CVE_RE = r'CVE-[0-9]{4}-[0-9]*'
     MACRO_WORDS_RE = r'[a-z]{3,}'
+    CHR_ADD_RE = r'chr[$]?\((\d+) \+ (\d+)\)'
+    CHRW_ADD_RE = r'chrw[$]?\((\d+) \+ (\d+)\)'
+    CHR_SUB_RE = r'chr[$]?\((\d+) - (\d+)\)'
+    CHRW_SUB_RE = r'chrw[$]?\((\d+) - (\d+)\)'
+    CHR_RE = r'chr[$]?\((\d+)\)'
+    CHRW_RE = r'chrw[$]?\((\d+)\)'
 
     def __init__(self, config: Optional[Dict] = None) -> None:
         """Creates an instance of the Oletools service
@@ -552,7 +574,7 @@ class Oletools(ServiceBase):
 
         return streams_section
 
-    def _process_ole_metadata(self, meta) -> Optional[ResultSection]:
+    def _process_ole_metadata(self, meta: olefile.OleMetadata) -> Optional[ResultSection]:
         """ Create sections for ole metadata
 
         Args:
@@ -562,21 +584,6 @@ class Oletools(ServiceBase):
             A result section with metadata info if any metadata was found
         """
         meta_sec = ResultSection("OLE Metadata:")
-
-        ole_tags = {
-            'title': 'file.ole.summary.title',
-            'subject': 'file.ole.summary.subject',
-            'author': 'file.ole.summary.author',
-            'comments': 'file.ole.summary.comment',
-            'last_saved_by': 'file.ole.summary.last_saved_by',
-            'last_printed': 'file.ole.summary.last_printed',
-            'create_time': 'file.ole.summary.create_time',
-            'last_saved_time': 'file.ole.summary.last_saved_time',
-            'manager': 'file.ole.summary.manager',
-            'company': 'file.ole.summary.company',
-            'codepage': 'file.ole.summary.codepage',
-        }
-        # Summary Information
         meta_sec_json_body = dict()
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
@@ -600,8 +607,8 @@ class Oletools(ServiceBase):
                     continue
                 meta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
-                if prop in ole_tags and value:
-                    meta_sec.add_tag(ole_tags[prop], safe_str(value))
+                if prop in self.METADATA_TO_TAG and value:
+                    meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
         if meta_sec_json_body:
             meta_sec.body = json.dumps(meta_sec_json_body)
             return meta_sec
@@ -872,8 +879,8 @@ class Oletools(ServiceBase):
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
                     res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
-                    if len(rtfobj.rawdata) > 4999:
-                        res_alert += "Data of malformed OLE object over 5000 bytes"
+                    if len(rtfobj.rawdata) >= self.LARGE_MALFORMED_BYTES:
+                        res_alert += f"Data of malformed OLE object over {self.LARGE_MALFORMED_BYTES} bytes"
                     streams_res.set_heuristic(19)
 
                 if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
@@ -1125,7 +1132,7 @@ class Oletools(ServiceBase):
                         return f'"{chr(i)}\"'
                 return ''
 
-            deobf = re.sub(r'chr[$]?\((\d+) \+ (\d+)\)', deobf_chrs_add, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHR_ADD_RE, deobf_chrs_add, deobf, flags=re.IGNORECASE)
 
             def deobf_unichrs_add(m):
                 result = ''
@@ -1139,7 +1146,7 @@ class Oletools(ServiceBase):
                         result = f'"{chr(i)}"'
                 return result
 
-            deobf = re.sub(r'chrw[$]?\((\d+) \+ (\d+)\)', deobf_unichrs_add, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHRW_ADD_RE, deobf_unichrs_add, deobf, flags=re.IGNORECASE)
 
             # suspect we may see chr(x - y) samples as well
             def deobf_chrs_sub(m):
@@ -1150,7 +1157,7 @@ class Oletools(ServiceBase):
                         return f'"{chr(i)}"'
                 return ''
 
-            deobf = re.sub(r'chr[$]?\((\d+) - (\d+)\)', deobf_chrs_sub, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHR_SUB_RE, deobf_chrs_sub, deobf, flags=re.IGNORECASE)
 
             def deobf_unichrs_sub(m):
                 if m.group(0):
@@ -1161,7 +1168,7 @@ class Oletools(ServiceBase):
                         return f'"{chr(i)}"'
                 return ''
 
-            deobf = re.sub(r'chrw[$]?\((\d+) - (\d+)\)', deobf_unichrs_sub, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHRW_SUB_RE, deobf_unichrs_sub, deobf, flags=re.IGNORECASE)
 
             def deobf_chr(m):
                 if m.group(1):
@@ -1171,7 +1178,7 @@ class Oletools(ServiceBase):
                         return f'"{chr(i)}"'
                 return ''
 
-            deobf = re.sub(r'chr[$]?\((\d+)\)', deobf_chr, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHR_RE, deobf_chr, deobf, flags=re.IGNORECASE)
 
             def deobf_unichr(m):
                 if m.group(1):
@@ -1182,7 +1189,7 @@ class Oletools(ServiceBase):
                         return f'"{chr(i)}"'
                 return ''
 
-            deobf = re.sub(r'chrw[$]?\((\d+)\)', deobf_unichr, deobf, flags=re.IGNORECASE)
+            deobf = re.sub(self.CHRW_RE, deobf_unichr, deobf, flags=re.IGNORECASE)
 
             # handle simple string concatenations
             deobf = re.sub('" & "', '', deobf)
@@ -1538,8 +1545,7 @@ class Oletools(ServiceBase):
         b64_matches = set()
         b64_ascii_content = []
         # '<[\x00]  [\x00]' Character found before some line breaks?? TODO: investigate sample and oletools
-        for b64_match in re.findall(b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})',
-                                    re.sub(b'\x3C\x00\x20\x20\x00', b'', data)):
+        for b64_match in re.findall(self.BASE64_RE, re.sub(b'\x3C\x00\x20\x20\x00', b'', data)):
             b64 = b64_match.replace(b'\n', b'').replace(b'\r', b'').replace(b' ', b'').replace(b'<', b'')
             if len(set(b64)) > 6:
                 if len(b64) >= 16 and len(b64) % 4 == 0:
