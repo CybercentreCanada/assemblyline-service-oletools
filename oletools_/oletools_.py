@@ -1,3 +1,9 @@
+"""
+Oletools
+
+Assemblyline service using the oletools library to analyze OLE and OOXML files.
+"""
+
 import binascii
 import email
 import gzip
