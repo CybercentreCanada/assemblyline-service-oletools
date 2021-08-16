@@ -1427,6 +1427,8 @@ class Oletools(ServiceBase):
             if puri:
                 xml_target_res.add_line(f'{link_type} link: {safe_str(duri)}')
                 xml_target_res.heuristic.add_signature_id(link_type.lower())
+                if link_type.lower() == 'attachedtemplate':
+                    xml_target_res.heuristic.add_attack_id('T1221')
             for tag_type, tag in tag_list:
                 if tag_type == 'network.static.ip':
                     xml_target_res.heuristic.add_signature_id('external_link_ip')
