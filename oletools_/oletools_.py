@@ -1527,6 +1527,8 @@ class Oletools(ServiceBase):
             return True
 
         # common false positives
+        if ty == 'network.email.address':
+            return False
         if ty == 'file.string.api' and val.lower() == b'connect':
             return False
         if ty == 'file.string.blacklisted' and val.lower() in self.BLACKLIST_IGNORE:
