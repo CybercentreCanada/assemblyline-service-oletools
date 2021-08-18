@@ -77,7 +77,7 @@ class Oletools(ServiceBase):
     # Extensions of interesting files
     FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
-                         b'.SCR', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
+                         b'.SCR', b'.SCT', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
 
     # Safelists
     TAG_SAFELIST = [b"management", b"manager", b"microsoft.com"]
@@ -97,7 +97,7 @@ class Oletools(ServiceBase):
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     URI_RE = rb'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
-    EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)".{1,512}[Tt]arget="((?!file)[^"]+)".{1,512}' \
+    EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}' \
                        rb'[Tt]argetMode="External"'
     BASE64_RE = b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2e})'
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'

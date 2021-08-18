@@ -34,6 +34,7 @@ heuristics:
       attachedtemplate: 500
       subdocument: 500
       frame: 500
+      hyperlink: 500
       external_link_ip: 500
     filetype: document/office
     description: >-
