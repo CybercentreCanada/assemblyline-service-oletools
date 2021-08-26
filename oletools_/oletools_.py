@@ -91,7 +91,7 @@ class Oletools(ServiceBase):
     BLACKLIST_IGNORE = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
 
     # Bytes Regex's
-    DOMAIN_RE = b'^((?:(?:[a-zA-Z0-9-]+).)+[a-zA-Z]{2,5})'
+    DOMAIN_RE = rb'^(?:(?:[a-zA-Z0-9-]+)\.)+[a-zA-Z]{2,5}'
     EXECUTABLE_EXTENSIONS_RE = rb"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE" \
                                rb"|VB|JSE|JS|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR" \
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
@@ -1681,7 +1681,7 @@ class Oletools(ServiceBase):
             if not is_ip_reserved(safe_str(ip_str)):
                 tags.append(('network.static.ip', ip_str))
         elif domain:
-            dom_str = domain.group(1)
+            dom_str = domain.group(0)
             tags.append(('network.static.domain', dom_str))
 
         return True, m.group(0), tags
