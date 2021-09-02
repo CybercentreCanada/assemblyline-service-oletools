@@ -1355,6 +1355,11 @@ class Oletools(ServiceBase):
             if combined_sha256 != request_hash:
                 self._extract_file(data, f"{filename}_{combined_sha256[:15]}.data", description)
 
+        passwords = re.findall('PasswordDocument:="([^"]+)"', combined)
+        if 'passwords' in self.request.temp_submission_data:
+            self.request.temp_submission_data['passwords'] = passwords
+        else:
+            self.request.temp_submission_data['passwords'].extend(passwords)
         rawr_combined = mraptor.MacroRaptor(combined)
         rawr_combined.scan()
         return rawr_combined.suspicious, rawr_combined.matches
