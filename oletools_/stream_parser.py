@@ -3,44 +3,6 @@
 import struct
 import zlib
 
-
-class Ole10Native(object):
-    def __init__(self, buf):
-        offset = 0
-
-        self.rec_length = struct.unpack("<I", buf[offset:offset + 4])[0]
-        offset += 4
-
-        self.flags1 = struct.unpack("<H", buf[offset:offset + 2])[0]
-        offset += 2
-
-        label_end = buf.find('\x00', offset)
-        self.label = buf[offset:label_end]
-        offset = label_end + 1
-
-        filename_end = buf.find('\x00', offset)
-        self.filename = buf[offset:filename_end]
-        offset = filename_end + 1
-
-        self.flags2 = struct.unpack("<H", buf[offset:offset + 2])[0]
-        offset += 2
-
-        unknown1_len = struct.unpack("B", buf[offset:offset + 1])[0]
-        offset += 1 + unknown1_len
-
-        # unknown2 is 3 bytes
-        offset += 3
-
-        command_end = buf.find('\x00', offset)
-        self.command = buf[offset:command_end]
-        offset = command_end + 1
-
-        self.native_data_size = struct.unpack("<I", buf[offset:offset + 4])[0]
-        offset += 4
-
-        self.native_data = buf[offset:offset + self.native_data_size]
-
-
 class PowerPointDoc(object):
     # Taken DIRECTLY from hachoir-parser - msoffice.pt
     # Credits:
@@ -297,40 +259,3 @@ class PowerPointObject(object):
                     self.error = "Error decompressing the stream: {}\n".format(ex)
             else:
                 self.compressed = False
-
-
-if __name__ == "__main__":
-    import sys
-    import hashlib
-
-    with open(sys.argv[1], 'r') as fh:
-        data = fh.read()
-
-    print("Total Size: {}\n".format(len(data)))
-    # noinspection PyBroadException
-    try:
-        pp_doc = PowerPointDoc(data)
-        for obj in pp_doc.objects:
-            print("Version: {}\nInstance: {}\nType: {}\nLength: {}\nHead: {}\n".format(
-                hex(obj.rec_ver), hex(obj.rec_instance), obj.rec_type, obj.rec_length,
-                repr(obj.raw[:min(len(obj.raw), 32)])
-            ))
-            if obj.rec_type == "ExOleObjStg":
-                if obj.compressed:
-                    print("Decompressed: {}\n".format(
-                        repr(obj.decompressed_raw[:min(len(obj.decompressed_raw), 32)])
-                    ))
-                fname = "/tmp/{}.pp_obj".format(hashlib.sha256(obj.decompressed_raw).hexdigest())
-                with open(fname, 'w') as fh:
-                    fh.write(obj.decompressed_raw)
-    except Exception:
-        pass
-
-    try:
-        ole10 = Ole10Native(data)
-        print("Length: {}\nLabel: {}\nFilename: {}\nData Length: {}\nData: {}\n".format(
-            ole10.rec_length, ole10.label, ole10.filename, ole10.native_data_size,
-            ole10.native_data[:min(len(ole10.native_data), 32)]
-        ))
-    except Exception as e:
-        print("Unable to create Ole10Native: {}".format(e))
