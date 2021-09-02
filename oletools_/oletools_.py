@@ -27,6 +27,7 @@ import olefile
 import oletools.rtfobj as rtfparse
 from oletools import mraptor, msodde, oleobj
 from oletools.common import clsid
+from oletools.oleobj import OleNativeStream
 from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser, VBA_Scanner
 from oletools.thirdparty.xxxswf import xxxswf
@@ -41,7 +42,7 @@ from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
-from oletools_.stream_parser import Ole10Native, PowerPointDoc
+from oletools_.stream_parser import PowerPointDoc
 
 
 class Oletools(ServiceBase):
@@ -659,47 +660,45 @@ class Oletools(ServiceBase):
         """
         suspicious = False
         sus_sec = ResultSection("Suspicious streams content:")
-        try:
-            ole10native = Ole10Native(data)
-
-            self._extract_file(ole10native.native_data,
-                              hashlib.sha256(ole10native.native_data).hexdigest(),
-                              f"Embedded OLE Stream {stream_name}")
-            stream_desc = f"{stream_name} ({ole10native.label}):\n\tFilename: {ole10native.filename}\n\t" \
-                          f"Data Length: {ole10native.native_data_size}"
-            streams_section.add_line(stream_desc)
-
-            # handle embedded native macros
-            if ole10native.label.endswith(".vbs") or \
-                    ole10native.command.endswith(".vbs") or \
-                    ole10native.filename.endswith(".vbs"):
-
-                self.macros.append(ole10native.native_data.decode(errors='ignore'))
-            else:
-                # Look for suspicious strings
-                for pattern, desc in self.SUSPICIOUS_STRINGS:
-                    matched = re.search(pattern, ole10native.native_data)
-                    if matched:
-                        suspicious = True
-                        if b'javascript' in desc:
-                            sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
-                                                                 heuristic=Heuristic(23)))
-                        if b'executable' in desc:
-                            sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                 heuristic=Heuristic(24)))
-                        else:
-                            sus_sec.add_subsection(ResultSection("Suspicious string found",
-                                                                 heuristic=Heuristic(25)))
-                        sus_sec.add_line(f"'{safe_str(matched.group(0))}' string found in stream "
-                                         f"{ole10native.filename}, indicating {safe_str(desc)}")
-
-            if suspicious:
-                streams_section.add_subsection(sus_sec)
-
-            return True
-        except Exception as e:
-            self.log.debug(f"Failed to parse Ole10Native stream for sample {self.sha}: {str(e)}")
+        native = OleNativeStream(data)
+        if not native.data or not native.filename or not native.src_path or not native.temp_path:
+            self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
             return False
+        self._extract_file(native.data,
+                            hashlib.sha256(native.data).hexdigest(),
+                            f"Embedded OLE Stream {stream_name}")
+        stream_desc = f"{stream_name} ({native.filename}):\n\tFilename: {native.src_path}\n\t" \
+                        f"Data Length: {native.native_data_size}"
+        streams_section.add_line(stream_desc)
+
+        # handle embedded native macros
+        if native.filename.endswith(".vbs") or \
+                native.temp_path.endswith(".vbs") or \
+                native.src_path.endswith(".vbs"):
+
+            self.macros.append(native.data.decode(errors='ignore'))
+        else:
+            # Look for suspicious strings
+            for pattern, desc in self.SUSPICIOUS_STRINGS:
+                matched = re.search(pattern, native.data)
+                if matched:
+                    suspicious = True
+                    if b'javascript' in desc:
+                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
+                                                                heuristic=Heuristic(23)))
+                    if b'executable' in desc:
+                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
+                                                                heuristic=Heuristic(24)))
+                    else:
+                        sus_sec.add_subsection(ResultSection("Suspicious string found",
+                                                                heuristic=Heuristic(25)))
+                    sus_sec.add_line(f"'{safe_str(matched.group(0))}' string found in stream "
+                                        f"{native.src_path}, indicating {safe_str(desc)}")
+
+        if suspicious:
+            streams_section.add_subsection(sus_sec)
+
+        return suspicious
 
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
         """Parses powerpoint stream data and reports on suspicious characteristics.
@@ -1356,6 +1355,11 @@ class Oletools(ServiceBase):
             if combined_sha256 != request_hash:
                 self._extract_file(data, f"{filename}_{combined_sha256[:15]}.data", description)
 
+        passwords = re.findall('PasswordDocument:="([^"]+)"', combined)
+        if 'passwords' in self.request.temp_submission_data:
+            self.request.temp_submission_data['passwords'] = passwords
+        else:
+            self.request.temp_submission_data['passwords'].extend(passwords)
         rawr_combined = mraptor.MacroRaptor(combined)
         rawr_combined.scan()
         return rawr_combined.suspicious, rawr_combined.matches
