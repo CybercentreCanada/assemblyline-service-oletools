@@ -36,6 +36,7 @@ from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.str_utils import safe_str
 from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
@@ -450,7 +451,8 @@ class Oletools(ServiceBase):
         if self.request.deep_scan:
             exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
         ole10_res = False
-        ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
+        ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                  heuristic=Heuristic(29, frequency=0))
         pwrpnt_res = False
         pwrpnt_sec = ResultSection("Extracted Powerpoint streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
         swf_sec = ResultSection("Flash objects detected in OLE stream:", body_format=BODY_FORMAT.MEMORY_DUMP,
@@ -649,15 +651,18 @@ class Oletools(ServiceBase):
         return None
 
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
-        """Parses ole10native data and reports on suspicious content.
+        """
+        Parses ole10native data and reports on suspicious content.
 
         Args:
             stream_name: Name of OLE stream.
             data: Ole10native data.
-            streams_section: Streams AL result section.
+            streams_section: Ole10Native result section (must have heuristic set).
 
         Returns: if suspicious content is found
         """
+        assert streams_section.heuristic
+
         suspicious = False
         sus_sec = ResultSection("Suspicious streams content:")
         native = OleNativeStream(data)
@@ -667,10 +672,16 @@ class Oletools(ServiceBase):
         self._extract_file(native.data,
                             hashlib.sha256(native.data).hexdigest(),
                             f"Embedded OLE Stream {stream_name}")
-        stream_desc = f"{stream_name} ({native.filename}):\n\tFilename: {native.src_path}\n\t" \
-                        f"Data Length: {native.native_data_size}"
+        stream_desc = f"{stream_name} ({native.filename}):\n\tFilepath: {native.src_path}" \
+                      f"\n\tTemp path: {native.temp_path}\n\tData Length: {native.native_data_size}"
         streams_section.add_line(stream_desc)
-
+        # Tag Ole10Native header file labels
+        streams_section.add_tag('file.name.extracted', native.filename)
+        streams_section.add_tag('file.name.extracted', native.src_path)
+        streams_section.add_tag('file.name.extracted', native.temp_path)
+        streams_section.heuristic.increment_frequency()
+        if find_pe_files(native.data):
+            streams_section.heuristic.add_signature_id('embedded_pe_file')
         # handle embedded native macros
         if native.filename.endswith(".vbs") or \
                 native.temp_path.endswith(".vbs") or \
@@ -698,7 +709,7 @@ class Oletools(ServiceBase):
         if suspicious:
             streams_section.add_subsection(sus_sec)
 
-        return suspicious
+        return True
 
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
         """Parses powerpoint stream data and reports on suspicious characteristics.

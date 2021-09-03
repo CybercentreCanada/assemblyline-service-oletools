@@ -210,6 +210,14 @@ heuristics:
     filetype: document/office
     description: Error parsing ExOleObjStg stream
 
+  - heur_id: 29
+    name: Ole10Native stream
+    score: 0
+    signature_score_map:
+      embedded_pe_file: 1000
+    filetype: document/office
+    description: Data embedded in a OLE file using the Ole10Native stream structure
+
   - heur_id: 30
     name: Suspicious strings or functions
     score: 50
