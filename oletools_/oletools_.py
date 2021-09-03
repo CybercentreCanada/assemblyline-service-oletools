@@ -1341,9 +1341,9 @@ class Oletools(ServiceBase):
                 for tag in tags:
                     network_section.add_tag(tag[0], tag[1])
 
-            return (vba_scanner.autoexec_keywords
-                    or vba_scanner.suspicious_keywords
-                    or freq < network_section.heuristic.frequency)
+            return bool(vba_scanner.autoexec_keywords
+                        or vba_scanner.suspicious_keywords
+                        or freq < network_section.heuristic.frequency)
 
         except Exception:
             self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {traceback.format_exc()}")
@@ -1368,9 +1368,9 @@ class Oletools(ServiceBase):
 
         passwords = re.findall('PasswordDocument:="([^"]+)"', combined)
         if 'passwords' in self.request.temp_submission_data:
-            self.request.temp_submission_data['passwords'] = passwords
-        else:
             self.request.temp_submission_data['passwords'].extend(passwords)
+        else:
+            self.request.temp_submission_data['passwords'] = passwords
         rawr_combined = mraptor.MacroRaptor(combined)
         rawr_combined.scan()
         return rawr_combined.suspicious, rawr_combined.matches
