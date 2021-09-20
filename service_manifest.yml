@@ -31,16 +31,28 @@ heuristics:
     name: External Link
     score: 0
     signature_score_map:
+      external_link_ip: 500
+      # relationship types
       attachedtemplate: 500
-      subdocument: 500
+      externallink: 500
+      externallinkpath: 500
+      externalreference: 500
       frame: 500
       hyperlink: 500
-      external_link_ip: 500
+      subdocument: 500
+      officedocument: 500
+      oleobject: 500
+      package: 500
+      slideupdateurl: 500
+      slidemaster: 500
+      slide: 500
+      slideupdateinfo: 500
+      subdocument: 500
+      worksheet: 500
     filetype: document/office
     description: >-
       XML relationship with external link as the target.
-      External attached templates, subdocuments, and frames
-      can all be used for malicious purposes.
+      Many relationship types can be used to link to malicious files.
 
   - heur_id: 2
     name: Multi-embedded documents
