@@ -262,16 +262,19 @@ class Oletools(ServiceBase):
             section = ResultSection("OleID indicators", heuristic=Heuristic(34))
 
             for indicator in indicators:
-                # ignore these OleID indicators, they aren't all that useful
+                # Ignore these OleID indicators, they aren't all that useful.
                 if indicator.id in ("ole_format", "has_suminfo",):
-                    continue
+                     continue
 
-                if indicator.value is True:
-                    if indicator.id not in ("word", "excel", "ppt", "visio"):
-                        # good to know that the file types have been detected, but not a score-able offense
+                # Skip negative results.
+                if indicator.risk != 'none':
+                    # List info indicators but don't score them.
+                    if indicator.risk == 'info':
+                        section.add_line(f'{indicator.name}: {indicator.value}'
+                                       + (f', {indicator.description}' if indicator.description else ''))
+                    else:
                         section.heuristic.add_signature_id(indicator.name)
-                    section.add_line(indicator.name + ": " + indicator.description
-                                     if indicator.description else indicator.name)
+                        section.add_line(f'{indicator.name} ({indicator.value}): {indicator.description}')
 
             if section.body:
                 self.ole_result.add_section(section)
