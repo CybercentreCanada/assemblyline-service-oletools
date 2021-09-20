@@ -23,6 +23,8 @@ from itertools import chain
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
 
 import magic
+from lxml import etree
+
 import olefile
 import oletools.rtfobj as rtfparse
 from oletools import mraptor, msodde, oleobj
@@ -44,7 +46,6 @@ from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
 from oletools_.cleaver import OLEDeepParser
 from oletools_.pcodedmp import process_doc
 from oletools_.stream_parser import PowerPointDoc
-
 
 class Oletools(ServiceBase):
     # OLEtools minimum version supported
@@ -1405,13 +1406,21 @@ class Oletools(ServiceBase):
                     except zipfile.BadZipFile:
                         continue
 
-                    data = contents
+                    try:
+                        # Deobfuscate xml using parser
+                        parsed = etree.XML(contents, None)
+                        has_external = self._find_external_links(parsed)
+                        data = etree.tostring(parsed)
+                    except Exception:
+                        # Use raw if parsing fails
+                        data = contents
+                        has_external = re.findall(self.EXTERNAL_LINK_RE, data)
+
                     if len(data) > self.MAX_XML_SCAN_CHARS:
                         data = data[:self.MAX_XML_SCAN_CHARS]
                         xml_big_res.add_line(f'{f}')
                         xml_big_res.heuristic.increment_frequency()
 
-                    has_external = re.findall(self.EXTERNAL_LINK_RE, data) # Extract all files with external targets
                     external_links.extend(has_external)
                     has_dde = re.search(rb'ddeLink', data)  # Extract all files with dde links
                     has_script = re.search(self.JAVASCRIPT_RE, data)  # Extract all files with javascript
@@ -1466,6 +1475,16 @@ class Oletools(ServiceBase):
             self.ole_result.add_section(xml_ioc_res)
         if xml_b64_res.subsections:
             self.ole_result.add_section(xml_b64_res)
+
+    @staticmethod
+    def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
+        return [
+            (relationship.attrib['Type'].rsplit('/',1)[1], relationship)
+            for relationship in parsed.findall('Relationship')
+                if 'TargetMode' in relationship.attrib
+                    and 'Type' in relationship.attrib
+                    and relationship.attrib['TargetMode'] == 'External'
+        ]
 
 #-- Helper methods --
 
