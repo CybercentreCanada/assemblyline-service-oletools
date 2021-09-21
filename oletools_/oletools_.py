@@ -29,7 +29,7 @@ import olefile
 import oletools.rtfobj as rtfparse
 from oletools import mraptor, msodde, oleobj
 from oletools.common import clsid
-from oletools.oleobj import OleNativeStream
+from oletools.oleobj import OleNativeStream, OOXML_RELATIONSHIP_TAG
 from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser, VBA_Scanner
 from oletools.thirdparty.xxxswf import xxxswf
@@ -1480,7 +1480,7 @@ class Oletools(ServiceBase):
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/',1)[1], relationship)
-            for relationship in parsed.findall('Relationship')
+            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
                 if 'TargetMode' in relationship.attrib
                     and 'Type' in relationship.attrib
                     and relationship.attrib['TargetMode'] == 'External'
