@@ -32,6 +32,7 @@ heuristics:
     score: 0
     signature_score_map:
       external_link_ip: 500
+      mhtml_handler: 500
       # relationship types
       attachedtemplate: 500
       externallink: 500
