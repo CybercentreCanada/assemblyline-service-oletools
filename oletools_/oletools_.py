@@ -1479,7 +1479,7 @@ class Oletools(ServiceBase):
     @staticmethod
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
-            (relationship.attrib['Type'].rsplit('/',1)[1], relationship.attrib['Target'])
+            (relationship.attrib['Type'].rsplit('/',1)[1].encode(), relationship.attrib['Target'].encode())
             for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
                 if 'Target' in relationship.attrib
                     and 'Type' in relationship.attrib
