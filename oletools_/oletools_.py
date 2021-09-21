@@ -1450,16 +1450,15 @@ class Oletools(ServiceBase):
 
         for ty, link in set(external_links):
             link_type = safe_str(ty)
-            puri, duri, tag_list = self.parse_uri(link)
-            if puri:
-                xml_target_res.add_line(f'{link_type} link: {safe_str(duri)}')
-                xml_target_res.heuristic.add_signature_id(link_type.lower())
-                if link_type.lower() == 'attachedtemplate':
-                    xml_target_res.heuristic.add_attack_id('T1221')
-            for tag_type, tag in tag_list:
-                if tag_type == 'network.static.ip':
-                    xml_target_res.heuristic.add_signature_id('external_link_ip')
-                xml_target_res.add_tag(tag_type, tag)
+            xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
+            xml_target_res.heuristic.add_signature_id(link_type.lower())
+            if link_type.lower() == 'attachedtemplate':
+                xml_target_res.heuristic.add_attack_id('T1221')
+            if link.startswith(b'mhtml:'):
+                xml_target_res.add_tag('attribution.exploit', 'CVE-2021-40444')
+                xml_target_res.heuristic.add_signature_id('mhtml_handler')
+            if re.search(self.IP_RE, link):
+                xml_target_res.heuristic.add_signature_id('external_link_ip')
 
         if external_links:
             self.ole_result.add_section(xml_target_res)
