@@ -21,6 +21,7 @@ import zlib
 from collections import defaultdict
 from itertools import chain
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
+from urllib.parse import urlparse
 
 import magic
 from lxml import etree
@@ -1387,7 +1388,7 @@ class Oletools(ServiceBase):
         Args:
             path: Path to original sample.
         """
-        xml_target_res = ResultSection("Attached External Template Targets in XML", heuristic=Heuristic(1))
+        xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
@@ -1454,11 +1455,17 @@ class Oletools(ServiceBase):
             xml_target_res.heuristic.add_signature_id(link_type.lower())
             if link_type.lower() == 'attachedtemplate':
                 xml_target_res.heuristic.add_attack_id('T1221')
+            if re.search(self.IP_RE, link):
+                xml_target_res.heuristic.add_signature_id('external_link_ip')
             if link.startswith(b'mhtml:'):
                 xml_target_res.add_tag('attribution.exploit', 'CVE-2021-40444')
                 xml_target_res.heuristic.add_signature_id('mhtml_handler')
-            if re.search(self.IP_RE, link):
-                xml_target_res.heuristic.add_signature_id('external_link_ip')
+                # Get last link
+                link = link.rsplit(b'!')[-1]
+                if link[:6] in (b'x-usc:', b'mhtml:'):
+                    link = link[6:]
+            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(urlparse(link).path)[1]):
+                xml_target_res.heuristic.add_signature_id('link_to_executable')
 
         if external_links:
             self.ole_result.add_section(xml_target_res)
