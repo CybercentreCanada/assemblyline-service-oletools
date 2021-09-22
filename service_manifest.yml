@@ -39,8 +39,7 @@ heuristics:
       externallinkpath: 500
       externalreference: 500
       frame: 500
-      hyperlink: 500
-      subdocument: 500
+      hyperlink: 0
       officedocument: 500
       oleobject: 500
       package: 500
