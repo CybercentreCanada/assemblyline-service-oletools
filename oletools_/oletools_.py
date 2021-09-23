@@ -1452,9 +1452,6 @@ class Oletools(ServiceBase):
         for ty, link in set(external_links):
             link_type = safe_str(ty)
             xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
-            xml_target_res.heuristic.add_signature_id(link_type.lower())
-            if link_type.lower() == 'attachedtemplate':
-                xml_target_res.heuristic.add_attack_id('T1221')
             if re.search(self.IP_RE, link):
                 xml_target_res.heuristic.add_signature_id('external_link_ip')
             if link.startswith(b'mhtml:'):
@@ -1464,8 +1461,14 @@ class Oletools(ServiceBase):
                 link = link.rsplit(b'!')[-1]
                 if link[:6] in (b'x-usc:', b'mhtml:'):
                     link = link[6:]
-            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(urlparse(link).path)[1]):
+            url = urlparse(link)
+            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]):
                 xml_target_res.heuristic.add_signature_id('link_to_executable')
+            if url.scheme != b'file' and not any(pattern in link for pattern in self.pat_safelist):
+                xml_target_res.heuristic.add_signature_id(link_type.lower())
+                if link_type.lower() == 'attachedtemplate':
+                    xml_target_res.heuristic.add_attack_id('T1221')
+
 
         if external_links:
             self.ole_result.add_section(xml_target_res)
