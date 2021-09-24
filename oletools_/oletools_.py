@@ -1457,17 +1457,16 @@ class Oletools(ServiceBase):
             if link.startswith(b'mhtml:'):
                 xml_target_res.add_tag('attribution.exploit', 'CVE-2021-40444')
                 xml_target_res.heuristic.add_signature_id('mhtml_handler')
-                # Get last link
-                link = link.rsplit(b'!')[-1]
-                if link[:6] in (b'x-usc:', b'mhtml:'):
-                    link = link[6:]
+                # Get last url link
+                link = link.rsplit(b'!x-usc:')[-1]
             url = urlparse(link)
-            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]):
-                xml_target_res.heuristic.add_signature_id('link_to_executable')
-            if url.scheme != b'file' and not any(pattern in link for pattern in self.pat_safelist):
-                xml_target_res.heuristic.add_signature_id(link_type.lower())
-                if link_type.lower() == 'attachedtemplate':
-                    xml_target_res.heuristic.add_attack_id('T1221')
+            if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
+                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]):
+                    xml_target_res.heuristic.add_signature_id('link_to_executable')
+                if url.scheme != b'file':
+                    xml_target_res.heuristic.add_signature_id(link_type.lower())
+                    if link_type.lower() == 'attachedtemplate':
+                        xml_target_res.heuristic.add_attack_id('T1221')
 
 
         if external_links:
