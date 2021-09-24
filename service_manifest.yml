@@ -28,10 +28,10 @@ config:
 
 heuristics:
   - heur_id: 1
-    name: External Link
+    name: External Relationship
     score: 0
     signature_score_map:
-      external_link_ip: 500
+      external_relationship_ip: 500
       link_to_executable: 500
       mhtml_handler: 500
       # relationship types
