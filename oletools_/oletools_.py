@@ -1461,7 +1461,8 @@ class Oletools(ServiceBase):
                 link = link.rsplit(b'!x-usc:')[-1]
             url = urlparse(link)
             if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
-                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]):
+                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
+                        and not os.path.basename(url.path) in self.tag_safelist:
                     xml_target_res.heuristic.add_signature_id('link_to_executable')
                 if url.scheme != b'file':
                     xml_target_res.heuristic.add_signature_id(link_type.lower())
