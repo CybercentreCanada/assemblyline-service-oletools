@@ -472,7 +472,6 @@ class Oletools(ServiceBase):
             if direntry is None or direntry.entry_type != olefile.STGTY_STREAM:
                 continue
             stream = safe_str(direntry.name)
-            print(stream)
             self.log.debug(f"Extracting stream {stream} for sample {self.sha}")
 
             # noinspection PyProtectedMember
