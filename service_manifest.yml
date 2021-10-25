@@ -37,7 +37,7 @@ heuristics:
       # relationship types
       attachedtemplate: 500
       externallink: 500
-      externallinkpath: 500
+      externallinkpath: 0
       externalreference: 500
       frame: 500
       hyperlink: 0
