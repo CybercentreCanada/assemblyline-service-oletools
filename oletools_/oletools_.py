@@ -45,7 +45,6 @@ from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FO
 from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
-from oletools_.pcodedmp import process_doc
 from oletools_.stream_parser import PowerPointDoc
 
 class Oletools(ServiceBase):
@@ -1023,7 +1022,7 @@ class Oletools(ServiceBase):
                 if vba_parser.detect_vba_macros():
                     # noinspection PyBroadException
                     try:
-                        for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
+                        for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_all_macros():
                             if vba_code.strip() == '':
                                 continue
                             vba_code_sha256 = hashlib.sha256(str(vba_code).encode()).hexdigest()
@@ -1043,14 +1042,17 @@ class Oletools(ServiceBase):
                 section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
                 self.ole_result.add_section(section)
 
-            # Analyze PCode
+            # Get P-code
             try:
                 if vba_parser:
                     if vba_parser.detect_vba_stomping():
                         self.vba_stomping = True
-                    pcode_res = process_doc(vba_parser)
-                    if pcode_res:
-                        self.pcode.append(pcode_res)
+                    # type checker is confused because the return is bytes in python2
+                    pcode: str = vba_parser.extract_pcode()
+                    # remove header
+                    pcode_l = pcode.split('\n',2)
+                    if len(pcode_l) == 3:
+                        self.pcode.append(pcode_l[2])
             except Exception as e:
                 self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
 
