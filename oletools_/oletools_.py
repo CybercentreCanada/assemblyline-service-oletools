@@ -1022,7 +1022,9 @@ class Oletools(ServiceBase):
                 if vba_parser.detect_vba_macros():
                     # noinspection PyBroadException
                     try:
-                        for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_all_macros():
+                        for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
+                            if stream_path == 'VBA P-code':
+                                continue
                             if vba_code.strip() == '':
                                 continue
                             vba_code_sha256 = hashlib.sha256(str(vba_code).encode()).hexdigest()
