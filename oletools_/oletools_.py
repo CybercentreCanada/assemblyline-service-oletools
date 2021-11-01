@@ -540,7 +540,7 @@ class Oletools(ServiceBase):
                     for tag_type, tags in iocs.items():
                         sus_sec.add_line(
                             f"    Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                        sus_sec.add_line('    ' + b'  |  '.join(tags).decode())
+                        sus_sec.add_line('    ' + safe_str(b'  |  '.join(tags)))
                         for tag in tags:
                             sus_sec.add_tag(tag_type, tag)
                 ole_b64_res, _ = self._check_for_b64(data, stream)
