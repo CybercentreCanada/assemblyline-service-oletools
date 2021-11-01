@@ -690,7 +690,7 @@ class Oletools(ServiceBase):
                 native.temp_path.endswith(".vbs") or \
                 native.src_path.endswith(".vbs"):
 
-            self.macros.append(native.data.decode(errors='ignore'))
+            self.macros.append(safe_str(native.data))
         else:
             # Look for suspicious strings
             for pattern, desc in self.SUSPICIOUS_STRINGS:
