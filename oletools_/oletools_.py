@@ -647,7 +647,7 @@ class Oletools(ServiceBase):
         if 'CVE' in clsid_desc:
             for cve in re.findall(self.CVE_RE, clsid_desc):
                 clsid_sec.add_tag('attribution.exploit', cve)
-            if 'Known' in clsid_desc:
+            if 'Known' in clsid_desc or 'exploit' in clsid_desc:
                 clsid_sec.set_heuristic(52)
         clsid_sec_json_body[ole_clsid] = clsid_desc
         clsid_sec.body = json.dumps(clsid_sec_json_body)
