@@ -444,7 +444,7 @@ class Oletools(ServiceBase):
         if meta_sec is not None:
             streams_section.add_subsection(meta_sec)
 
-        clsid_sec = self._process_ole_clsids(ole)
+        clsid_sec = self._process_ole_clsid(ole)
         if clsid_sec is not None:
             streams_section.add_subsection(clsid_sec)
 
@@ -626,7 +626,7 @@ class Oletools(ServiceBase):
             return meta_sec
         return None
 
-    def _process_ole_clsids(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
+    def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
         """ Create section for ole clsids
 
         Args:
@@ -635,23 +635,23 @@ class Oletools(ServiceBase):
             A result section with the clsid of the file if it can be identified
         """
         clsid_sec_json_body = dict()
-        clsid_sec = ResultSection("CLSIDs:")
+        clsid_sec = ResultSection("CLSID:")
+        if not ole.root or not ole.root.clsid:
+            return None
         ole_clsid = ole.root.clsid
-        if ole_clsid is not None and ole_clsid not in ['"', "'", ""] and ole_clsid not in self.extracted_clsids:
-            self.extracted_clsids.add(ole_clsid)
-            clsid_sec.add_tag('file.ole.clsid', f"{safe_str(ole_clsid)}")
-            clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
-            mal_msg = ""
-            if 'CVE' in clsid_desc:
-                for cve in re.findall(self.CVE_RE, clsid_desc):
-                    clsid_sec.add_tag('attribution.exploit', cve)
+        if ole_clsid is None or ole_clsid in ['"', "'", ""] or ole_clsid in self.extracted_clsids:
+            return None
+        self.extracted_clsids.add(ole_clsid)
+        clsid_sec.add_tag('file.ole.clsid', f"{safe_str(ole_clsid)}")
+        clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
+        if 'CVE' in clsid_desc:
+            for cve in re.findall(self.CVE_RE, clsid_desc):
+                clsid_sec.add_tag('attribution.exploit', cve)
+            if 'Known' in clsid_desc or 'exploit' in clsid_desc:
                 clsid_sec.set_heuristic(52)
-                mal_msg = " FLAGGED MALICIOUS"
-            clsid_sec_json_body[ole_clsid] = f"{clsid_desc} {mal_msg}"
-        if clsid_sec_json_body:
-            clsid_sec.body = json.dumps(clsid_sec_json_body)
-            return clsid_sec
-        return None
+        clsid_sec_json_body[ole_clsid] = clsid_desc
+        clsid_sec.body = json.dumps(clsid_sec_json_body)
+        return clsid_sec
 
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
         """
