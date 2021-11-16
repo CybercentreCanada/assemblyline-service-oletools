@@ -305,8 +305,6 @@ class Oletools(ServiceBase):
         # Unicode and other errors common for msodde when parsing samples, do not log under warning
         except Exception as e:
             self.log.debug(f"msodde parsing for sample {self.sha} failed: {str(e)}")
-            section = ResultSection("msodde : Error parsing document")
-            self.ole_result.add_section(section)
 
     def _process_dde_links(self, links_text: str, ole_result: Result) -> None:
         """Examine DDE links and report on malicious characteristics.
