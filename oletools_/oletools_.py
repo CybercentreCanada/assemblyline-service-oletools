@@ -78,7 +78,7 @@ class Oletools(ServiceBase):
     DDE_SUS_KEYWORDS = ('powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
                                'bitstransfer', 'cscript.exe', 'wscript.exe')
     # Extensions of interesting files
-    FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EXE',
+    FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EPS', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
                          b'.SCR', b'.SCT', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
 
@@ -553,7 +553,7 @@ class Oletools(ServiceBase):
                     if self.request.deep_scan:
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
                     self._extract_file(data, f'{stm_sha}.ole_stream', f"Embedded OLE Stream {stream}")
-                    if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/")):
+                    if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/") or stream.endswith(".eps")):
                         decompress_macros.append(data)
 
             except Exception:
