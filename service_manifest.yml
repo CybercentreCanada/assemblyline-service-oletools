@@ -19,8 +19,10 @@ enabled: true
 is_external: false
 licence_count: 0
 
+uses_temp_submission_data: true
+
 config:
-  macro_score_max_file_size: 5242880  # 5 * 1024**2
+  macro_score_max_file_size: 5242880 # 5 * 1024**2
   macro_score_min_alert: 0.6
   metadata_size_to_extract: 500
   ioc_pattern_safelist: []
@@ -248,7 +250,7 @@ heuristics:
   - heur_id: 33
     name: VBA Macro
     score: 0
-    filetype: '*'
+    filetype: "*"
     description: Contains Embedded VBA Macro(s)
 
   - heur_id: 34
@@ -260,19 +262,19 @@ heuristics:
   - heur_id: 40
     name: Root[0] Does Not Exist
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: Root[0] does not exist
 
   - heur_id: 41
     name: Invalid CompObj type
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: Check if the name is CompObj and the type of the file is not stream type.
 
   - heur_id: 42
     name: Missing Field
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when an error is thrown when Hachoir lib could not
       get a field from the file. This file is either corrupted, patched or
@@ -281,7 +283,7 @@ heuristics:
   - heur_id: 43
     name: Cannot Find Property of Type
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when a parser error is thrown when Hachoir lib could
       not parse a property from the file. This file is either corrupted,
@@ -290,7 +292,7 @@ heuristics:
   - heur_id: 44
     name: Overflowing Field
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when a parser error is thrown when Hachoir lib could
       not read a field from the file since it it overflowing. This file is
@@ -299,7 +301,7 @@ heuristics:
   - heur_id: 45
     name: Could not Access Field
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when a parser error is thrown when Hachoir lib could
       not access a field from the file. This file is either corrupted,
@@ -308,7 +310,7 @@ heuristics:
   - heur_id: 46
     name: FAT Chain - Loop
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when a parser error is thrown when Hachoir lib found
       a loop when navigating through the file. It should be either BFAT or
@@ -318,7 +320,7 @@ heuristics:
   - heur_id: 47
     name: SFAT Invalid Block Index
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       This is caused when a parser error is thrown when Hachoir lib finds
       an invalid block index in the file. This file is either corrupted,
@@ -327,7 +329,7 @@ heuristics:
   - heur_id: 48
     name: OLE2 - Invalid endian value
     score: 50
-    filetype: '*'
+    filetype: "*"
     description: >-
       The stream endian field is not valid.  This file is either
       corrupted, patched or exploiting a vulnerability.
@@ -335,25 +337,25 @@ heuristics:
   - heur_id: 49
     name: Failure to Parse Whole File
     score: 10
-    filetype: '*'
+    filetype: "*"
     description: The Hachoir lib wasn't able to parse the whole file for some unknown reason.
 
   - heur_id: 50
     name: Suspicious properties
     score: 100
-    filetype: '*'
+    filetype: "*"
     description: Found properties with different IDs than storage, stream and root.
 
   - heur_id: 51
     name: Excel 4.0 Macro sheet
     score: 250
-    filetype: '*'
+    filetype: "*"
     description: Excel 4.0 macro sheets are depricated and can be used for detection avoidance.
 
   - heur_id: 52
     name: Known malicious CLSID
     score: 500
-    filetype: '*'
+    filetype: "*"
     description: CLSID that has been flagged as malicious
 
 docker_config:
