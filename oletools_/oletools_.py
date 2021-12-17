@@ -4,6 +4,8 @@ Oletools
 Assemblyline service using the oletools library to analyze OLE and OOXML files.
 """
 
+from __future__ import annotations
+
 import binascii
 import email
 import gzip
@@ -14,7 +16,6 @@ import os
 import re
 import struct
 import traceback
-import unicodedata
 import zipfile
 import zlib
 
@@ -39,6 +40,7 @@ from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.str_utils import safe_str
 from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.extractor.base64 import find_base64
 from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
@@ -541,7 +543,7 @@ class Oletools(ServiceBase):
                         sus_sec.add_line('    ' + safe_str(b'  |  '.join(tags)))
                         for tag in tags:
                             sus_sec.add_tag(tag_type, tag)
-                ole_b64_res, _ = self._check_for_b64(data, stream)
+                ole_b64_res = self._check_for_b64(data, stream)
                 if ole_b64_res:
                     ole_b64_res.set_heuristic(10)
                     extract_stream = True
@@ -1436,13 +1438,13 @@ class Oletools(ServiceBase):
                                 ioc_files[tag_type+safe_str(tag)].append(f)
                                 xml_ioc_res.add_tag(tag_type, tag)
 
-                    f_b64res, extract_b64 = self._check_for_b64(data, f)
+                    f_b64res = self._check_for_b64(data, f)
                     if f_b64res:
                         f_b64res.set_heuristic(8)
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or extract_b64 or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or f_b64res or extract_regex) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(contents).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             self._extract_file(contents, xml_sha256, f"zipped file {f} contents")
@@ -1585,115 +1587,71 @@ class Oletools(ServiceBase):
 
 
     # noinspection PyBroadException
-    def _check_for_b64(self, data: bytes, dataname: str) -> Tuple[Optional[ResultSection], bool]:
+    def _check_for_b64(self, data: bytes, dataname: str) -> Optional[ResultSection]:
         """Search and decode base64 strings in sample data.
 
         Args:
             data: Data to be searched.
-            dataname: Name of data to place in AL result header.
+            dataname: The name (file / section) the data is from
 
         Returns:
-            ResultSection with base64 results and whether results were found.
+            ResultSection with base64 results if results were found.
         """
-        extract = False
-        b64results = {}
-        b64_extracted = set()
-        b64_res: Optional[ResultSection] = None
-        # Base64
-        b64_matches = set()
+        b64_res = ResultSection(f"Base64 in {dataname}:")
         b64_ascii_content = []
-        # '<[\x00]  [\x00]' Character found before some line breaks?? TODO: investigate sample and oletools
-        for b64_match in re.findall(self.BASE64_RE, re.sub(b'\x3C\x00\x20\x20\x00', b'', data)):
-            b64 = b64_match.replace(b'\n', b'').replace(b'\r', b'').replace(b' ', b'').replace(b'<', b'')
-            if len(set(b64)) > 6:
-                if len(b64) >= 16 and len(b64) % 4 == 0:
-                    b64_matches.add(b64)
-        """
-        Using some selected code from 'base64dump.py' by Didier Stevens@https://DidierStevens.com
-        """
-        for b64_string in b64_matches:
-            try:
-                base64data = binascii.a2b_base64(b64_string)
-                sha256hash = hashlib.sha256(base64data).hexdigest()
-                if sha256hash in b64_extracted:
+
+        seen_base64 = set()
+        for base64data, start, end in find_base64(data):
+            if base64data in seen_base64 or not self.MAX_BASE64_CHARS > len(base64data) > 30:
+                continue
+            seen_base64.add(base64data)
+
+            sha256hash = hashlib.sha256(base64data).hexdigest()
+            dump_section: Optional[ResultSection] = None
+            if len(base64data) > self.MAX_STRINGDUMP_CHARS:
+                # Check for embedded files of interest
+                m = magic.Magic(mime=True)
+                ftype = m.from_buffer(base64data)
+                if 'octet-stream' not in ftype:
                     continue
-                # Search for embedded files of interest
-                if self.MAX_STRINGDUMP_CHARS < len(base64data) < self.MAX_BASE64_CHARS:
-                    m = magic.Magic(mime=True)
-                    ftype = m.from_buffer(base64data)
-                    if 'octet-stream' not in ftype:
-                        self._extract_file(base64data,
-                                          f"{sha256hash[0:10]}_b64_decoded",
-                                          "Extracted b64 file during OLETools analysis")
-                        b64results[sha256hash] = [len(b64_string), b64_string[0:50],
-                                                  f"[Possible base64 file contents in {dataname}. "
-                                                  "See extracted files.]", "", "", []]
-                        extract = True
-                        b64_extracted.add(sha256hash)
-                        break
-                # Dump the rest in results and its own file
-                if len(base64data) > 30:
-                    if all(c < 128 for c in base64data):
-                        check_utf16 = base64data.decode('utf-16', 'ignore').encode('ascii', 'ignore')
-                        if check_utf16 != b"":
-                            asc_b64 = check_utf16
-                        else:
-                            # Filter printable characters then put in results
-                            asc_b64 = bytes(i for i in base64data if 31 < i < 127)
-                        # If data has less then 7 uniq chars then ignore
-                        if len(set(asc_b64)) > 6 and len(re.sub(rb"\s", b"", asc_b64)) > 14:
-                            tags = []
-                            st_value = self.patterns.ioc_match(asc_b64, bogon_ip=True)
-                            if len(st_value) > 0:
-                                for ty, val in st_value.items():
-                                    if val == "":
-                                        asc_asc = unicodedata.normalize('NFKC', val) \
-                                            .encode('ascii', 'ignore')
-                                        tags.append((ty, asc_asc))
-                                    else:
-                                        ulis = list(set(val))
-                                        for v in ulis:
-                                            tags.append((ty, v))
-                            extract = True
-                            b64_ascii_content.append(asc_b64)
-                            b64results[sha256hash] = [len(b64_string), b64_string[0:50], asc_b64,
-                                                      base64data, dataname, tags]
-            except Exception:
-                pass
+                self._extract_file(base64data,
+                                    f"{sha256hash[0:10]}_b64_decoded",
+                                    "Extracted b64 file during OLETools analysis")
+            else:
+                # Display ascii content
+                check_utf16 = base64data.decode('utf-16', 'ignore').encode('ascii', 'ignore')
+                if check_utf16 != b'':
+                    asc_b64 = check_utf16
+                # Filter printable characters then put in results
+                asc_b64 = bytes(i for i in base64data if 31 < i < 127)
+                # If data has less then 7 uniq chars then ignore
+                if len(set(asc_b64)) <= 6 or len(re.sub(rb'\s', b'', asc_b64)) <= 14:
+                    continue
+                dump_section = ResultSection("DECODED ASCII DUMP:",
+                                             body = safe_str(asc_b64),
+                                             body_format=BODY_FORMAT.MEMORY_DUMP)
+                b64_ascii_content.append(asc_b64)
 
-        b64index = 0
-        if b64results:
-            b64_res = ResultSection(f"Base64 in {dataname}:")
-        for b64k, b64l in b64results.items():
-            b64index += 1
-            sub_b64_res = ResultSection(f"Result {b64index}", parent=b64_res)
-            for tag in b64l[5]:
-                sub_b64_res.add_tag(tag[0], tag[1])
+            sub_b64_res = ResultSection(f"Result {sha256hash}", parent=b64_res)
+            sub_b64_res.add_line(f'BASE64 TEXT SIZE: {end-start}')
+            sub_b64_res.add_line(f'BASE64 SAMPLE TEXT: {data[start:min(start+50, end)]}[........]')
+            sub_b64_res.add_line(f'DECODED SHA256: {sha256hash}')
+            if dump_section:
+                sub_b64_res.add_subsection(dump_section)
+            else:
+                sub_b64_res.add_line(f"DECODED_FILE_DUMP: Possible base64 file contents were extracted. "
+                                     f"See extracted file {sha256hash[0:10]}_b64_decoded")
+            st_value = self.patterns.ioc_match(base64data, bogon_ip=True)
+            for ty, val in st_value.items():
+                for v in val:
+                    sub_b64_res.add_tag(ty, v)
 
-            sub_b64_res.add_line(f'BASE64 TEXT SIZE: {b64l[0]}')
-            sub_b64_res.add_line(f'BASE64 SAMPLE TEXT: {b64l[1]}[........]')
-            sub_b64_res.add_line(f'DECODED SHA256: {b64k}')
-            subb_b64_res = (ResultSection("DECODED ASCII DUMP:",
-                                          body_format=BODY_FORMAT.MEMORY_DUMP,
-                                          parent=sub_b64_res))
-            subb_b64_res.add_line(b64l[2])
-            if b64l[3] != "":
-                st_value = self.patterns.ioc_match(b64l[3], bogon_ip=True)
-                if len(st_value) > 0:
-                    for ty, val in st_value.items():
-                        if val == "":
-                            asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                            b64_res.add_tag(ty, asc_asc)
-                        else:
-                            ulis = list(set(val))
-                            for v in ulis:
-                                b64_res.add_tag(ty, v)
-
-        if len(b64_ascii_content) > 0:
+        if b64_ascii_content:
             all_b64 = b"\n".join(b64_ascii_content)
             b64_all_sha256 = hashlib.sha256(all_b64).hexdigest()
             self._extract_file(all_b64, f"b64_{b64_all_sha256}.txt", f"b64 for {dataname}")
-        return b64_res, extract
+
+        return b64_res if b64_res.subsections else None
 
     # noinspection PyUnusedLocal
     def parse_uri(self, check_uri: bytes) -> Tuple[bool, bytes, List[Tuple[str, bytes]]]:
