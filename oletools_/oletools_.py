@@ -1458,8 +1458,7 @@ class Oletools(ServiceBase):
             if re.search(self.IP_RE, link):
                 xml_target_res.heuristic.add_signature_id('external_link_ip')
             if link.startswith(b'mhtml:'):
-                xml_target_res.add_tag('attribution.exploit', 'CVE-2021-40444')
-                xml_target_res.heuristic.add_signature_id('mhtml_handler')
+                xml_target_res.heuristic.add_signature_id('mhtml_link')
                 # Get last url link
                 link = link.rsplit(b'!x-usc:')[-1]
             url = urlparse(link)
