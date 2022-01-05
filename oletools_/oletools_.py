@@ -425,7 +425,7 @@ class Oletools(ServiceBase):
         Args:
             file_name: Path to original sample.
             result: Top level result for adding stream result sections.
-            extract_all: Whether to extract all streams (default False).
+            extract_all: Whether to extract all streams.
         """
         try:
             # Streams in the submitted ole file
@@ -457,11 +457,12 @@ class Oletools(ServiceBase):
         """Parses OLE data and reports on metadata and suspicious properties.
 
         Args:
-            name: ole document name
-            ole: path to ole file
+            name: The ole document name.
+            ole_file: The path to the ole file.
+            extract_all: Whether to extract all streams.
 
         Returns:
-            A result section if there are results to be reported
+            A result section if there are results to be reported.
         """
         if not olefile.isOleFile(ole_file):
             return None
@@ -1450,7 +1451,7 @@ class Oletools(ServiceBase):
         Args:
             path: Path to original sample.
             result: Result sections are added to this result.
-            include_fpos: Whether to include possible false positives in results (default false).
+            include_fpos: Whether to include possible false positives in results.
         """
         xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
         assert xml_target_res.heuristic # helps typecheckers
@@ -1596,7 +1597,7 @@ class Oletools(ServiceBase):
 
         Args:
             data: The data to be searched.
-            include_fpos: Whether to include possible false positives (default False)
+            include_fpos: Whether to include possible false positives.
 
         Returns:
             Dictionary of strings found by type and whether entity should be extracted (boolean).
