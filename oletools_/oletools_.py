@@ -171,7 +171,6 @@ class Oletools(ServiceBase):
         self.extracted_clsids: Set[str] = set()
         self.excess_extracted: int = 0
         self.vba_stomping = False
-        self.scored_macro_uri = False
 
 
     def start(self) -> None:
@@ -214,7 +213,6 @@ class Oletools(ServiceBase):
         request.result = Result()
         self.request = request
         self.sha = request.sha256
-        self.scored_macro_uri = False
         self.extracted_clsids = set()
 
         self.macros = []
@@ -744,7 +742,7 @@ class Oletools(ServiceBase):
                     if obj.error is not None:
                         streams_section.add_line("\tError parsing ExOleObjStg stream. This is suspicious.")
                         if streams_section.heuristic:
-                            streams_section.heurstic.increment_frequency()
+                            streams_section.heuristic.increment_frequency()
                         else:
                             streams_section.set_heuristic(28)
                         continue
@@ -1037,8 +1035,7 @@ class Oletools(ServiceBase):
             try:
                 if vba_parser.detect_vba_stomping():
                     self.vba_stomping = True
-                # type checker is confused because the return is bytes in python2
-                pcode: str = vba_parser.extract_pcode()
+                pcode: str = vba_parser.extract_pcode() # type: ignore
                 # remove header
                 pcode_l = pcode.split('\n',2)
                 if len(pcode_l) == 3:
@@ -1054,6 +1051,7 @@ class Oletools(ServiceBase):
                         for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
                             if stream_path == 'VBA P-code':
                                 continue
+                            assert isinstance(vba_code, str)
                             if vba_code.strip() == '':
                                 continue
                             vba_code_sha256 = hashlib.sha256(str(vba_code).encode()).hexdigest()
