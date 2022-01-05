@@ -50,12 +50,17 @@ from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
 
-def _add_section(result: Result, result_section: Optional[ResultSection]):
-    """ Helper to add optional ResultSections """
+def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
+    """ Helper to add optional ResultSections to Results """
     # If python 3.7 support is dropped this can be replaced
     # by using := to get a one-liner instead
     if result_section:
         result.add_section(result_section)
+
+def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSection]) -> None:
+    """ Helper to add optional ResultSections to ResultSections """
+    if subsection:
+        result_section.add_subsection(subsection)
 
 
 class Oletools(ServiceBase):
@@ -235,7 +240,7 @@ class Oletools(ServiceBase):
             _add_section(request.result, self._check_for_dde_links(path))
             if request.task.file_type == 'document/office/mhtml':
                 _add_section(request.result, self._rip_mhtml(file_contents))
-            self._extract_streams(path, request.result)
+            self._extract_streams(path, request.result, request.deep_scan)
             _add_section(request.result, self._extract_rtf(file_contents))
             _add_section(request.result, self._check_for_macros(path, request.sha256))
             _add_section(request.result, self._create_macro_sections(request.sha256))
@@ -400,7 +405,8 @@ class Oletools(ServiceBase):
 #-- Ole Streams --
 
     # noinspection PyBroadException
-    def _extract_streams(self, file_name: str, result: Result) -> None:
+    def _extract_streams(self, file_name: str, result: Result,
+                         extract_all: bool = False) -> None:
         """Extracts OLE streams and reports on metadata and suspicious properties.
 
         Args:
@@ -410,7 +416,7 @@ class Oletools(ServiceBase):
         try:
             # Streams in the submitted ole file
             with open(file_name, 'rb') as olef:
-                ole_res = self._process_ole_file(self.sha, olef)
+                ole_res = self._process_ole_file(self.sha, olef, extract_all)
             if ole_res is not None:
                 result.add_section(ole_res)
 
@@ -424,16 +430,15 @@ class Oletools(ServiceBase):
             with zipfile.ZipFile(file_name) as z:
                 for f_name in z.namelist():
                     with z.open(f_name) as f:
-                        ole_stream_res = self._process_ole_file(f_name, f)
-                        if ole_stream_res is not None:
-                            subdoc_res.add_subsection(ole_stream_res)
+                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all))
 
             if subdoc_res.heuristic or subdoc_res.subsections:
                 result.add_section(subdoc_res)
         except Exception:
             self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-    def _process_ole_file(self, name: str, ole_file: IO[bytes]) -> Optional[ResultSection]:
+    def _process_ole_file(self, name: str, ole_file: IO[bytes],
+                          extract_all: bool = False) -> Optional[ResultSection]:
         """Parses OLE data and reports on metadata and suspicious properties.
 
         Args:
@@ -447,21 +452,18 @@ class Oletools(ServiceBase):
             return None
 
         ole = olefile.OleFileIO(ole_file)
+        if ole.direntries is None:
+            return None
 
         streams_section = ResultSection(f"OLE Document {name}")
-        meta_sec = self._process_ole_metadata(ole.get_metadata())
-        if meta_sec is not None:
-            streams_section.add_subsection(meta_sec)
-
-        clsid_sec = self._process_ole_clsid(ole)
-        if clsid_sec is not None:
-            streams_section.add_subsection(clsid_sec)
+        _add_subsection(streams_section, self._process_ole_metadata(ole.get_metadata()))
+        _add_subsection(streams_section, self._process_ole_clsid(ole))
 
         decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
         decompress_macros: List[bytes] = []
 
         exstr_sec = None
-        if self.request.deep_scan:
+        if extract_all:
             exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
         ole10_res = False
         ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP,
@@ -560,8 +562,8 @@ class Oletools(ServiceBase):
                     sus_sec.add_subsection(ole_b64_res)
 
                 # All streams are extracted with deep scan
-                if extract_stream or swf_sec.body or hex_sec.body or self.request.deep_scan:
-                    if self.request.deep_scan:
+                if extract_stream or swf_sec.body or hex_sec.body or extract_all:
+                    if exstr_sec:
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
                     self._extract_file(data, f'{stm_sha}.ole_stream', f"Embedded OLE Stream {stream}")
                     if decompress and (stream.endswith(".ps") or stream.startswith("Scripts/") or stream.endswith(".eps")):
@@ -582,6 +584,7 @@ class Oletools(ServiceBase):
         if hex_sec.body:
             streams_section.add_subsection(hex_sec)
         if sus_res:
+            assert sus_sec.heuristic
             sus_sec.heuristic.increment_frequency(sum(len(tags) for tags in sus_sec.tags.values()))
             streams_section.add_subsection(sus_sec)
 
