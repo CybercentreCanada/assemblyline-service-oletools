@@ -44,21 +44,21 @@ from assemblyline_v4_service.common.extractor.base64 import find_base64
 from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
-from assemblyline_v4_service.common.task import Task, MaxExtractedExceeded
+from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
 
 def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
-    """ Helper to add optional ResultSections to Results """
+    """Helper to add optional ResultSections to Results."""
     # If python 3.7 support is dropped this can be replaced
     # by using := to get a one-liner instead
     if result_section:
         result.add_section(result_section)
 
 def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSection]) -> None:
-    """ Helper to add optional ResultSections to ResultSections """
+    """Helper to add optional ResultSections to ResultSections."""
     if subsection:
         result_section.add_subsection(subsection)
 
@@ -147,10 +147,10 @@ class Oletools(ServiceBase):
 
 
     def __init__(self, config: Optional[Dict] = None) -> None:
-        """Creates an instance of the Oletools service
+        """Creates an instance of the Oletools service.
 
         Args:
-            config: service configuration (defaults to the configuration in the service manifest)
+            config: service configuration (defaults to the configuration in the service manifest).
         """
         super().__init__(config)
         self._oletools_version = ''
@@ -179,7 +179,7 @@ class Oletools(ServiceBase):
 
 
     def start(self) -> None:
-        """ Initializes the service """
+        """Initializes the service."""
         self.log.debug("Service started")
 
         from oletools.olevba import __version__ as olevba_version
@@ -209,7 +209,7 @@ class Oletools(ServiceBase):
 
 
     def get_tool_version(self) -> str:
-        """ Returns the version of oletools used by the service """
+        """Returns the version of oletools used by the service."""
         return self._oletools_version
 
 
@@ -232,32 +232,33 @@ class Oletools(ServiceBase):
             self.pat_safelist = self.URI_SAFELIST + self.ioc_pattern_safelist
             self.tag_safelist = self.TAG_SAFELIST + self.ioc_exact_safelist
 
-        path = request.file_path
         file_contents = request.file_contents
+        path = request.file_path
+        result = request.result
 
         try:
-            _add_section(request.result, self._check_for_indicators(path))
-            _add_section(request.result, self._check_for_dde_links(path))
+            _add_section(result, self._check_for_indicators(path))
+            _add_section(result, self._check_for_dde_links(path))
             if request.task.file_type == 'document/office/mhtml':
-                _add_section(request.result, self._rip_mhtml(file_contents))
-            self._extract_streams(path, request.result, request.deep_scan)
-            _add_section(request.result, self._extract_rtf(file_contents))
-            _add_section(request.result, self._check_for_macros(path, request.sha256))
-            _add_section(request.result, self._create_macro_sections(request.sha256))
-            self._check_xml_strings(path, request.result, request.deep_scan)
+                _add_section(result, self._rip_mhtml(file_contents))
+            self._extract_streams(path, result, request.deep_scan)
+            _add_section(result, self._extract_rtf(file_contents))
+            _add_section(result, self._check_for_macros(path, request.sha256))
+            _add_section(result, self._create_macro_sections(request.sha256))
+            self._check_xml_strings(path, result, request.deep_scan)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
         if request.deep_scan:
             # Proceed with OLE Deep extraction
-            parser = OLEDeepParser(path, request.result, self.log, request.task)
+            parser = OLEDeepParser(path, result, self.log, request.task)
             # noinspection PyBroadException
             try:
                 parser.run()
             except Exception as e:
                 self.log.error("Error while deep parsing {path}: {str(e)}")
                 section = ResultSection("Error deep parsing: {str(e)}")
-                request.result.add_section(section)
+                result.add_section(section)
 
         if self.excess_extracted:
             self.log.error(f"Too many files extracted for sample {self.sha}."
@@ -270,6 +271,9 @@ class Oletools(ServiceBase):
 
         Args:
             filename: Path to original OLE sample.
+
+        Returns:
+            A result section with the indicators if any were found.
         """
         # noinspection PyBroadException
         try:
@@ -305,6 +309,9 @@ class Oletools(ServiceBase):
 
         Args:
             filepath: Path to original sample.
+
+        Returns:
+            A section with the dde links if any are found.
         """
         # noinspection PyBroadException
         try:
@@ -330,6 +337,9 @@ class Oletools(ServiceBase):
         Args:
             links_text: DDE link text.
             ole_section: OLE AL result.
+
+        Returns:
+            A section with dde links if any are found.
         """
         ddeout_name = f'{self.sha}.ddelinks.original'
         self._extract_file(links_text.encode(), ddeout_name, "Original DDE Links")
@@ -379,10 +389,13 @@ class Oletools(ServiceBase):
 
 
     def _rip_mhtml(self, data: bytes) -> Optional[ResultSection]:
-        """Parses and extracts ActiveMime Document(document/office/mhtml).
+        """Parses and extracts ActiveMime Document (document/office/mhtml).
 
         Args:
             data: MHTML data.
+
+        Returns:
+            A result section with the extracted activemime filenames if any are found.
         """
         mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
         mhtml = email.message_from_bytes(data)
@@ -436,6 +449,7 @@ class Oletools(ServiceBase):
                 result.add_section(subdoc_res)
         except Exception:
             self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
+
 
     def _process_ole_file(self, name: str, ole_file: IO[bytes],
                           extract_all: bool = False) -> Optional[ResultSection]:
@@ -598,14 +612,15 @@ class Oletools(ServiceBase):
 
         return streams_section
 
+
     def _process_ole_metadata(self, meta: olefile.OleMetadata) -> Optional[ResultSection]:
-        """ Create sections for ole metadata
+        """Create sections for ole metadata.
 
         Args:
-            meta: ole metadata
+            meta: the ole metadata.
 
         Returns:
-            A result section with metadata info if any metadata was found
+            A result section with metadata info if any metadata was found.
         """
         meta_sec = ResultSection("OLE Metadata:")
         meta_sec_json_body = dict()
@@ -638,13 +653,14 @@ class Oletools(ServiceBase):
             return meta_sec
         return None
 
+
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
-        """ Create section for ole clsids
+        """Create section for ole clsids.
 
         Args:
-            ole: the olefile
+            ole: The olefile.
         Returns:
-            A result section with the clsid of the file if it can be identified
+            A result section with the clsid of the file if it can be identified.
         """
         clsid_sec_json_body = dict()
         clsid_sec = ResultSection("CLSID:")
@@ -665,16 +681,17 @@ class Oletools(ServiceBase):
         clsid_sec.body = json.dumps(clsid_sec_json_body)
         return clsid_sec
 
+
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
-        """
-        Parses ole10native data and reports on suspicious content.
+        """Parses ole10native data and reports on suspicious content.
 
         Args:
             stream_name: Name of OLE stream.
             data: Ole10native data.
             streams_section: Ole10Native result section (must have heuristic set).
 
-        Returns: if suspicious content is found
+        Returns:
+            If suspicious content is found
         """
         assert streams_section.heuristic
 
@@ -726,6 +743,7 @@ class Oletools(ServiceBase):
 
         return True
 
+
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
         """Parses powerpoint stream data and reports on suspicious characteristics.
 
@@ -733,7 +751,8 @@ class Oletools(ServiceBase):
             data: Powerpoint stream data.
             streams_section: Streams AL result section.
 
-        Returns: if successful
+        Returns:
+           If processing was successful
         """
         try:
             powerpoint = PowerPointDoc(data)
@@ -789,6 +808,7 @@ class Oletools(ServiceBase):
             self._extract_file(swf, f'{swf_md5}.swf', "Flash file extracted during sample analysis")
             swf_found = True
         return swf_found
+
 
     @staticmethod
     def _verifySWF(f: IO[bytes], x: int) -> Optional[bytes]:
@@ -857,10 +877,13 @@ class Oletools(ServiceBase):
 #-- RTF objects --
 
     def _extract_rtf(self, file_contents: bytes) -> Optional[ResultSection]:
-        """ Handle RTF Packages
+        """Handle RTF Packages.
 
         Args:
-            file_contents: contents of the submission
+            file_contents: Contents of the submission
+
+        Returns:
+            A result section if any rtf results were found.
         """
         streams_res = ResultSection("RTF objects")
         sep = "-----------------------------------------"
@@ -1028,6 +1051,7 @@ class Oletools(ServiceBase):
             filename: Path to original sample.
             file_contents: Original sample file content.
             request_hash: Original submitted sample's sha256hash.
+
         Returns: A result section with the error condition if macros couldn't be analyzed
         """
         # noinspection PyBroadException
@@ -1080,11 +1104,12 @@ class Oletools(ServiceBase):
 
 
     def _create_macro_sections(self, request_hash: str) -> Optional[ResultSection]:
-        """ Creates result section for embedded macros of sample. Also extracts all macros and pcode content to
-        individual files (all_vba_[hash].vba and all_pcode_[hash].data).
+        """ Creates result section for embedded macros of sample.
+
+        Also extracts all macros and pcode content to individual files (all_vba_[hash].vba and all_pcode_[hash].data).
 
         Args:
-            request_hash: Original submitted sample's sha256hash.
+            Request_hash: Original submitted sample's sha256hash.
         """
         macro_section = ResultSection("OleVBA : Macros detected")
         macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
@@ -1160,7 +1185,7 @@ class Oletools(ServiceBase):
             text: Original VBA code.
 
         Returns:
-           Original text, or deobfuscated text if specified techniques are detected.
+            Original text, or deobfuscated text if specified techniques are detected.
         """
         deobf = text
         # noinspection PyBroadException
@@ -1248,9 +1273,10 @@ class Oletools(ServiceBase):
         """Build an AL result section for Macro (VBA code) content.
 
         Args:
-            macros: list of VBA codes for building result sections.
+            macros: List of VBA codes for building result sections.
 
-        Returns: section with macro results
+        Returns:
+            Section with macro results.
         """
         vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
         macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
@@ -1277,14 +1303,17 @@ class Oletools(ServiceBase):
         return dump_subsection
 
     def _flag_macro(self, macro_text: str) -> bool:
-        """Determine proportion of randomized text in macro using chains.json. chains.json contains English trigraphs.
-        We score macros on how commonly these trigraphs appear in code, skipping over some common keywords.
+        """Flag macros with obfuscated variable names
+
+        We score macros based on the proportion of English trigraphs in the code,
+        skipping over some common keywords.
 
         Args:
             macro_text: Macro string content.
 
         Returns:
-            True if the score is lower than self.macro_score_min_alert (indicating macro is possibly malicious).
+            True if the score is lower than self.macro_score_min_alert
+            (indicating macro is possibly malicious).
         """
 
         if self.macro_score_max_size is not None and len(macro_text) > self.macro_score_max_size:
@@ -1325,12 +1354,13 @@ class Oletools(ServiceBase):
 
         Args:
             text: Original VBA code.
-            autoexecution: set for adding autoexecution strings
-            suspicious: set for adding suspicious strings
-            network: set for adding host/network strings
-            network_section: section for tagging network results
+            autoexecution: Set for adding autoexecution strings
+            suspicious: Set for adding suspicious strings
+            network: Set for adding host/network strings
+            network_section: Section for tagging network results
+
         Returns:
-            Whether interesting results were found
+            Whether interesting results were found.
         """
         try:
             vba_scanner = VBA_Scanner(text)
@@ -1386,11 +1416,13 @@ class Oletools(ServiceBase):
                       request_hash: str) -> Tuple[bool, List[str]]:
         """ Extract macros and analyze with MacroRaptor
 
-        macros: list of macros to check
-        filename: filename for extracted file
-        description: description for extracted file
+        Args:
+            macros: List of macros to check
+            filename: Filename for extracted file
+            description: Description for extracted file
 
-        Returns: MacroRaptor scan of the macros
+        Returns:
+            MacroRaptor scan of the macros
         """
         combined = '\n'.join(macros)
         if combined:
@@ -1416,6 +1448,8 @@ class Oletools(ServiceBase):
 
         Args:
             path: Path to original sample.
+            result: Result sections are added to this result.
+            include_fpos: Whether to include possible false positives in results (default false).
         """
         xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
         assert xml_target_res.heuristic # helps typecheckers
@@ -1530,10 +1564,14 @@ class Oletools(ServiceBase):
 #-- Helper methods --
 
     def _extract_file(self, data: bytes, file_name: str, description: str) -> None:
-        """
-        Adds data as an extracted file
+        """Adds data as an extracted file.
 
-        Checks that there the service hasn't hit the extraction limit before extracting
+        Checks that there the service hasn't hit the extraction limit before extracting.
+
+        Args:
+            data: The data to extract.
+            file_name: File name that will be written to.
+            description: A description of the data.
         """
         assert self.request
         if self.excess_extracted:
@@ -1556,8 +1594,9 @@ class Oletools(ServiceBase):
         """Use FrankenStrings module to find strings of interest.
 
         Args:
-            data: Data to be searched.
-            include_fpos: whether to include possible false positives (default False)
+            data: The data to be searched.
+            include_fpos: Whether to include possible false positives (default False)
+
         Returns:
             Dictionary of strings found by type and whether entity should be extracted (boolean).
         """
@@ -1587,9 +1626,10 @@ class Oletools(ServiceBase):
         Args:
             ty: IOC type.
             val: IOC value (as bytes).
-            basic_only: if set to true only basic checks are done
+            basic_only: If set to true only basic checks are done
+
         Returns:
-            Boolean value.
+            Whether the string is suspicious enough to trigger extraction.
         """
         if ty == 'file.name.extracted':
             if val.startswith(b'oleObject'):
@@ -1620,7 +1660,7 @@ class Oletools(ServiceBase):
         """Search and decode base64 strings in sample data.
 
         Args:
-            data: Data to be searched.
+            data: The data to be searched.
             dataname: The name (file / section) the data is from
 
         Returns:
