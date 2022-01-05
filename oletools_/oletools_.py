@@ -244,7 +244,7 @@ class Oletools(ServiceBase):
             _add_section(request.result, self._extract_rtf(file_contents))
             _add_section(request.result, self._check_for_macros(path, request.sha256))
             _add_section(request.result, self._create_macro_sections(request.sha256))
-            self._check_xml_strings(path, request.result)
+            self._check_xml_strings(path, request.result, request.deep_scan)
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
@@ -544,7 +544,7 @@ class Oletools(ServiceBase):
 
                 # Finally look for other IOC patterns, will ignore SRP streams for now
                 if not re.match(r'__SRP_[0-9]*', stream):
-                    iocs, extract_stream = self._check_for_patterns(data)
+                    iocs, extract_stream = self._check_for_patterns(data, extract_all)
                     if iocs:
                         sus_sec.add_line(f"IOCs in {stream}:")
                         sus_res = True
@@ -1399,6 +1399,7 @@ class Oletools(ServiceBase):
             if combined_sha256 != request_hash:
                 self._extract_file(data, f"{filename}_{combined_sha256[:15]}.data", description)
 
+        assert self.request
         passwords = re.findall('PasswordDocument:="([^"]+)"', combined)
         if 'passwords' in self.request.temp_submission_data:
             self.request.temp_submission_data['passwords'].extend(passwords)
@@ -1410,7 +1411,7 @@ class Oletools(ServiceBase):
 
 #-- XML --
 
-    def _check_xml_strings(self, path: str, result: Result) -> None:
+    def _check_xml_strings(self, path: str, result: Result, include_fpos: bool = False) -> None:
         """Search xml content for external targets, indicators, and base64 content.
 
         Args:
@@ -1458,7 +1459,7 @@ class Oletools(ServiceBase):
                     extract_regex = bool(has_external or has_dde or has_script)
 
                     # Check for IOC and b64 data in XML
-                    iocs, extract_ioc = self._check_for_patterns(data)
+                    iocs, extract_ioc = self._check_for_patterns(data, include_fpos)
                     if iocs:
                         for tag_type, tags in iocs.items():
                             for tag in tags:
@@ -1534,6 +1535,7 @@ class Oletools(ServiceBase):
 
         Checks that there the service hasn't hit the extraction limit before extracting
         """
+        assert self.request
         if self.excess_extracted:
             self.excess_extracted += 1
         else:
@@ -1550,12 +1552,12 @@ class Oletools(ServiceBase):
             except Exception:
                 self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
-    def _check_for_patterns(self, data: bytes) -> Tuple[Mapping[str, Set[bytes]], bool]:
+    def _check_for_patterns(self, data: bytes, include_fpos: bool = False) -> Tuple[Mapping[str, Set[bytes]], bool]:
         """Use FrankenStrings module to find strings of interest.
 
         Args:
             data: Data to be searched.
-
+            include_fpos: whether to include possible false positives (default False)
         Returns:
             Dictionary of strings found by type and whether entity should be extracted (boolean).
         """
@@ -1571,21 +1573,21 @@ class Oletools(ServiceBase):
                         or ioc.lower() in self.tag_safelist:
                     continue
                 # Skip .bin files that are common in normal excel files
-                if not self.request.deep_scan and \
+                if not include_fpos and \
                         tag_type == 'file.name.extracted' and re.match(self.EXCEL_BIN_RE, ioc):
                     continue
-                extract = extract or self._decide_extract(tag_type, ioc)
+                extract = extract or self._decide_extract(tag_type, ioc, include_fpos)
                 found_tags[tag_type].add(ioc)
 
         return dict(found_tags), extract
 
-    def _decide_extract(self, ty: str, val: bytes) -> bool:
+    def _decide_extract(self, ty: str, val: bytes, basic_only: bool = False) -> bool:
         """Determine if entity should be extracted by filtering for highly suspicious strings.
 
         Args:
             ty: IOC type.
             val: IOC value (as bytes).
-
+            basic_only: if set to true only basic checks are done
         Returns:
             Boolean value.
         """
@@ -1600,7 +1602,7 @@ class Oletools(ServiceBase):
                 return False
 
         # When deepscanning, do only minimal whitelisting
-        if self.request.deep_scan:
+        if basic_only:
             return True
 
         # common false positives
