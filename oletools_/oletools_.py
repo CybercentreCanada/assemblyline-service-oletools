@@ -424,7 +424,8 @@ class Oletools(ServiceBase):
 
         Args:
             file_name: Path to original sample.
-            file_contents: Original sample file content.
+            result: Top level result for adding stream result sections.
+            extract_all: Whether to extract all streams (default False).
         """
         try:
             # Streams in the submitted ole file
