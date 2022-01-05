@@ -1107,6 +1107,7 @@ class Oletools(ServiceBase):
                                               parent=macro_section,
                                               body='\n'.join(auto_exec))
                 for keyword in auto_exec:
+                    assert autoexecution.heuristic
                     autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
                 signatures = {keyword: 1 for keyword in suspicious
@@ -1116,6 +1117,7 @@ class Oletools(ServiceBase):
                                                            heuristic=heuristic,
                                                            body='\n'.join(suspicious)))
             if network:
+                assert network_section.heuristic
                 if network_section.heuristic.frequency == 0:
                     network_section.heuristic = None
                 network_section.add_line('\n'.join(network))
@@ -1134,6 +1136,7 @@ class Oletools(ServiceBase):
                     stomp_sec.add_subsection(ResultSection("Suspicious content in pcode dump not found in macro dump:",
                                                            body=pcode_results))
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
+                    assert stomp_sec.heuristic
                     stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
                     vba_stomp_sec = ResultSection("Suspicious content in macro dump:", parent=stomp_sec)
                     vba_stomp_sec.add_lines(vba_matches)
@@ -1338,33 +1341,38 @@ class Oletools(ServiceBase):
                     # play nice with detect_suspicious from olevba.py
                     suspicious.add(string.lower())
 
-            for keyword, description in vba_scanner.autoexec_keywords:
-                autoexecution.add(keyword.lower())
+            if vba_scanner.autoexec_keywords is not None:
+                for keyword, description in vba_scanner.autoexec_keywords:
+                    autoexecution.add(keyword.lower())
 
-            for keyword, description in vba_scanner.suspicious_keywords:
-                suspicious.add(keyword.lower())
+            if vba_scanner.suspicious_keywords is not None:
+                for keyword, description in vba_scanner.suspicious_keywords:
+                    suspicious.add(keyword.lower())
 
+            assert network_section.heuristic
+            assert network_section.heuristic.frequency is not None
             freq = network_section.heuristic.frequency
-            for keyword, description in vba_scanner.iocs:
-                # olevba seems to have swapped the keyword for description during iocs extraction
-                # this holds true until at least version 0.27
-                if isinstance(description, str):
-                    description = description.encode('utf-8', errors='ignore')
+            if vba_scanner.iocs is not None:
+                for keyword, description in vba_scanner.iocs:
+                    # olevba seems to have swapped the keyword for description during iocs extraction
+                    # this holds true until at least version 0.27
+                    if isinstance(description, str):
+                        description = description.encode('utf-8', errors='ignore')
 
-                desc_ip = re.match(self.IP_RE, description)
-                puri, duri, tags = self.parse_uri(description)
-                if puri:
-                    network.add(f"{keyword}: {safe_str(duri)}")
-                    network_section.heuristic.increment_frequency()
-                elif desc_ip:
-                    ip_str = safe_str(desc_ip.group(1))
-                    if not is_ip_reserved(ip_str):
+                    desc_ip = re.match(self.IP_RE, description)
+                    puri, duri, tags = self.parse_uri(description)
+                    if puri:
+                        network.add(f"{keyword}: {safe_str(duri)}")
                         network_section.heuristic.increment_frequency()
-                        network_section.add_tag('network.static.ip', ip_str)
-                else:
-                    network.add(f"{keyword}: {safe_str(description)}")
-                for tag in tags:
-                    network_section.add_tag(tag[0], tag[1])
+                    elif desc_ip:
+                        ip_str = safe_str(desc_ip.group(1))
+                        if not is_ip_reserved(ip_str):
+                            network_section.heuristic.increment_frequency()
+                            network_section.add_tag('network.static.ip', ip_str)
+                    else:
+                        network.add(f"{keyword}: {safe_str(description)}")
+                    for tag in tags:
+                        network_section.add_tag(tag[0], tag[1])
 
             return bool(vba_scanner.autoexec_keywords
                         or vba_scanner.suspicious_keywords
@@ -1409,6 +1417,7 @@ class Oletools(ServiceBase):
             path: Path to original sample.
         """
         xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
+        assert xml_target_res.heuristic # helps typecheckers
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
@@ -1440,6 +1449,7 @@ class Oletools(ServiceBase):
                     if len(data) > self.MAX_XML_SCAN_CHARS:
                         data = data[:self.MAX_XML_SCAN_CHARS]
                         xml_big_res.add_line(f'{f}')
+                        assert xml_big_res.heuristic
                         xml_big_res.heuristic.increment_frequency()
 
                     external_links.extend(has_external)
@@ -1499,6 +1509,7 @@ class Oletools(ServiceBase):
                     xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {res_tag} in:")
                     xml_ioc_res.add_lines(ioc_files[tag_type+res_tag])
                     xml_ioc_res.add_line('')
+                    assert xml_ioc_res
                     xml_ioc_res.heuristic.increment_frequency()
             result.add_section(xml_ioc_res)
         if xml_b64_res.subsections:
@@ -1508,7 +1519,7 @@ class Oletools(ServiceBase):
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/',1)[1].encode(), relationship.attrib['Target'].encode())
-            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
+            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG) # type: ignore
                 if 'Target' in relationship.attrib
                     and 'Type' in relationship.attrib
                     and 'TargetMode' in relationship.attrib
