@@ -33,11 +33,30 @@ def test_flag_macro():
         gnrwlvg zgzpdtptkfckn nmjraqxb a rdlifhowqrdaaptavovxteoiftkveqelhcvmnkcfhvchrhvtvk
         awx kpc byby '''), "Random text not flagged"
 
-def test_parse_uri():
+
+# -- parse_uri
+
+def test_parse_uri_empty():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'') == (False, b'', [])
-    assert ole.parse_uri(b'http://google.com/search?q=') == (True, b'http://google.com/search?q=', [
-        ('network.static.uri', b'http://google.com/search?q='),
-        ('network.static.domain', b'google.com')
-    ])
+    assert ole.parse_uri(b'') == (b'', '', b'')
+
+def test_parse_uri_file():
+    ole = Oletools()
+    ole.start()
+    assert ole.parse_uri(b'file://www.google.com') == (b'', '', b'')
+
+def test_parse_uri_safelist():
+    ole = Oletools()
+    ole.start()
+    assert ole.parse_uri(b'http://www.microsoft.com') == (b'', '', b'')
+
+def test_parse_uri_domain():
+    ole = Oletools()
+    ole.start()
+    assert ole.parse_uri(b'http://google.com') == (b'http://google.com', 'network.static.domain', b'google.com')
+
+def test_parse_uri_ip():
+    ole = Oletools()
+    ole.start()
+    assert ole.parse_uri(b'https://8.8.8.8') == (b'https://8.8.8.8', 'network.static.ip', b'8.8.8.8')

@@ -115,7 +115,6 @@ class Oletools(ServiceBase):
                                rb"|VB|JSE|JS|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR" \
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]).){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
-    URI_RE = rb'[a-zA-Z]+:/{1,3}[^/]+/[a-zA-Z0-9/\-.&%$#=~?_]+'
     EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}' \
                        rb'[Tt]argetMode="External"'
     BASE64_RE = b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})'
@@ -167,8 +166,8 @@ class Oletools(ServiceBase):
                                      for string in self.config.get('ioc_pattern_safelist', [])]
         self.ioc_exact_safelist = [string.encode('utf-8', errors='ignore')
                                    for string in self.config.get('ioc_exact_safelist', [])]
-        self.pat_safelist: List[bytes] = []
-        self.tag_safelist: List[bytes] = []
+        self.pat_safelist: List[bytes] = self.URI_SAFELIST
+        self.tag_safelist: List[bytes] = self.TAG_SAFELIST
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -1064,7 +1063,7 @@ class Oletools(ServiceBase):
             try:
                 if vba_parser.detect_vba_stomping():
                     self.vba_stomping = True
-                pcode: str = vba_parser.extract_pcode() # type: ignore
+                pcode: str = vba_parser.extract_pcode()
                 # remove header
                 pcode_l = pcode.split('\n',2)
                 if len(pcode_l) == 3:
@@ -1392,10 +1391,13 @@ class Oletools(ServiceBase):
                         description = description.encode('utf-8', errors='ignore')
 
                     desc_ip = re.match(self.IP_RE, description)
-                    puri, duri, tags = self.parse_uri(description)
-                    if puri:
-                        network.add(f"{keyword}: {safe_str(duri)}")
+                    uri, tag_type, tag = self.parse_uri(description)
+                    if uri:
+                        network.add(f"{keyword}: {safe_str(uri)}")
                         network_section.heuristic.increment_frequency()
+                        network_section.add_tag('network.static.uri', uri)
+                        if tag and tag_type:
+                            network_section.add_tag(tag_type, tag)
                     elif desc_ip:
                         ip_str = safe_str(desc_ip.group(1))
                         if not is_ip_reserved(ip_str):
@@ -1403,8 +1405,6 @@ class Oletools(ServiceBase):
                             network_section.add_tag('network.static.ip', ip_str)
                     else:
                         network.add(f"{keyword}: {safe_str(description)}")
-                    for tag in tags:
-                        network_section.add_tag(tag[0], tag[1])
 
             return bool(vba_scanner.autoexec_keywords
                         or vba_scanner.suspicious_keywords
@@ -1556,7 +1556,7 @@ class Oletools(ServiceBase):
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/',1)[1].encode(), relationship.attrib['Target'].encode())
-            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG) # type: ignore
+            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
                 if 'Target' in relationship.attrib
                     and 'Type' in relationship.attrib
                     and 'TargetMode' in relationship.attrib
@@ -1725,40 +1725,38 @@ class Oletools(ServiceBase):
         return b64_res if b64_res.subsections else None
 
     # noinspection PyUnusedLocal
-    def parse_uri(self, check_uri: bytes) -> Tuple[bool, bytes, List[Tuple[str, bytes]]]:
+    def parse_uri(self, check_uri: bytes) -> Tuple[bytes, str, bytes]:
         """Use regex to determine if URI valid and should be reported.
 
         Args:
             check_uri: Possible URI string.
 
         Returns:
-            True if the URI should score and the URI match if found.
+            A tuple of:
+            - The parsed uri,
+            - the hostname tag type,
+            - the hostname (either domain or ip address)
+
+        If any of the return values aren't parsed they are left empty.
         """
-        tags: List[Tuple[str, bytes]] = []
         if isinstance(check_uri, str):
             check_uri = check_uri.encode('utf-8', errors='ignore')
-        m = re.match(self.URI_RE, check_uri)
-        if m is None:
-            return False, b"", tags
-        full_uri = m.group(0)
 
-        proto, uri = full_uri.split(b'://', 1)
-        if proto == b'file':
-            return False, b"", tags
+        split = check_uri.split(maxsplit=1)
+        if not split:
+            return b'', '', b''
+        url = urlparse(split[0])
+        if not url.scheme or not url.hostname \
+            or url.scheme == b'file' or not re.match(b'(?i)[a-z0-9.-]+', url.hostname):
+            return b'', '', b''
 
+        full_uri: bytes = url.geturl()
         if any(pattern in full_uri for pattern in self.pat_safelist):
-            return False, m.group(0), tags
+            return b'', '', b''
 
-        tags.append(('network.static.uri', full_uri))
-
-        domain = re.match(self.DOMAIN_RE, uri)
-        ip = re.match(self.IP_RE, uri)
-        if ip:
-            ip_str = ip.group(1)
-            if not is_ip_reserved(safe_str(ip_str)):
-                tags.append(('network.static.ip', ip_str))
-        elif domain:
-            dom_str = domain.group(0)
-            tags.append(('network.static.domain', dom_str))
-
-        return True, m.group(0), tags
+        if re.match(self.IP_RE, url.hostname):
+            if not is_ip_reserved(safe_str(url.hostname)):
+                return full_uri, 'network.static.ip', url.hostname
+        elif re.match(self.DOMAIN_RE, url.hostname):
+            return full_uri, 'network.static.domain', url.hostname
+        return full_uri, '', b''
