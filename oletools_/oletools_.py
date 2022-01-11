@@ -935,10 +935,14 @@ class Oletools(ServiceBase):
                     if rtfobj.class_name == 'OLE2Link':
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
-                    res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    if rtfobj.start is not None:
+                        res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    else:
+                        res_txt = f'Malformed OLE Object'
                     if len(rtfobj.rawdata) >= self.LARGE_MALFORMED_BYTES:
                         res_alert += f"Data of malformed OLE object over {self.LARGE_MALFORMED_BYTES} bytes"
-                    streams_res.set_heuristic(19)
+                        if streams_res.heuristic is None:
+                            streams_res.set_heuristic(19)
 
                 if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
                     embedded.append((res_txt, res_alert))
