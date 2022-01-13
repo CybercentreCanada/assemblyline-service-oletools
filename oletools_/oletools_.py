@@ -28,7 +28,7 @@ import magic
 from lxml import etree
 
 import olefile
-import oletools.rtfobj as rtfparse
+from oletools.rtfobj import RtfObjParser
 from oletools import mraptor, msodde, oleobj
 from oletools.common import clsid
 from oletools.oleobj import OleNativeStream, OOXML_RELATIONSHIP_TAG
@@ -886,20 +886,22 @@ class Oletools(ServiceBase):
         Returns:
             A result section if any rtf results were found.
         """
-        streams_res = ResultSection("RTF objects")
-        sep = "-----------------------------------------"
         try:
-            rtfp = rtfparse.RtfObjParser(file_contents)
+            rtfp = RtfObjParser(file_contents)
             rtfp.parse()
         except Exception as e:
             self.log.debug(f'RtfObjParser failed to parse {self.sha}: {str(e)}')
-            return # Can't continue
+            return None # Can't continue
+        if not rtfp.objects:
+            return None
+        streams_res = ResultSection("RTF objects")
+        sep = "-----------------------------------------"
         embedded = []
         linked = []
         unknown = []
-        try:
-            # RTF objdata
-            for rtfobj in rtfp.objects:
+        # RTF objdata
+        for rtfobj in rtfp.objects:
+            try:
                 res_txt = ""
                 res_alert = ""
                 if rtfobj.is_ole:
@@ -933,10 +935,14 @@ class Oletools(ServiceBase):
                     if rtfobj.class_name == 'OLE2Link':
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
-                    res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    if rtfobj.start is not None:
+                        res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    else:
+                        res_txt = f'Malformed OLE Object'
                     if len(rtfobj.rawdata) >= self.LARGE_MALFORMED_BYTES:
                         res_alert += f"Data of malformed OLE object over {self.LARGE_MALFORMED_BYTES} bytes"
-                    streams_res.set_heuristic(19)
+                        if streams_res.heuristic is None:
+                            streams_res.set_heuristic(19)
 
                 if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
                     embedded.append((res_txt, res_alert))
@@ -970,45 +976,44 @@ class Oletools(ServiceBase):
                 else:
                     fname = f'object_{hex(rtfobj.start)}.raw'
                     self._extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
+            except Exception:
+                self.log.warning(f"Failed to process an RTF object for sample {self.sha}: {traceback.format_exc()}")
+        if embedded:
+            emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(21))
+            for txt, alert in embedded:
+                emb_sec.add_line(sep)
+                emb_sec.add_line(txt)
+                if alert != '':
+                    emb_sec.set_heuristic(11)
+                    for cve in re.findall(self.CVE_RE, alert):
+                        emb_sec.add_tag('attribution.exploit', cve)
+                    emb_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(emb_sec)
+        if linked:
+            lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(13))
+            for txt, alert in linked:
+                lik_sec.add_line(txt)
+                if alert != '':
+                    for cve in re.findall(self.CVE_RE, alert):
+                        lik_sec.add_tag('attribution.exploit', cve)
+                    lik_sec.set_heuristic(12)
+                    lik_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(lik_sec)
+        if unknown:
+            unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
+            for txt, alert in unknown:
+                unk_sec.add_line(txt)
+                if alert != '':
+                    for cve in re.findall(self.CVE_RE, alert):
+                        unk_sec.add_tag('attribution.exploit', cve)
+                    unk_sec.set_heuristic(14)
+                    unk_sec.add_line(f"Malicious Properties found: {alert}")
+            streams_res.add_subsection(unk_sec)
 
-            if embedded:
-                emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                        heuristic=Heuristic(21))
-                for txt, alert in embedded:
-                    emb_sec.add_line(sep)
-                    emb_sec.add_line(txt)
-                    if alert != '':
-                        emb_sec.set_heuristic(11)
-                        for cve in re.findall(self.CVE_RE, alert):
-                            emb_sec.add_tag('attribution.exploit', cve)
-                        emb_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(emb_sec)
-            if linked:
-                lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                        heuristic=Heuristic(13))
-                for txt, alert in linked:
-                    lik_sec.add_line(txt)
-                    if alert != '':
-                        for cve in re.findall(self.CVE_RE, alert):
-                            lik_sec.add_tag('attribution.exploit', cve)
-                        lik_sec.set_heuristic(12)
-                        lik_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(lik_sec)
-            if unknown:
-                unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
-                for txt, alert in unknown:
-                    unk_sec.add_line(txt)
-                    if alert != '':
-                        for cve in re.findall(self.CVE_RE, alert):
-                            unk_sec.add_tag('attribution.exploit', cve)
-                        unk_sec.set_heuristic(14)
-                        unk_sec.add_line(f"Malicious Properties found: {alert}")
-                streams_res.add_subsection(unk_sec)
-
-            if streams_res.body or streams_res.subsections:
-                return streams_res
-        except Exception:
-            self.log.warning(f"Failed to process RTF objects for sample {self.sha}: {traceback.format_exc()}")
+        if streams_res.body or streams_res.subsections:
+            return streams_res
         return None
 
 
