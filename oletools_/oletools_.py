@@ -699,7 +699,7 @@ class Oletools(ServiceBase):
         suspicious = False
         sus_sec = ResultSection("Suspicious streams content:")
         native = OleNativeStream(data)
-        if not native.data or not native.filename or not native.src_path or not native.temp_path:
+        if not all(native_item for native_item in [native.data, native.filename, native.src_path, native.temp_path]):
             self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
             return False
         self._extract_file(native.data,
@@ -1530,8 +1530,15 @@ class Oletools(ServiceBase):
                 xml_target_res.heuristic.add_signature_id('mhtml_link')
                 # Get last url link
                 link = link.rsplit(b'!x-usc:')[-1]
-            safe_link = safe_str(link)
-            url = urlparse(safe_link)
+            safe_link = safe_str(link).encode()
+            try:
+                url = urlparse(safe_link)
+            except ValueError as e:
+                # Implies we're given an invalid link to parse
+                if str(e) == 'Invalid IPv6 URL':
+                    continue
+                else:
+                    raise e
             if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
                 if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
                         and not os.path.basename(url.path) in self.tag_safelist:
