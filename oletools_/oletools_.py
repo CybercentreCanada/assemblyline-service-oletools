@@ -1003,13 +1003,15 @@ class Oletools(ServiceBase):
             streams_res.add_subsection(lik_sec)
         if unknown:
             unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
+            hits = 0
             for txt, alert in unknown:
                 unk_sec.add_line(txt)
                 if alert != '':
                     for cve in re.findall(self.CVE_RE, alert):
                         unk_sec.add_tag('attribution.exploit', cve)
-                    unk_sec.set_heuristic(14)
+                    hits += 1
                     unk_sec.add_line(f"Malicious Properties found: {alert}")
+            unk_sec.heuristic = Heuristic(14, frequency=hits) if hits else None
             streams_res.add_subsection(unk_sec)
 
         if streams_res.body or streams_res.subsections:
