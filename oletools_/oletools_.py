@@ -116,7 +116,7 @@ class Oletools(ServiceBase):
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}' \
-                       rb'[Tt]argetMode="External"'
+                       rb'[Tt]argetMode="External"'  # TODO - Allow multiple orders and spaces
     BASE64_RE = b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})'
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
@@ -472,6 +472,7 @@ class Oletools(ServiceBase):
 
         streams_section = ResultSection(f"OLE Document {name}")
         _add_subsection(streams_section, self._process_ole_metadata(ole.get_metadata()))
+        _add_subsection(streams_section, self._process_ole_alternate_metadata(ole))
         _add_subsection(streams_section, self._process_ole_clsid(ole))
 
         decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
@@ -655,6 +656,86 @@ class Oletools(ServiceBase):
         return None
 
 
+    def _process_ole_alternate_metadata(self, ole_file: IO[bytes]) -> Optional[ResultSection]:
+        """Extract alternate OLE document metadata SttbfAssoc strings
+        https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-doc/f6f1030e-2e5e-46ff-92f0-b228c5585308
+
+        Args:
+            ole_file: OLE bytesIO to process
+
+        Returns:
+            A result section with alternate metadata info if any metadata was found.
+        """
+        ole_altmeta_res = ResultSection("OLE Alternate Metadata:")
+
+        sttb_fassoc_start_bytes = b'\xFF\xFF\x12\x00\x00\x00'
+        sttb_fassoc_lut = {
+            0x01: 'template',
+            0x02: 'title',
+            0x03: 'subject',
+            0x04: 'keywords',
+            0x06: 'author',
+            0x07: 'last_saved_by',
+            0x08: 'mail_merge_data_source',
+            0x09: 'mail_merge_header_document',
+            0x11: 'write_reservation_password',
+        }
+        data = ole_file.read()
+        ole_file.seek(0)
+        sttb_fassoc_idx = data.find(sttb_fassoc_start_bytes)
+        if sttb_fassoc_idx < 0:
+            return
+
+        current_pos = sttb_fassoc_idx + len(sttb_fassoc_start_bytes)
+
+        for i in range(18):
+            try:
+                str_len, *_ = struct.unpack('H', data[current_pos:current_pos+2])
+            except struct.error:
+                self.log.warning('Could not get STTB metadata length, is the data truncated?')
+                return
+            current_pos += 2
+            str_len *= 2
+            if str_len > 0 and i in sttb_fassoc_lut:
+                safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16'))
+                prop = sttb_fassoc_lut[i]
+                if prop in self.METADATA_TO_TAG and safe_val:
+                    if self.METADATA_TO_TAG[prop] == safe_val:
+                        continue
+                ole_altmeta_res.add_line(f'{sttb_fassoc_lut[i]}: {safe_val}')
+                current_pos += str_len
+            else:
+                continue
+
+            if i == 1 and safe_val is not None:
+                safe_link = safe_val.encode('utf8', 'ignore')
+                if re.search(self.IP_RE, safe_link):
+                    ole_altmeta_res.heuristic.add_signature_id('external_link_ip')
+                if safe_link.startswith(b'mhtml:'):
+                    ole_altmeta_res.heuristic.add_signature_id('mhtml_link')
+                    # Get last url link
+                    safe_link = safe_link.rsplit(b'!x-usc:')[-1]
+
+                try:
+                    url = urlparse(safe_link)
+                except ValueError as e:
+                    # Implies we're given an invalid link to parse
+                    if str(e) == 'Invalid IPv6 URL':
+                        continue
+                    else:
+                        raise e
+                if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
+                    assert isinstance(safe_link, bytes)
+
+                    if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
+                            and not os.path.basename(url.path) in self.tag_safelist:
+                        ole_altmeta_res.heuristic.add_signature_id('link_to_executable')
+                    if url.scheme != 'file':
+                        ole_altmeta_res.heuristic = Heuristic(1)
+                        ole_altmeta_res.heuristic.add_signature_id(f'attached{sttb_fassoc_lut[i].lower()}')
+                        ole_altmeta_res.heuristic.add_attack_id('T1221')
+
+
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
         """Create section for ole clsids.
 
@@ -681,7 +762,6 @@ class Oletools(ServiceBase):
         clsid_sec_json_body[ole_clsid] = clsid_desc
         clsid_sec.body = json.dumps(clsid_sec_json_body)
         return clsid_sec
-
 
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
         """Parses ole10native data and reports on suspicious content.
@@ -891,10 +971,15 @@ class Oletools(ServiceBase):
             rtfp.parse()
         except Exception as e:
             self.log.debug(f'RtfObjParser failed to parse {self.sha}: {str(e)}')
-            return None # Can't continue
-        if not rtfp.objects:
+            return None  # Can't continue
+        rtf_template_res = self._process_rtf_alternate_metadata(file_contents)
+        if not rtfp.objects and not rtf_template_res:
             return None
+
         streams_res = ResultSection("RTF objects")
+        if rtf_template_res:
+            _add_subsection(streams_res, rtf_template_res)
+
         sep = "-----------------------------------------"
         embedded = []
         linked = []
@@ -1017,6 +1102,78 @@ class Oletools(ServiceBase):
         if streams_res.body or streams_res.subsections:
             return streams_res
         return None
+
+
+    def _process_rtf_alternate_metadata(self, data: bytes) -> Optional[ResultSection]:
+        """Extract RTF document metadata
+        http://www.biblioscape.com/rtf15_spec.htm#Heading9
+
+        Args:
+            data: Contents of the submission
+
+        Returns:
+            A result section with RTF info if found.
+        """
+
+        start_bytes = b'{\\*\\template'
+        end_bytes = b'}'
+
+        start_idx = data.find(start_bytes)
+        if start_idx < 0:
+            return
+        end_idx = data.find(end_bytes, start_idx)
+
+        tplt_data = data[start_idx + len(start_bytes):end_idx].decode('ascii', 'ignore').strip()
+
+        re_rtf_escaped_str = re.compile(r'\\(?:(?P<uN>u-?[0-9]+[?]?)|(?P<other>.))')
+
+        def unicode_rtf_replace(matchobj: re.Match) -> str:
+            """Handle Unicode RTF Control Words, only \\uN and escaped characters
+
+            """
+            for match_name, match_str in matchobj.groupdict().items():
+                if match_str is None:
+                    continue
+                if match_name == 'uN':
+                    match_int = int(match_str.strip('u?'))
+                    if match_int < -1:
+                        match_int = 0x10000 + match_int
+                    return chr(match_int)
+                if match_name == 'other':
+                    return match_str
+            return matchobj.string
+
+        link = re_rtf_escaped_str.sub(unicode_rtf_replace, tplt_data).encode('utf8', 'ignore').strip()
+        safe_link = safe_str(link)
+
+        if safe_link:
+            rtf_tmplt_res = ResultSection("RTF Template:")
+            if re.search(self.IP_RE, safe_link):
+                rtf_tmplt_res.heuristic.add_signature_id('external_link_ip')
+            if safe_link.startswith(b'mhtml:'):
+                rtf_tmplt_res.heuristic.add_signature_id('mhtml_link')
+                # Get last url link
+                safe_link = safe_link.rsplit(b'!x-usc:')[-1]
+
+            try:
+                url = urlparse(safe_link)
+            except ValueError as e:
+                # Implies we're given an invalid link to parse
+                if str(e) == 'Invalid IPv6 URL':
+                    return
+                else:
+                    raise e
+
+            if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
+                rtf_tmplt_res.add_line(f"Path found: {safe_link}")
+                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
+                        and not os.path.basename(url.path) in self.tag_safelist:
+                    rtf_tmplt_res.heuristic.add_signature_id('link_to_executable')
+                if url.scheme != 'file':
+                    rtf_tmplt_res.heuristic = Heuristic(1)
+                    rtf_tmplt_res.heuristic.add_signature_id(f'attachedtemplate')
+                    rtf_tmplt_res.heuristic.add_attack_id('T1221')
+                return rtf_tmplt_res
 
 
     @staticmethod
