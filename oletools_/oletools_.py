@@ -116,7 +116,7 @@ class Oletools(ServiceBase):
                                rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}' \
-                       rb'[Tt]argetMode="External"'  # TODO - Allow multiple orders and spaces
+                       rb'[Tt]argetMode="External"'
     BASE64_RE = b'([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})'
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
@@ -472,7 +472,7 @@ class Oletools(ServiceBase):
 
         streams_section = ResultSection(f"OLE Document {name}")
         _add_subsection(streams_section, self._process_ole_metadata(ole.get_metadata()))
-        _add_subsection(streams_section, self._process_ole_alternate_metadata(ole))
+        _add_subsection(streams_section, self._process_ole_alternate_metadata(ole_file))
         _add_subsection(streams_section, self._process_ole_clsid(ole))
 
         decompress = any("\x05HwpSummaryInformation" in dir_entry for dir_entry in ole.listdir())
@@ -626,8 +626,11 @@ class Oletools(ServiceBase):
         """
         meta_sec = ResultSection("OLE Metadata:")
         meta_sec_json_body = dict()
+        codec = 'latin1'
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
+            if prop == 'codepage':
+                codec = str(value)
             if value is not None and value not in ['"', "'", ""]:
                 if prop == "thumbnail":
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
@@ -642,10 +645,14 @@ class Oletools(ServiceBase):
                     data = value.encode()
                     meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                    meta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
-                                                  f"see extracted files]"
+                    meta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, see extracted files]"
                     meta_sec.set_heuristic(17)
                     continue
+                if isinstance(value, bytes):
+                    try:
+                        value = value.decode(codec)
+                    except ValueError:
+                        self.log.warning('Failed to decode %r with %s' % value, codec)
                 meta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
                 if prop in self.METADATA_TO_TAG and value:
@@ -666,7 +673,8 @@ class Oletools(ServiceBase):
         Returns:
             A result section with alternate metadata info if any metadata was found.
         """
-        ole_altmeta_res = ResultSection("OLE Alternate Metadata:")
+        altmeta_sec = ResultSection("OLE Alternate Metadata:")
+        altmeta_sec_json_body = dict()
 
         sttb_fassoc_start_bytes = b'\xFF\xFF\x12\x00\x00\x00'
         sttb_fassoc_lut = {
@@ -680,12 +688,11 @@ class Oletools(ServiceBase):
             0x09: 'mail_merge_header_document',
             0x11: 'write_reservation_password',
         }
+        _ = ole_file.seek(0)
         data = ole_file.read()
-        ole_file.seek(0)
         sttb_fassoc_idx = data.find(sttb_fassoc_start_bytes)
         if sttb_fassoc_idx < 0:
             return
-
         current_pos = sttb_fassoc_idx + len(sttb_fassoc_start_bytes)
 
         for i in range(18):
@@ -698,11 +705,7 @@ class Oletools(ServiceBase):
             str_len *= 2
             if str_len > 0 and i in sttb_fassoc_lut:
                 safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16'))
-                prop = sttb_fassoc_lut[i]
-                if prop in self.METADATA_TO_TAG and safe_val:
-                    if self.METADATA_TO_TAG[prop] == safe_val:
-                        continue
-                ole_altmeta_res.add_line(f'{sttb_fassoc_lut[i]}: {safe_val}')
+                altmeta_sec_json_body[sttb_fassoc_lut[i]] = safe_val
                 current_pos += str_len
             else:
                 continue
@@ -710,9 +713,9 @@ class Oletools(ServiceBase):
             if i == 1 and safe_val is not None:
                 safe_link = safe_val.encode('utf8', 'ignore')
                 if re.search(self.IP_RE, safe_link):
-                    ole_altmeta_res.heuristic.add_signature_id('external_link_ip')
+                    altmeta_sec.heuristic.add_signature_id('external_link_ip')
                 if safe_link.startswith(b'mhtml:'):
-                    ole_altmeta_res.heuristic.add_signature_id('mhtml_link')
+                    altmeta_sec.heuristic.add_signature_id('mhtml_link')
                     # Get last url link
                     safe_link = safe_link.rsplit(b'!x-usc:')[-1]
 
@@ -725,16 +728,17 @@ class Oletools(ServiceBase):
                     else:
                         raise e
                 if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
-                    assert isinstance(safe_link, bytes)
-
                     if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
                             and not os.path.basename(url.path) in self.tag_safelist:
-                        ole_altmeta_res.heuristic.add_signature_id('link_to_executable')
+                        altmeta_sec.heuristic.add_signature_id('link_to_executable')
                     if url.scheme != 'file':
-                        ole_altmeta_res.heuristic = Heuristic(1)
-                        ole_altmeta_res.heuristic.add_signature_id(f'attached{sttb_fassoc_lut[i].lower()}')
-                        ole_altmeta_res.heuristic.add_attack_id('T1221')
-
+                        altmeta_sec.heuristic = Heuristic(1)
+                        altmeta_sec.heuristic.add_signature_id(f'attached{sttb_fassoc_lut[i].lower()}')
+                        altmeta_sec.heuristic.add_attack_id('T1221')
+        if altmeta_sec_json_body:
+            altmeta_sec.body = json.dumps(altmeta_sec_json_body)
+            return altmeta_sec
+        return None
 
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
         """Create section for ole clsids.
@@ -1142,9 +1146,8 @@ class Oletools(ServiceBase):
                 if match_name == 'other':
                     return match_str
             return matchobj.string
-
         link = re_rtf_escaped_str.sub(unicode_rtf_replace, tplt_data).encode('utf8', 'ignore').strip()
-        safe_link = safe_str(link)
+        safe_link = safe_str(link).encode('utf8', 'ignore')
 
         if safe_link:
             rtf_tmplt_res = ResultSection("RTF Template:")
