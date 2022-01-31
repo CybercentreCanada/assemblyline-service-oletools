@@ -49,6 +49,7 @@ from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
+from oletools_.wrappers import ReportHeuristic, ResultSectionWrapper, build_report, get_reports
 
 def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
     """Helper to add optional ResultSections to Results."""
@@ -234,23 +235,24 @@ class Oletools(ServiceBase):
         file_contents = request.file_contents
         path = request.file_path
         result = request.result
+        reports = []
 
         try:
             _add_section(result, self._check_for_indicators(path))
-            _add_section(result, self._check_for_dde_links(path))
+            reports.extend(self._check_for_dde_links(path))
             if request.task.file_type == 'document/office/mhtml':
-                _add_section(result, self._rip_mhtml(file_contents))
+                reports.extend(self._rip_mhtml(file_contents))
             self._extract_streams(path, result, request.deep_scan)
             _add_section(result, self._extract_rtf(file_contents))
             _add_section(result, self._check_for_macros(path, request.sha256))
             _add_section(result, self._create_macro_sections(request.sha256))
-            self._check_xml_strings(path, result, request.deep_scan)
+            _add_section(result, self._check_xml_strings(path, request.deep_scan))
         except Exception as e:
             self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
 
         if request.deep_scan:
             # Proceed with OLE Deep extraction
-            parser = OLEDeepParser(path, result, self.log, request.task)
+            parser = OLEDeepParser(path, request.result, self.log, request.task)
             # noinspection PyBroadException
             try:
                 parser.run()
@@ -259,18 +261,18 @@ class Oletools(ServiceBase):
                 section = ResultSection("Error deep parsing: {str(e)}")
                 result.add_section(section)
 
+        reports.extend(get_reports(result.sections))
+        result.sections = build_report(reports) + result.sections
+
         if self.excess_extracted:
             self.log.error(f"Too many files extracted for sample {self.sha}."
                            f" {self.excess_extracted} files were not extracted")
         request.set_service_context(self.get_tool_version())
 
-
     def _check_for_indicators(self, filename: str) -> Optional[ResultSection]:
         """Finds and reports on indicator objects typically present in malicious files.
-
         Args:
             filename: Path to original OLE sample.
-
         Returns:
             A result section with the indicators if any were found.
         """
@@ -278,7 +280,7 @@ class Oletools(ServiceBase):
         try:
             ole_id = OleID(filename)
             indicators = ole_id.check()
-            section = ResultSection("OleID indicators", heuristic=Heuristic(34))
+            section = ResultSectionWrapper("OleID indicators")
 
             for indicator in indicators:
                 # Ignore these OleID indicators, they aren't all that useful.
@@ -292,9 +294,11 @@ class Oletools(ServiceBase):
                         section.add_line(f'{indicator.name}: {indicator.value}'
                                        + (f', {indicator.description}' if indicator.description else ''))
                     else:
-                        assert section.heuristic
-                        section.heuristic.add_signature_id(indicator.name)
-                        section.add_line(f'{indicator.name} ({indicator.value}): {indicator.description}')
+                        line = f'{indicator.name} ({indicator.value}): {indicator.description}'
+                        heuristic = ReportHeuristic(34, '', line)
+                        heuristic.add_signature_id(indicator.name)
+                        section.add_report(heuristic)
+                        section.add_line(line)
 
             if section.body:
                 return section
@@ -303,12 +307,10 @@ class Oletools(ServiceBase):
         return None
 
 
-    def _check_for_dde_links(self, filepath: str) -> Optional[ResultSection]:
+    def _check_for_dde_links(self, filepath: str) -> list[ReportHeuristic]:
         """Use msodde in OLETools to report on DDE links in document.
-
         Args:
             filepath: Path to original sample.
-
         Returns:
             A section with the dde links if any are found.
         """
@@ -327,16 +329,14 @@ class Oletools(ServiceBase):
         # Unicode and other errors common for msodde when parsing samples, do not log under warning
         except Exception as e:
             self.log.debug(f"msodde parsing for sample {self.sha} failed: {str(e)}")
-        return None
+        return []
 
 
-    def _process_dde_links(self, links_text: str) -> Optional[ResultSection]:
+    def _process_dde_links(self, links_text: str) -> list[ReportHeuristic]:
         """Examine DDE links and report on malicious characteristics.
-
         Args:
             links_text: DDE link text.
             ole_section: OLE AL result.
-
         Returns:
             A section with dde links if any are found.
         """
@@ -355,9 +355,7 @@ class Oletools(ServiceBase):
         '''
 
         # To date haven't seen a sample with multiple links yet but it should be possible..
-        dde_section = ResultSection("MSO DDE Links:", body_format=BODY_FORMAT.MEMORY_DUMP)
-        dde_extracted = False
-        looksbad = False
+        dde_reports = []
 
         for line in links_text.splitlines():
             if ' ' in line:
@@ -368,35 +366,28 @@ class Oletools(ServiceBase):
                 link_text = link_text.strip()
                 link_text = link_text.replace(u'\\\\', u'\u005c')  # a literal backslash
                 link_text = link_text.replace(u'\\"', u'"')
-                dde_section.add_line(f"Type: {link_type}")
-                dde_section.add_line(f"Text: {link_text}")
-                dde_section.add_line("\n\n")
-                dde_extracted = True
+
+                report = ReportHeuristic(15, '', f"Type: {link_type}\nText: {link_text}\n\n")
+                link_text_lower = link_text.lower()
+                for sus in self.DDE_SUS_KEYWORDS:
+                    if sus in link_text_lower:
+                        report.add_signature_id(sus, 1000)
+                dde_reports.append(report)
 
                 data = links_text.encode()
                 self._extract_file(data, f'{hashlib.sha256(data).hexdigest()}.ddelinks', "Tweaked DDE Link")
 
-                link_text_lower = link_text.lower()
-                if any(x in link_text_lower for x in self.DDE_SUS_KEYWORDS):
-                    looksbad = True
-
-                dde_section.add_tag('file.ole.dde_link', link_text)
-        if dde_extracted:
-            dde_section.set_heuristic(16 if looksbad else 15)
-            return dde_section
-        return None
+        return dde_reports
 
 
-    def _rip_mhtml(self, data: bytes) -> Optional[ResultSection]:
+    def _rip_mhtml(self, data: bytes) -> list[ReportHeuristic]:
         """Parses and extracts ActiveMime Document (document/office/mhtml).
-
         Args:
             data: MHTML data.
-
         Returns:
             A result section with the extracted activemime filenames if any are found.
         """
-        mime_res = ResultSection("ActiveMime Document(s) in multipart/related", heuristic=Heuristic(26))
+        mime_res = []
         mhtml = email.message_from_bytes(data)
         # find all the attached files:
         for part in mhtml.walk():
@@ -408,11 +399,12 @@ class Oletools(ServiceBase):
                         part_data = zlib.decompress(part_data[0x32:])  # Grab  the zlib-compressed data
                         part_filename = part.get_filename(None) or hashlib.sha256(part_data).hexdigest()
                         self._extract_file(part_data, part_filename, "ActiveMime x-mso from multipart/related.")
-                        mime_res.add_line(part_filename)
+                        mime_res.append(ReportHeuristic(26, '', part_filename))
                     except Exception as e:
                         self.log.debug(f"Could not decompress ActiveMime part for sample {self.sha}: {str(e)}")
 
-        return mime_res if mime_res.body else None
+        return mime_res
+
 
 #-- Ole Streams --
 
@@ -480,9 +472,6 @@ class Oletools(ServiceBase):
         exstr_sec = None
         if extract_all:
             exstr_sec = ResultSection("Extracted Ole streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
-        ole10_res = False
-        ole10_sec = ResultSection("Extracted Ole10Native streams:", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                  heuristic=Heuristic(29, frequency=0))
         pwrpnt_res = False
         pwrpnt_sec = ResultSection("Extracted Powerpoint streams:", body_format=BODY_FORMAT.MEMORY_DUMP)
         swf_sec = ResultSection("Flash objects detected in OLE stream:", body_format=BODY_FORMAT.MEMORY_DUMP,
@@ -511,8 +500,8 @@ class Oletools(ServiceBase):
 
             # noinspection PyBroadException
             try:
-                if "Ole10Native" in stream and self._process_ole10native(stream, data, ole10_sec):
-                    ole10_res = True
+                if "Ole10Native" in stream:
+                    _add_subsection(streams_section, self._process_ole10native(stream, data))
                     continue
 
                 if "PowerPoint Document" in stream and self._process_powerpoint_stream(data, pwrpnt_sec):
@@ -590,8 +579,6 @@ class Oletools(ServiceBase):
 
         if exstr_sec and exstr_sec.body:
             streams_section.add_subsection(exstr_sec)
-        if ole10_res:
-            streams_section.add_subsection(ole10_sec)
         if pwrpnt_res:
             streams_section.add_subsection(pwrpnt_sec)
         if swf_sec.body:
@@ -623,7 +610,7 @@ class Oletools(ServiceBase):
         Returns:
             A result section with metadata info if any metadata was found.
         """
-        meta_sec = ResultSection("OLE Metadata:")
+        meta_sec = ResultSectionWrapper("OLE Metadata:")
         meta_sec_json_body = dict()
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
@@ -632,9 +619,7 @@ class Oletools(ServiceBase):
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(value, meta_name, "OLE metadata thumbnail extracted")
                     meta_sec_json_body[prop] = "[see extracted files]"
-                    # Todo: is thumbnail useful as a heuristic?
-                    # Doesn't score and causes error how its currently set.
-                    # meta_sec.set_heuristic(18)
+                    meta_sec.add_report(ReportHeuristic(18, 'Ole Metadata', meta_name))
                     continue
                 # Extract data over n bytes
                 if isinstance(value, str) and len(value) > self.metadata_size_to_extract:
@@ -643,7 +628,7 @@ class Oletools(ServiceBase):
                     self._extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
                     meta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, "\
                                                   f"see extracted files]"
-                    meta_sec.set_heuristic(17)
+                    meta_sec.add_report(ReportHeuristic(17, 'Ole Metadata', meta_name))
                     continue
                 meta_sec_json_body[prop] = safe_str(value, force_str=True)
                 # Add Tags
@@ -664,7 +649,7 @@ class Oletools(ServiceBase):
             A result section with the clsid of the file if it can be identified.
         """
         clsid_sec_json_body = dict()
-        clsid_sec = ResultSection("CLSID:")
+        clsid_sec = ResultSectionWrapper("CLSID:")
         if not ole.root or not ole.root.clsid:
             return None
         ole_clsid = ole.root.clsid
@@ -674,16 +659,18 @@ class Oletools(ServiceBase):
         clsid_sec.add_tag('file.ole.clsid', f"{safe_str(ole_clsid)}")
         clsid_desc = clsid.KNOWN_CLSIDS.get(ole_clsid, 'unknown CLSID')
         if 'CVE' in clsid_desc:
+            report = ReportHeuristic(52, '', clsid_desc)
             for cve in re.findall(self.CVE_RE, clsid_desc):
                 clsid_sec.add_tag('attribution.exploit', cve)
+                report.add_signature_id(cve)
             if 'Known' in clsid_desc or 'exploit' in clsid_desc:
-                clsid_sec.set_heuristic(52)
+                clsid_sec.add_report(report)
         clsid_sec_json_body[ole_clsid] = clsid_desc
         clsid_sec.body = json.dumps(clsid_sec_json_body)
         return clsid_sec
 
 
-    def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
+    def _process_ole10native(self, stream_name: str, data: bytes) -> Optional[ResultSection]:
         """Parses ole10native data and reports on suspicious content.
 
         Args:
@@ -694,27 +681,25 @@ class Oletools(ServiceBase):
         Returns:
             If suspicious content is found
         """
-        assert streams_section.heuristic
-
-        suspicious = False
-        sus_sec = ResultSection("Suspicious streams content:")
         native = OleNativeStream(data)
         if not native.data or not native.filename or not native.src_path or not native.temp_path:
             self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
-            return False
+            return None
         self._extract_file(native.data,
                             hashlib.sha256(native.data).hexdigest(),
                             f"Embedded OLE Stream {stream_name}")
-        stream_desc = f"{stream_name} ({native.filename}):\n\tFilepath: {native.src_path}" \
+        stream_desc = f"{native.filename}:\n\tFilepath: {native.src_path}" \
                       f"\n\tTemp path: {native.temp_path}\n\tData Length: {native.native_data_size}"
+        streams_section = ResultSectionWrapper(f"Extracted Ole10Native stream {stream_name}:", body_format=BODY_FORMAT.MEMORY_DUMP)
         streams_section.add_line(stream_desc)
         # Tag Ole10Native header file labels
         streams_section.add_tag('file.name.extracted', native.filename)
         streams_section.add_tag('file.name.extracted', native.src_path)
         streams_section.add_tag('file.name.extracted', native.temp_path)
-        streams_section.heuristic.increment_frequency()
+        report = ReportHeuristic(29, stream_name, stream_desc)
         if find_pe_files(native.data):
-            streams_section.heuristic.add_signature_id('embedded_pe_file')
+            report.add_signature_id('embedded_pe_file')
+        streams_section.add_report(report)
         # handle embedded native macros
         if native.filename.endswith(".vbs") or \
                 native.temp_path.endswith(".vbs") or \
@@ -726,23 +711,15 @@ class Oletools(ServiceBase):
             for pattern, desc in self.SUSPICIOUS_STRINGS:
                 matched = re.search(pattern, native.data)
                 if matched:
-                    suspicious = True
                     if b'javascript' in desc:
-                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'javascript'",
-                                                                heuristic=Heuristic(23)))
+                        streams_section.add_report(ReportHeuristic(23, stream_name, "Suspicious string found: 'javascript'"))
                     if b'executable' in desc:
-                        sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                heuristic=Heuristic(24)))
+                        streams_section.add_report(ReportHeuristic(24, stream_name, "Suspicious string found: 'executable'"))
                     else:
-                        sus_sec.add_subsection(ResultSection("Suspicious string found",
-                                                                heuristic=Heuristic(25)))
-                    sus_sec.add_line(f"'{safe_str(matched.group(0))}' string found in stream "
-                                        f"{native.src_path}, indicating {safe_str(desc)}")
+                        streams_section.add_report(ReportHeuristic(25, stream_name, f"'{safe_str(matched.group(0))}' string found in stream "
+                                                           f"{native.src_path}, indicating {safe_str(desc)}"))
 
-        if suspicious:
-            streams_section.add_subsection(sus_sec)
-
-        return True
+        return streams_section
 
 
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
@@ -1450,7 +1427,7 @@ class Oletools(ServiceBase):
 
 #-- XML --
 
-    def _check_xml_strings(self, path: str, result: Result, include_fpos: bool = False) -> None:
+    def _check_xml_strings(self, path: str, include_fpos: bool = False) -> Optional[ResultSection]:
         """Search xml content for external targets, indicators, and base64 content.
 
         Args:
@@ -1458,14 +1435,8 @@ class Oletools(ServiceBase):
             result: Result sections are added to this result.
             include_fpos: Whether to include possible false positives in results.
         """
-        xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
-        assert xml_target_res.heuristic # helps typecheckers
-        xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
-        xml_b64_res = ResultSection("Base64 content:")
-        xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
+        xml_res = ResultSection("XML file content")
 
-        external_links: List[Tuple[bytes, bytes]] = []
-        ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
             xml_extracted = set()
@@ -1478,6 +1449,7 @@ class Oletools(ServiceBase):
                     except zipfile.BadZipFile:
                         continue
 
+                    xml_section = ResultSectionWrapper(f)
                     try:
                         # Deobfuscate xml using parser
                         parsed = etree.XML(contents, None)
@@ -1490,11 +1462,34 @@ class Oletools(ServiceBase):
 
                     if len(data) > self.MAX_XML_SCAN_CHARS:
                         data = data[:self.MAX_XML_SCAN_CHARS]
-                        xml_big_res.add_line(f'{f}')
-                        assert xml_big_res.heuristic
-                        xml_big_res.heuristic.increment_frequency()
+                        xml_section.add_line(f'File size ({len(data)}) is to large to be fully scanned')
+                        xml_section.add_report(ReportHeuristic(3, f, f'xml of size {len(data)}'))
 
-                    external_links.extend(has_external)
+                    if has_external:
+                        xml_section.add_line('\nExternal Links:')
+                    for ty, link in has_external:
+                        link_type = safe_str(ty)
+                        link_string = f'{link_type} link: {safe_str(link)}'
+                        link_report = ReportHeuristic(1, f, link_string)
+                        xml_section.add_line(link_string)
+                        if re.search(self.IP_RE, link):
+                            link_report.add_signature_id('external_link_ip')
+                        if link.startswith(b'mhtml:'):
+                            link_report.add_signature_id('mhtml_link')
+                            # Get last url link
+                            link = link.rsplit(b'!x-usc:')[-1]
+                        url = urlparse(link)
+                        if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
+                            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
+                                    and not os.path.basename(url.path) in self.tag_safelist:
+                                link_report.add_signature_id('link_to_executable')
+                            if url.scheme != b'file':
+                                link_report.add_signature_id(link_type.lower())
+                                #if link_type.lower() == 'attachedtemplate':
+                                #    xml_target_res.heuristic.add_attack_id('T1221')
+                        if link_report.signatures:
+                            xml_section.add_report(link_report)
+
                     has_dde = re.search(rb'ddeLink', data)  # Extract all files with dde links
                     has_script = re.search(self.JAVASCRIPT_RE, data)  # Extract all files with javascript
                     extract_regex = bool(has_external or has_dde or has_script)
@@ -1502,18 +1497,21 @@ class Oletools(ServiceBase):
                     # Check for IOC and b64 data in XML
                     iocs, extract_ioc = self._check_for_patterns(data, include_fpos)
                     if iocs:
-                        for tag_type, tags in iocs.items():
-                            for tag in tags:
-                                ioc_files[tag_type+safe_str(tag)].append(f)
-                                xml_ioc_res.add_tag(tag_type, tag)
+                        xml_section.add_line('\nIOCs:')
+                    for tag_type, tags in iocs.items():
+                        for tag in tags:
+                            xml_section.add_line(f'{tag_type} {tag}')
+                            xml_section.add_report(ReportHeuristic(7, f, f'{tag_type} {tag}'))
+                            xml_section.add_tag(tag_type, tag)
 
                     f_b64res = self._check_for_b64(data, f)
-                    if f_b64res:
-                        f_b64res.set_heuristic(8)
-                        xml_b64_res.add_subsection(f_b64res)
+                    #if f_b64res:
+                    #    f_b64res.set_heuristic(8)
+                    #    xml_section.add_subsection(f_b64res)
 
                     # all vba extracted anyways
                     if (extract_ioc or f_b64res or extract_regex) and not f.endswith("vbaProject.bin"):
+                        xml_res.add_subsection(xml_section)
                         xml_sha256 = hashlib.sha256(contents).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             self._extract_file(contents, xml_sha256, f"zipped file {f} contents")
@@ -1521,41 +1519,7 @@ class Oletools(ServiceBase):
         except Exception:
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
-        for ty, link in set(external_links):
-            link_type = safe_str(ty)
-            xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
-            if re.search(self.IP_RE, link):
-                xml_target_res.heuristic.add_signature_id('external_link_ip')
-            if link.startswith(b'mhtml:'):
-                xml_target_res.heuristic.add_signature_id('mhtml_link')
-                # Get last url link
-                link = link.rsplit(b'!x-usc:')[-1]
-            url = urlparse(link)
-            if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
-                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
-                        and not os.path.basename(url.path) in self.tag_safelist:
-                    xml_target_res.heuristic.add_signature_id('link_to_executable')
-                if url.scheme != b'file':
-                    xml_target_res.heuristic.add_signature_id(link_type.lower())
-                    if link_type.lower() == 'attachedtemplate':
-                        xml_target_res.heuristic.add_attack_id('T1221')
-
-
-        if external_links:
-            result.add_section(xml_target_res)
-        if xml_big_res.body:
-            result.add_section(xml_big_res)
-        if xml_ioc_res.tags:
-            for tag_type, res_tags in xml_ioc_res.tags.items():
-                for res_tag in res_tags:
-                    xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {res_tag} in:")
-                    xml_ioc_res.add_lines(ioc_files[tag_type+res_tag])
-                    xml_ioc_res.add_line('')
-                    assert xml_ioc_res
-                    xml_ioc_res.heuristic.increment_frequency()
-            result.add_section(xml_ioc_res)
-        if xml_b64_res.subsections:
-            result.add_section(xml_b64_res)
+        return xml_res if xml_res.subsections else None
 
     @staticmethod
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
