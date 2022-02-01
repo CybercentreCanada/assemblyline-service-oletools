@@ -99,7 +99,7 @@ heuristics:
 
   - heur_id: 8
     name: B64 in XML
-    score: 100
+    score: 0
     filetype: document/office
     description: Base64 content discovered in compressed XML.
 
@@ -112,7 +112,7 @@ heuristics:
 
   - heur_id: 10
     name: B64 in OLE
-    score: 100
+    score: 0
     filetype: document/office
     description: Base64 content discovered in OLE Object.
 
