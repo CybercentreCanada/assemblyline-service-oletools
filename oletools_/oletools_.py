@@ -626,11 +626,9 @@ class Oletools(ServiceBase):
         """
         meta_sec = ResultSection("OLE Metadata:")
         meta_sec_json_body = dict()
-        codec = 'latin1'
+        codec = safe_str(getattr(meta, 'codepage', 'latin_1'), force_str=True)
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
-            if prop == 'codepage':
-                codec = str(value)
             if value is not None and value not in ['"', "'", ""]:
                 if prop == "thumbnail":
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
@@ -703,14 +701,16 @@ class Oletools(ServiceBase):
                 return
             current_pos += 2
             str_len *= 2
-            if str_len > 0 and i in sttb_fassoc_lut:
-                safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16'))
-                altmeta_sec_json_body[sttb_fassoc_lut[i]] = safe_val
+            if str_len > 0:
+                if i in sttb_fassoc_lut:
+                    safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16', 'ignore'))
+                    altmeta_sec_json_body[sttb_fassoc_lut[i]] = safe_val
                 current_pos += str_len
             else:
                 continue
 
-            if i == 1 and safe_val is not None:
+            if i == 1 and safe_val.strip():
+                altmeta_sec.heuristic = Heuristic(1)
                 safe_link = safe_val.encode('utf8', 'ignore')
                 if re.search(self.IP_RE, safe_link):
                     altmeta_sec.heuristic.add_signature_id('external_link_ip')
@@ -732,9 +732,9 @@ class Oletools(ServiceBase):
                             and not os.path.basename(url.path) in self.tag_safelist:
                         altmeta_sec.heuristic.add_signature_id('link_to_executable')
                     if url.scheme != 'file':
-                        altmeta_sec.heuristic = Heuristic(1)
-                        altmeta_sec.heuristic.add_signature_id(f'attached{sttb_fassoc_lut[i].lower()}')
+                        altmeta_sec.heuristic.add_signature_id('attachedtemplate')
                         altmeta_sec.heuristic.add_attack_id('T1221')
+
         if altmeta_sec_json_body:
             altmeta_sec.body = json.dumps(altmeta_sec_json_body)
             return altmeta_sec
