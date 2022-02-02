@@ -245,8 +245,8 @@ class Oletools(ServiceBase):
             _add_section(result, self._check_for_macros(path, request.sha256))
             _add_section(result, self._create_macro_sections(request.sha256))
             self._check_xml_strings(path, result, request.deep_scan)
-        except Exception as e:
-            self.log.error(f"We have encountered a critical error for sample {self.sha}: {str(e)}")
+        except Exception:
+            self.log.error(f"We have encountered a critical error for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
         if request.deep_scan:
             # Proceed with OLE Deep extraction
@@ -255,8 +255,8 @@ class Oletools(ServiceBase):
             try:
                 parser.run()
             except Exception as e:
-                self.log.error("Error while deep parsing {path}: {str(e)}")
-                section = ResultSection("Error deep parsing: {str(e)}")
+                self.log.error(f"Error while deep parsing {path}: {str(e)}")
+                section = ResultSection(f"Error deep parsing: {str(e)}")
                 result.add_section(section)
 
         if self.excess_extracted:
