@@ -21,7 +21,7 @@ import zlib
 
 from collections import defaultdict
 from itertools import chain
-from typing import Dict, IO, List, Mapping, Optional, Set, Tuple
+from typing import Dict, IO, List, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 import magic
@@ -671,8 +671,7 @@ class Oletools(ServiceBase):
         Returns:
             A result section with alternate metadata info if any metadata was found.
         """
-        altmeta_sec = ResultSection("OLE Alternate Metadata:")
-        altmeta_sec_json_body = dict()
+        json_body = {}
 
         sttb_fassoc_start_bytes = b'\xFF\xFF\x12\x00\x00\x00'
         sttb_fassoc_lut = {
@@ -704,40 +703,18 @@ class Oletools(ServiceBase):
             if str_len > 0:
                 if i in sttb_fassoc_lut:
                     safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16', 'ignore'))
-                    altmeta_sec_json_body[sttb_fassoc_lut[i]] = safe_val
+                    json_body[sttb_fassoc_lut[i]] = safe_val
                 current_pos += str_len
             else:
                 continue
 
-            if i == 1 and safe_val.strip():
-                altmeta_sec.heuristic = Heuristic(1)
-                safe_link = safe_val.encode('utf8', 'ignore')
-                if re.search(self.IP_RE, safe_link):
-                    altmeta_sec.heuristic.add_signature_id('external_link_ip')
-                if safe_link.startswith(b'mhtml:'):
-                    altmeta_sec.heuristic.add_signature_id('mhtml_link')
-                    # Get last url link
-                    safe_link = safe_link.rsplit(b'!x-usc:')[-1]
-
-                try:
-                    url = urlparse(safe_link)
-                except ValueError as e:
-                    # Implies we're given an invalid link to parse
-                    if str(e) == 'Invalid IPv6 URL':
-                        continue
-                    else:
-                        raise e
-                if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
-                    if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
-                            and not os.path.basename(url.path) in self.tag_safelist:
-                        altmeta_sec.heuristic.add_signature_id('link_to_executable')
-                    if url.scheme != 'file':
-                        altmeta_sec.heuristic.add_signature_id('attachedtemplate')
-                        altmeta_sec.heuristic.add_attack_id('T1221')
-
-        if altmeta_sec_json_body:
-            altmeta_sec.body = json.dumps(altmeta_sec_json_body)
-            return altmeta_sec
+        if json_body:
+            link = json_body.get(sttb_fassoc_lut[1], '')
+            return ResultSection("OLE Alternate Metadata:",
+                                 body=json.dumps(json_body),
+                                 body_format=BODY_FORMAT.KEY_VALUE,
+                                 heuristic = self._process_link('attachedtemplate', link, Heuristic(1))
+                                             if link else None)
         return None
 
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
@@ -1150,33 +1127,9 @@ class Oletools(ServiceBase):
         safe_link = safe_str(link).encode('utf8', 'ignore')
 
         if safe_link:
-            rtf_tmplt_res = ResultSection("RTF Template:")
-            if re.search(self.IP_RE, safe_link):
-                rtf_tmplt_res.heuristic.add_signature_id('external_link_ip')
-            if safe_link.startswith(b'mhtml:'):
-                rtf_tmplt_res.heuristic.add_signature_id('mhtml_link')
-                # Get last url link
-                safe_link = safe_link.rsplit(b'!x-usc:')[-1]
-
-            try:
-                url = urlparse(safe_link)
-            except ValueError as e:
-                # Implies we're given an invalid link to parse
-                if str(e) == 'Invalid IPv6 URL':
-                    return
-                else:
-                    raise e
-
-            if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
-                rtf_tmplt_res.add_line(f"Path found: {safe_link}")
-                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
-                        and not os.path.basename(url.path) in self.tag_safelist:
-                    rtf_tmplt_res.heuristic.add_signature_id('link_to_executable')
-                if url.scheme != 'file':
-                    rtf_tmplt_res.heuristic = Heuristic(1)
-                    rtf_tmplt_res.heuristic.add_signature_id(f'attachedtemplate')
-                    rtf_tmplt_res.heuristic.add_attack_id('T1221')
-                return rtf_tmplt_res
+            rtf_tmplt_res = ResultSection("RTF Template:", heuristic=Heuristic(1))
+            rtf_tmplt_res.add_line(f'Path found: {safe_link}')
+            self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic)
 
 
     @staticmethod
@@ -1686,30 +1639,7 @@ class Oletools(ServiceBase):
         for ty, link in set(external_links):
             link_type = safe_str(ty)
             xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
-            if re.search(self.IP_RE, link):
-                xml_target_res.heuristic.add_signature_id('external_link_ip')
-            if link.startswith(b'mhtml:'):
-                xml_target_res.heuristic.add_signature_id('mhtml_link')
-                # Get last url link
-                link = link.rsplit(b'!x-usc:')[-1]
-            safe_link = safe_str(link).encode()
-            try:
-                url = urlparse(safe_link)
-            except ValueError as e:
-                # Implies we're given an invalid link to parse
-                if str(e) == 'Invalid IPv6 URL':
-                    continue
-                else:
-                    raise e
-            if url.scheme and url.netloc and not any(pattern in link for pattern in self.pat_safelist):
-                if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
-                        and not os.path.basename(url.path) in self.tag_safelist:
-                    xml_target_res.heuristic.add_signature_id('link_to_executable')
-                if url.scheme != b'file':
-                    xml_target_res.heuristic.add_signature_id(link_type.lower())
-                    if link_type.lower() == 'attachedtemplate':
-                        xml_target_res.heuristic.add_attack_id('T1221')
-
+            self._process_link(link_type, link, xml_target_res.heuristic)
 
         if external_links:
             result.add_section(xml_target_res)
@@ -1899,7 +1829,7 @@ class Oletools(ServiceBase):
 
         return b64_res if b64_res.subsections else None
 
-    # noinspection PyUnusedLocal
+
     def parse_uri(self, check_uri: bytes) -> Tuple[bytes, str, bytes]:
         """Use regex to determine if URI valid and should be reported.
 
@@ -1935,3 +1865,41 @@ class Oletools(ServiceBase):
         elif re.match(self.DOMAIN_RE, url.hostname):
             return full_uri, 'network.static.domain', url.hostname
         return full_uri, '', b''
+
+
+    def _process_link(self, link_type: str, link: Union[str,bytes], heuristic: Heuristic) -> Heuristic:
+        """
+        Processes an external link to add the appropriate signatures to heuristic
+
+        Args:
+            link_type: The type of the link.
+            link: The link text.
+            heuristic: The heuristic to signature.
+
+        Returns:
+            The heuristic that was passed as an argument.
+        """
+        safe_link: bytes = safe_str(link).encode()
+        if re.search(self.IP_RE, safe_link):
+            heuristic.add_signature_id('external_link_ip')
+        if safe_link.startswith(b'mhtml:'):
+            heuristic.add_signature_id('mhtml_link')
+            # Get last url link
+            safe_link = safe_link.rsplit(b'!x-usc:')[-1]
+        try:
+            url = urlparse(safe_link)
+        except ValueError as e:
+            # Implies we're given an invalid link to parse
+            if str(e) == 'Invalid IPv6 URL':
+                return heuristic
+            else:
+                raise e
+        if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
+            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
+                    and not os.path.basename(url.path) in self.tag_safelist:
+                heuristic.add_signature_id('link_to_executable')
+            if url.scheme != b'file':
+                heuristic.add_signature_id(link_type.lower())
+                if link_type.lower() == 'attachedtemplate':
+                    heuristic.add_attack_id('T1221')
+        return heuristic
