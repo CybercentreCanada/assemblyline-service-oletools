@@ -656,7 +656,7 @@ class Oletools(ServiceBase):
                 if prop in self.METADATA_TO_TAG and value:
                     meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
         if meta_sec_json_body:
-            meta_sec.body = json.dumps(meta_sec_json_body)
+            meta_sec.set_body(json.dumps(meta_sec_json_body), BODY_FORMAT.KEY_VALUE)
             return meta_sec
         return None
 
@@ -741,7 +741,7 @@ class Oletools(ServiceBase):
             if 'Known' in clsid_desc or 'exploit' in clsid_desc:
                 clsid_sec.set_heuristic(52)
         clsid_sec_json_body[ole_clsid] = clsid_desc
-        clsid_sec.body = json.dumps(clsid_sec_json_body)
+        clsid_sec.set_body(json.dumps(clsid_sec_json_body), BODY_FORMAT.KEY_VALUE)
         return clsid_sec
 
     def _process_ole10native(self, stream_name: str, data: bytes, streams_section: ResultSection) -> bool:
