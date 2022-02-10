@@ -368,7 +368,7 @@ class OLEDeepParser(object):
                     self.parse_field(field_with_other_parser, prop_res, self.PARSING_MODE_DISPLAY, parent_res)
 
             if len(prop_res.body) > 1:
-                prop_res.body = json.dumps(prop_res.body)
+                prop_res.set_body(json.dumps(prop_res.body))
                 res.add_subsection(prop_res)
 
     def dump_siblings(self, index, path, res, parent_res, is_orphan):
