@@ -1088,7 +1088,7 @@ class Oletools(ServiceBase):
 
         start_idx = data.find(start_bytes)
         if start_idx < 0:
-            return
+            return None
         end_idx = data.find(end_bytes, start_idx)
 
         tplt_data = data[start_idx + len(start_bytes):end_idx].decode('ascii', 'ignore').strip()
@@ -1117,6 +1117,8 @@ class Oletools(ServiceBase):
             rtf_tmplt_res = ResultSection("RTF Template:", heuristic=Heuristic(1))
             rtf_tmplt_res.add_line(f'Path found: {safe_link}')
             self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic)
+            return rtf_tmplt_res
+        return None
 
     @staticmethod
     def _sanitize_filename(filename: str, replacement: str = '_', max_length: int = 200) -> str:
