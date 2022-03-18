@@ -702,11 +702,11 @@ class Oletools(ServiceBase):
 
         if json_body:
             link = json_body.get(sttb_fassoc_lut[1], '')
-            return ResultSection("OLE Alternate Metadata:",
+            alternate_section = ResultSection("OLE Alternate Metadata:",
                                  body=json.dumps(json_body),
-                                 body_format=BODY_FORMAT.KEY_VALUE,
-                                 heuristic=self._process_link('attachedtemplate', link, Heuristic(1))
-                                 if link else None)
+                                 body_format=BODY_FORMAT.KEY_VALUE)
+            if link:
+                alternate_section.set_heuristic(self._process_link('attachedtemplate', link, Heuristic(1), alternate_section))
         return None
 
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
@@ -1116,7 +1116,7 @@ class Oletools(ServiceBase):
         if safe_link:
             rtf_tmplt_res = ResultSection("RTF Template:", heuristic=Heuristic(1))
             rtf_tmplt_res.add_line(f'Path found: {safe_link}')
-            self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic)
+            self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic, rtf_tmplt_res)
             return rtf_tmplt_res
         return None
 
@@ -1624,7 +1624,7 @@ class Oletools(ServiceBase):
         for ty, link in set(external_links):
             link_type = safe_str(ty)
             xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
-            self._process_link(link_type, link, xml_target_res.heuristic)
+            self._process_link(link_type, link, xml_target_res.heuristic, xml_target_res)
 
         if external_links:
             result.add_section(xml_target_res)
@@ -1834,7 +1834,14 @@ class Oletools(ServiceBase):
         split = check_uri.split(maxsplit=1)
         if not split:
             return b'', '', b''
-        url = urlparse(split[0])
+        try:
+            url = urlparse(split[0])
+        except ValueError as e:
+            # Implies we're given an invalid link to parse
+            if str(e) == 'Invalid IPv6 URL':
+                return b'', '', b''
+            else:
+                raise e
         if not url.scheme or not url.hostname \
                 or url.scheme == b'file' or not re.match(b'(?i)[a-z0-9.-]+', url.hostname):
             return b'', '', b''
@@ -1850,7 +1857,7 @@ class Oletools(ServiceBase):
             return full_uri, 'network.static.domain', url.hostname
         return full_uri, '', b''
 
-    def _process_link(self, link_type: str, link: Union[str, bytes], heuristic: Heuristic) -> Heuristic:
+    def _process_link(self, link_type: str, link: Union[str, bytes], heuristic: Heuristic, section: ResultSection) -> Heuristic:
         """
         Processes an external link to add the appropriate signatures to heuristic
 
@@ -1858,31 +1865,29 @@ class Oletools(ServiceBase):
             link_type: The type of the link.
             link: The link text.
             heuristic: The heuristic to signature.
+            section: The section for ioc tags
 
         Returns:
             The heuristic that was passed as an argument.
         """
         safe_link: bytes = safe_str(link).encode()
-        if re.search(self.IP_RE, safe_link):
-            heuristic.add_signature_id('external_link_ip')
         if safe_link.startswith(b'mhtml:'):
             heuristic.add_signature_id('mhtml_link')
             # Get last url link
             safe_link = safe_link.rsplit(b'!x-usc:')[-1]
-        try:
-            url = urlparse(safe_link)
-        except ValueError as e:
-            # Implies we're given an invalid link to parse
-            if str(e) == 'Invalid IPv6 URL':
-                return heuristic
-            else:
-                raise e
-        if url.scheme and url.netloc and not any(pattern in safe_link for pattern in self.pat_safelist):
-            if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(url.path)[1]) \
-                    and not os.path.basename(url.path) in self.tag_safelist:
-                heuristic.add_signature_id('link_to_executable')
-            if url.scheme != b'file':
-                heuristic.add_signature_id(link_type.lower())
-                if link_type.lower() == 'attachedtemplate':
-                    heuristic.add_attack_id('T1221')
+        url, hostname_type, hostname = self.parse_uri(safe_link)
+        if url:
+            section.add_tag('network.static.uri', url)
+        if hostname:
+            section.add_tag(hostname_type, hostname)
+        if hostname_type == 'network.static.ip':
+            heuristic.add_signature_id('external_link_ip')
+        filename = os.path.basename(url).split(b'?')[0]
+        if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1]) \
+                and not filename in self.tag_safelist:
+            heuristic.add_signature_id('link_to_executable')
+            section.add_tag('file.name.extracted', filename)
+        heuristic.add_signature_id(link_type.lower())
+        if link_type.lower() == 'attachedtemplate':
+            heuristic.add_attack_id('T1221')
         return heuristic
