@@ -1877,7 +1877,10 @@ class Oletools(ServiceBase):
             safe_link = safe_link.rsplit(b'!x-usc:')[-1]
         url, hostname_type, hostname = self.parse_uri(safe_link)
         if url:
+            heuristic.add_signature_id(link_type.lower())
             section.add_tag('network.static.uri', url)
+            if link_type.lower() == 'attachedtemplate':
+                heuristic.add_attack_id('T1221')
         if hostname:
             section.add_tag(hostname_type, hostname)
         if hostname_type == 'network.static.ip':
@@ -1887,7 +1890,4 @@ class Oletools(ServiceBase):
                 and not filename in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
             section.add_tag('file.name.extracted', filename)
-        heuristic.add_signature_id(link_type.lower())
-        if link_type.lower() == 'attachedtemplate':
-            heuristic.add_attack_id('T1221')
         return heuristic
