@@ -10,6 +10,7 @@ import binascii
 import email
 import gzip
 import hashlib
+from importlib.resources import path
 import json
 import logging
 import os
@@ -1884,7 +1885,7 @@ class Oletools(ServiceBase):
             section.add_tag(hostname_type, hostname)
         if hostname_type == 'network.static.ip':
             heuristic.add_signature_id('external_link_ip')
-        filename = os.path.basename(url).split(b'?')[0]
+        filename = os.path.basename(urlparse(url).path)
         if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1]) \
                 and not filename in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
