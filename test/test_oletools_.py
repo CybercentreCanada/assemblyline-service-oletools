@@ -1,4 +1,6 @@
 
+from assemblyline_v4_service.common.result import Heuristic, ResultSection
+
 from oletools.olevba import __version__ as olevba_version
 from oletools.oleid import __version__ as oleid_version
 from oletools.rtfobj import __version__ as rtfobj_version
@@ -60,3 +62,10 @@ def test_parse_uri_ip():
     ole = Oletools()
     ole.start()
     assert ole.parse_uri(b'https://8.8.8.8') == (b'https://8.8.8.8', 'network.static.ip', b'8.8.8.8')
+
+
+def test_process_link_com_false_positive():
+    ole = Oletools()
+    ole.start
+    heur = ole._process_link('hyperlink', b'https://google.com', Heuristic(1), ResultSection('Test'))
+    assert heur.score == 0
