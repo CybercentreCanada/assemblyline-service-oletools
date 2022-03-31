@@ -1241,8 +1241,7 @@ class Oletools(ServiceBase):
                     assert autoexecution.heuristic
                     autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
-                signatures = {keyword: 1 for keyword in suspicious
-                              if keyword not in ('hex strings', 'base64 strings')}
+                signatures = {keyword: 1 for keyword in suspicious}
                 heuristic = Heuristic(30, signatures=signatures) if signatures else None
                 macro_section.add_subsection(ResultSection("Suspicious strings or functions",
                                                            heuristic=heuristic,

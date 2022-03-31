@@ -237,6 +237,14 @@ heuristics:
     name: Suspicious strings or functions
     score: 50
     max_score: 300
+    signature_score_map:
+      call: 0
+      output: 0
+      create: 0
+      system: 0
+      run: 0
+      windows: 0
+      open: 0
     filetype: document/office
     description: Suspicious strings or functions
 
