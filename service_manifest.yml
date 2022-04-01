@@ -238,10 +238,10 @@ heuristics:
     score: 50
     max_score: 300
     signature_score_map:
-      base64 strings: 0
+      base64_strings: 0
       call: 0
       create: 0
-      hex strings: 0
+      hex_strings: 0
       open: 0
       output: 0
       run: 0
