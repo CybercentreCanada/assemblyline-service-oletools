@@ -259,8 +259,10 @@ class Oletools(ServiceBase):
                 result.add_section(section)
 
         if self.excess_extracted:
-            self.log.error(f"Too many files extracted for sample {self.sha}."
-                           f" {self.excess_extracted} files were not extracted")
+            result.add_section("Some files not extracted",
+                               body=f"This file contains to many subfiles to be extracted.\n"
+                                    f"There are {self.excess_extracted} files over the limit of {request.max_extracted} "
+                                    f"that were not extracted.")
         request.set_service_context(self.get_tool_version())
 
     def _check_for_indicators(self, filename: str) -> Optional[ResultSection]:
@@ -1613,7 +1615,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or f_b64res or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or f_b64res or extract_regex or include_fpos) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(contents).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             self._extract_file(contents, xml_sha256, f"zipped file {f} contents")
