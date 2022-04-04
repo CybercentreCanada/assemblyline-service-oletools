@@ -1613,7 +1613,7 @@ class Oletools(ServiceBase):
                         xml_b64_res.add_subsection(f_b64res)
 
                     # all vba extracted anyways
-                    if (extract_ioc or f_b64res or extract_regex) and not f.endswith("vbaProject.bin"):
+                    if (extract_ioc or f_b64res or extract_regex or include_fpos) and not f.endswith("vbaProject.bin"):
                         xml_sha256 = hashlib.sha256(contents).hexdigest()
                         if xml_sha256 not in xml_extracted:
                             self._extract_file(contents, xml_sha256, f"zipped file {f} contents")
