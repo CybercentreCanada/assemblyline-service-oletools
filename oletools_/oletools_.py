@@ -259,8 +259,10 @@ class Oletools(ServiceBase):
                 result.add_section(section)
 
         if self.excess_extracted:
-            self.log.error(f"Too many files extracted for sample {self.sha}."
-                           f" {self.excess_extracted} files were not extracted")
+            result.add_section("Some files not extracted",
+                               body=f"This file contains to many subfiles to be extracted.\n"
+                                    f"There are {self.excess_extracted} files over the limit of {request.max_extracted} "
+                                    f"that were not extracted.")
         request.set_service_context(self.get_tool_version())
 
     def _check_for_indicators(self, filename: str) -> Optional[ResultSection]:
