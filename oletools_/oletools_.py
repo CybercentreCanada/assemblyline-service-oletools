@@ -10,7 +10,6 @@ import binascii
 import email
 import gzip
 import hashlib
-from importlib.resources import path
 import json
 import logging
 import os
@@ -259,10 +258,11 @@ class Oletools(ServiceBase):
                 result.add_section(section)
 
         if self.excess_extracted:
-            result.add_section("Some files not extracted",
-                               body=f"This file contains to many subfiles to be extracted.\n"
-                                    f"There are {self.excess_extracted} files over the limit of {request.max_extracted} "
-                                    f"that were not extracted.")
+            result.add_section(
+                ResultSection("Some files not extracted",
+                              body=f"This file contains to many subfiles to be extracted.\n"
+                                   f"There are {self.excess_extracted} files over the limit of {request.max_extracted} "
+                                   f"that were not extracted."))
         request.set_service_context(self.get_tool_version())
 
     def _check_for_indicators(self, filename: str) -> Optional[ResultSection]:
@@ -706,10 +706,11 @@ class Oletools(ServiceBase):
         if json_body:
             link = json_body.get(sttb_fassoc_lut[1], '')
             alternate_section = ResultSection("OLE Alternate Metadata:",
-                                 body=json.dumps(json_body),
-                                 body_format=BODY_FORMAT.KEY_VALUE)
+                                              body=json.dumps(json_body),
+                                              body_format=BODY_FORMAT.KEY_VALUE)
             if link:
-                alternate_section.set_heuristic(self._process_link('attachedtemplate', link, Heuristic(1), alternate_section))
+                alternate_section.set_heuristic(
+                    self._process_link('attachedtemplate', link, Heuristic(1), alternate_section))
         return None
 
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
@@ -755,7 +756,7 @@ class Oletools(ServiceBase):
         suspicious = False
         sus_sec = ResultSection("Suspicious streams content:")
         native = OleNativeStream(data)
-        if not all(native_item for native_item in [native.data, native.filename, native.src_path, native.temp_path]):
+        if not native.data or not native.filename or not native.src_path or not native.temp_path:
             self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
             return False
         self._extract_file(native.data,
@@ -1859,7 +1860,11 @@ class Oletools(ServiceBase):
             return full_uri, 'network.static.domain', url.hostname
         return full_uri, '', b''
 
-    def _process_link(self, link_type: str, link: Union[str, bytes], heuristic: Heuristic, section: ResultSection) -> Heuristic:
+    def _process_link(self,
+                      link_type: str,
+                      link: Union[str, bytes],
+                      heuristic: Heuristic,
+                      section: ResultSection) -> Heuristic:
         """
         Processes an external link to add the appropriate signatures to heuristic
 
@@ -1889,7 +1894,7 @@ class Oletools(ServiceBase):
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
         if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1]) \
-                and not filename in self.tag_safelist:
+                and filename not in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
             section.add_tag('file.name.extracted', filename)
         return heuristic
