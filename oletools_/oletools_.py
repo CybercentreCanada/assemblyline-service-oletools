@@ -231,14 +231,16 @@ class Oletools(ServiceBase):
         file_contents = request.file_contents
         path = request.file_path
         result = request.result
+        is_installer = request.task.file_type = 'document/installer/windows'
 
         try:
             _add_section(result, self._check_for_indicators(path))
             _add_section(result, self._check_for_dde_links(path))
             if request.task.file_type == 'document/office/mhtml':
                 _add_section(result, self._rip_mhtml(file_contents))
-            self._extract_streams(path, result, request.deep_scan)
-            _add_section(result, self._extract_rtf(file_contents))
+            self._extract_streams(path, result, request.deep_scan or is_installer)
+            if not is_installer:
+                _add_section(result, self._extract_rtf(file_contents))
             _add_section(result, self._check_for_macros(path, request.sha256))
             _add_section(result, self._create_macro_sections(request.sha256))
             self._check_xml_strings(path, result, request.deep_scan)
@@ -696,7 +698,7 @@ class Oletools(ServiceBase):
             current_pos += 2
             str_len *= 2
             if str_len > 0:
-                if i in sttb_fassoc_lut:
+                if i in sttb_fassoc_lut and str_len < 512:
                     safe_val = safe_str(data[current_pos:current_pos + str_len].decode('utf16', 'ignore'))
                     json_body[sttb_fassoc_lut[i]] = safe_val
                 current_pos += str_len
