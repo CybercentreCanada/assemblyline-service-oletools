@@ -1681,7 +1681,7 @@ class Oletools(ServiceBase):
                 file_path = os.path.join(self.working_directory, file_name)
                 with open(file_path, 'wb') as f:
                     f.write(data)
-                self.request.add_extracted(file_path, file_name, description)
+                self.request.add_extracted(file_path, file_name, description, safelist_interface=self.api_interface)
             except MaxExtractedExceeded:
                 self.excess_extracted += 1
             except Exception:
