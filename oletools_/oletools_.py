@@ -231,7 +231,7 @@ class Oletools(ServiceBase):
         file_contents = request.file_contents
         path = request.file_path
         result = request.result
-        is_installer = request.task.file_type = 'document/installer/windows'
+        is_installer = request.task.file_type == 'document/installer/windows'
 
         try:
             _add_section(result, self._check_for_indicators(path))
