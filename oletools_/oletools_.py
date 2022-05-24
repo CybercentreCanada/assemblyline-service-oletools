@@ -123,6 +123,7 @@ class Oletools(ServiceBase):
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
     VBS_HEX_RE = rb'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
     SUSPICIOUS_STRINGS = [
+        # This is based on really old unmaintained stuff and should be replaced
         # In maldoc.yara from decalage2/oledump-contrib/blob/master/
         (rb"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
          rb"|IsBadWritePtr|LoadLibrary|ReadFile|SetFilePointer|ShellExecute|URLDownloadToFile|VirtualAlloc|WinExec"
@@ -238,7 +239,7 @@ class Oletools(ServiceBase):
             _add_section(result, self._check_for_dde_links(path))
             if request.task.file_type == 'document/office/mhtml':
                 _add_section(result, self._rip_mhtml(file_contents))
-            self._extract_streams(path, result, request.deep_scan or is_installer)
+            self._extract_streams(path, result, request.deep_scan, is_installer)
             if not is_installer:
                 _add_section(result, self._extract_rtf(file_contents))
             _add_section(result, self._check_for_macros(path, request.sha256))
@@ -417,7 +418,7 @@ class Oletools(ServiceBase):
 
     # noinspection PyBroadException
     def _extract_streams(self, file_name: str, result: Result,
-                         extract_all: bool = False) -> None:
+                         extract_all: bool = False, is_installer: bool = False) -> None:
         """Extracts OLE streams and reports on metadata and suspicious properties.
 
         Args:
@@ -428,7 +429,7 @@ class Oletools(ServiceBase):
         try:
             # Streams in the submitted ole file
             with open(file_name, 'rb') as olef:
-                ole_res = self._process_ole_file(self.sha, olef, extract_all)
+                ole_res = self._process_ole_file(self.sha, olef, extract_all, is_installer)
             if ole_res is not None:
                 result.add_section(ole_res)
 
@@ -442,7 +443,7 @@ class Oletools(ServiceBase):
             with zipfile.ZipFile(file_name) as z:
                 for f_name in z.namelist():
                     with z.open(f_name) as f:
-                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all))
+                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all, is_installer))
 
             if subdoc_res.heuristic or subdoc_res.subsections:
                 result.add_section(subdoc_res)
@@ -450,7 +451,7 @@ class Oletools(ServiceBase):
             self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
     def _process_ole_file(self, name: str, ole_file: IO[bytes],
-                          extract_all: bool = False) -> Optional[ResultSection]:
+                          extract_all: bool = False, is_installer: bool = False) -> Optional[ResultSection]:
         """Parses OLE data and reports on metadata and suspicious properties.
 
         Args:
@@ -549,8 +550,9 @@ class Oletools(ServiceBase):
                                                                  heuristic=Heuristic(23)))
                         elif b'executable' in desc:
                             sus_sec.add_subsection(ResultSection("Suspicious string found: 'executable'",
-                                                                 body=body,
-                                                                 heuristic=Heuristic(24)))
+                                                                 body=body))
+                            if not is_installer:  # executables are expected inside of installers
+                                sus_sec.set_heuristic(24)
                         else:
                             sus_sec.add_subsection(ResultSection("Suspicious string found",
                                                                  body=body,
@@ -575,8 +577,8 @@ class Oletools(ServiceBase):
                     sus_res = True
                     sus_sec.add_subsection(ole_b64_res)
 
-                # All streams are extracted with deep scan
-                if extract_stream or swf_sec.body or hex_sec.body or extract_all:
+                # All streams are extracted with deep scan or if it is an installer
+                if extract_stream or swf_sec.body or hex_sec.body or extract_all or is_installer:
                     if exstr_sec:
                         exstr_sec.add_line(f"Stream Name:{stream}, SHA256: {stm_sha}")
                     self._extract_file(data, f'{stm_sha}.ole_stream', f"Embedded OLE Stream {stream}")
