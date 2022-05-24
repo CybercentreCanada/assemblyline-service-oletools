@@ -123,6 +123,7 @@ class Oletools(ServiceBase):
     EXCEL_BIN_RE = rb'(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin'
     VBS_HEX_RE = rb'(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}'
     SUSPICIOUS_STRINGS = [
+        # This is based on really old unmaintained stuff and should be replaced
         # In maldoc.yara from decalage2/oledump-contrib/blob/master/
         (rb"(CloseHandle|CreateFile|GetProcAddr|GetSystemDirectory|GetTempPath|GetWindowsDirectory|IsBadReadPtr"
          rb"|IsBadWritePtr|LoadLibrary|ReadFile|SetFilePointer|ShellExecute|URLDownloadToFile|VirtualAlloc|WinExec"

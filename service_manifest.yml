@@ -202,7 +202,7 @@ heuristics:
 
   - heur_id: 25
     name: Suspicious string found
-    score: 500
+    score: 50
     filetype: document/office
     description: Suspicious string found in the stream
 
