@@ -242,6 +242,7 @@ heuristics:
       call: 0
       create: 0
       hex_strings: 0
+      lib: 0
       open: 0
       output: 0
       run: 0
