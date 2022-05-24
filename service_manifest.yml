@@ -190,7 +190,7 @@ heuristics:
 
   - heur_id: 23
     name: Suspicious javascript string
-    score: 500
+    score: 250
     filetype: document/office
     description: Suspicious javascript string found in the stream
 
