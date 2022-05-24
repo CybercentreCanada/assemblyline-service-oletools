@@ -190,7 +190,7 @@ heuristics:
 
   - heur_id: 23
     name: Suspicious javascript string
-    score: 500
+    score: 250
     filetype: document/office
     description: Suspicious javascript string found in the stream
 
@@ -202,7 +202,7 @@ heuristics:
 
   - heur_id: 25
     name: Suspicious string found
-    score: 500
+    score: 50
     filetype: document/office
     description: Suspicious string found in the stream
 
@@ -242,6 +242,7 @@ heuristics:
       call: 0
       create: 0
       hex_strings: 0
+      lib: 0
       open: 0
       output: 0
       run: 0
