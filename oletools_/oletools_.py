@@ -443,7 +443,7 @@ class Oletools(ServiceBase):
             with zipfile.ZipFile(file_name) as z:
                 for f_name in z.namelist():
                     with z.open(f_name) as f:
-                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all or is_installer))
+                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all, is_installer))
 
             if subdoc_res.heuristic or subdoc_res.subsections:
                 result.add_section(subdoc_res)
