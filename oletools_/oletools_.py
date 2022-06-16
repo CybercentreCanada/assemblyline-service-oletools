@@ -1894,7 +1894,7 @@ class Oletools(ServiceBase):
                 heuristic.add_attack_id('T1221')
         if hostname:
             section.add_tag(hostname_type, hostname)
-        if hostname_type == 'network.static.ip':
+        if hostname_type == 'network.static.ip' and link_type.lower() != 'hyperlink':
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
         if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1]) \
