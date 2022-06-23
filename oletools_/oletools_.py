@@ -242,8 +242,7 @@ class Oletools(ServiceBase):
             self._extract_streams(path, result, request.deep_scan, is_installer)
             if not is_installer:
                 _add_section(result, self._extract_rtf(file_contents))
-            _add_section(result, self._check_for_macros(path, request.sha256))
-            _add_section(result, self._create_macro_sections(request.sha256))
+            _add_section(result, self._olevba(path, request.sha256))
             self._check_xml_strings(path, result, request.deep_scan)
         except Exception:
             self.log.error(
@@ -1123,6 +1122,7 @@ class Oletools(ServiceBase):
 
         if safe_link:
             rtf_tmplt_res = ResultSection("RTF Template:", heuristic=Heuristic(1))
+            assert rtf_tmplt_res.heuristic
             rtf_tmplt_res.add_line(f'Path found: {safe_link}')
             self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic, rtf_tmplt_res)
             return rtf_tmplt_res
@@ -1159,7 +1159,7 @@ class Oletools(ServiceBase):
         return sane_fname
 
     # Macros
-    def _check_for_macros(self, filename: str, request_hash: str) -> Optional[ResultSection]:
+    def _olevba(self, filename: str, request_hash: str) -> Optional[ResultSection]:
         """Use VBA_Parser in Oletools to extract VBA content from sample.
 
         Args:
@@ -1167,55 +1167,98 @@ class Oletools(ServiceBase):
             file_contents: Original sample file content.
             request_hash: Original submitted sample's sha256hash.
 
-        Returns: A result section with the error condition if macros couldn't be analyzed
+        Returns:
+            - None if there are no macros,
+            - A result section with the error condition if there are macros
+              but they couldn't be analyzed by OleVBA, or
+            - A macro section with subsections analyzing the macros
         """
-        # noinspection PyBroadException
         try:
             vba_parser = VBA_Parser(filename)
-
-            # Get P-code
-            try:
-                if vba_parser.detect_vba_stomping():
-                    self.vba_stomping = True
-                pcode: str = vba_parser.extract_pcode()
-                # remove header
-                pcode_l = pcode.split('\n', 2)
-                if len(pcode_l) == 3:
-                    self.pcode.append(pcode_l[2])
-            except Exception as e:
-                self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
-
-            # Get Macros
-            try:
-                if vba_parser.detect_vba_macros():
-                    # noinspection PyBroadException
-                    try:
-                        for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
-                            if stream_path == 'VBA P-code':
-                                continue
-                            assert isinstance(vba_code, str)
-                            if vba_code.strip() == '':
-                                continue
-                            vba_code_sha256 = hashlib.sha256(str(vba_code).encode()).hexdigest()
-                            if vba_code_sha256 == request_hash:
-                                continue
-
-                            self.macros.append(vba_code)
-                    except Exception:
-                        self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: "
-                                       f"{traceback.format_exc()}")
-                        section = ResultSection("OleVBA : Error extracting macros")
-                        section.add_tag('technique.macro', "Contains VBA Macro(s)")
-                        return section
-
-            except Exception as e:
-                self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {str(e)}")
-                section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
-                return section
-
         except Exception:
             self.log.debug(f"OleVBA VBA_Parser constructor failed for sample {self.sha}, "
                            f"may not be a supported OLE document")
+            return None
+        try:
+            if not vba_parser.detect_vba_macros():
+                return None
+        except Exception as e:
+            self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {str(e)}")
+            section = ResultSection(f"OleVBA : Error parsing macros: {str(e)}")
+            return section
+        # Get VBA Macros
+        try:
+            vba_macros = [vba_code for _, stream_path, _, vba_code in vba_parser.extract_macros()
+                          if isinstance(vba_code, str) and stream_path not in ('VBA P-code', 'xlm_macro')]
+            all_vba_code = '\n'.join(vba_macros)
+            form_strings = '\n'.join(form_string for _, _, form_string in vba_parser.extract_form_strings())
+        except Exception as e:
+            self.log.debug(f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: "
+                           f"{traceback.format_exc()}")
+            section = ResultSection(f"OleVBA : Error extracting macros {str(e)}")
+            section.add_tag('technique.macro', "Contains VBA Macro(s)")
+            return section
+        # Extract vba code
+        if all_vba_code:
+            data = all_vba_code.encode()
+            vba_sha256 = hashlib.sha256(data).hexdigest()
+            if vba_sha256 != request_hash:
+                self._extract_file(data, f"all_vba_{vba_sha256[:8]}", 'VBA code')
+
+        # flag macro passwords for extract
+        assert self.request
+        passwords = re.findall('PasswordDocument:="([^"]+)"', all_vba_code)
+        if 'passwords' in self.request.temp_submission_data:
+            self.request.temp_submission_data['passwords'].extend(passwords)
+        else:
+            self.request.temp_submission_data['passwords'] = passwords
+
+        macro_section = ResultSection("OleVBA : Macros detected")
+        macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
+        if self._flag_macro(all_vba_code):
+            macro_section.add_line("Macros may be packed or obfuscated.")
+            macro_section.set_heuristic(20)
+
+        # VBA_Scanner
+        try:
+            vba_scan: set[tuple[str, str, str]] = set(VBA_Scanner(all_vba_code + '\n' + form_strings)
+                                                      .scan(deobfuscate=True))
+            _add_subsection(macro_section, self._scan_section(vba_scan))
+        except Exception:
+            macro_section.add_subsection(ResultSection(f"OleVBA VBA_Scanner failed for sample {self.sha}"))
+            vba_scan = set()
+        # MacroRaptor on VBA
+        vba_mraptor = mraptor.MacroRaptor(all_vba_code)
+        vba_mraptor.scan()
+        _add_subsection(macro_section, self._mraptor_section(vba_mraptor))
+        # Get P-code
+        try:
+            pcode: str = vba_parser.extract_pcode()
+        except Exception as e:
+            self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}: {str(e)}")
+            return macro_section
+        # Scan P-code
+        try:
+            pcode_scan: set[tuple[str, str, str]] = set(x for x in VBA_Scanner(pcode)
+                                                        .scan(deobfuscate=True) if x not in vba_scan)
+        except Exception as e:
+            self.log.warning(f"OleVBA VBA_Scanner on pcode failed for sample {self.sha}. Reason {str(e)}")
+            pcode_scan = set()
+        pcode_mraptor = mraptor.MacroRaptor(pcode)
+        pcode_mraptor.scan()
+        try:
+            vba_stomping = vba_parser.detect_vba_stomping()
+        except Exception as e:
+            self.log.debug(f"OleVBA detect_vba_stomping detection failed for sample {self.sha}: {str(e)}")
+            vba_stomping = False 
+        if pcode_scan or pcode_mraptor.matches or vba_stomping:
+            pcode_section = ResultSection('OleVBA : Stomping detected', parent=macro_section,
+                                          heuristic=Heuristic(4))
+            assert pcode_section.heuristic
+            if pcode_scan or pcode_mraptor.matches:
+                pcode_section.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
+            _add_subsection(pcode_section, self._scan_section(pcode_scan))
+            _add_subsection(pcode_section, self._mraptor_section(pcode_mraptor)) 
 
     def _create_macro_sections(self, request_hash: str) -> Optional[ResultSection]:
         """ Creates result section for embedded macros of sample.
@@ -1225,8 +1268,6 @@ class Oletools(ServiceBase):
         Args:
             Request_hash: Original submitted sample's sha256hash.
         """
-        macro_section = ResultSection("OleVBA : Macros detected")
-        macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
         subsections = []
         # noinspection PyBroadException
         try:
@@ -1263,9 +1304,6 @@ class Oletools(ServiceBase):
             for subsection in subsections:  # Add dump sections after string sections
                 macro_section.add_subsection(subsection)
 
-            # Compare suspicious content macros to pcode, macros may have been stomped
-            vba_sus, vba_matches = self._mraptor_check(self.macros, "all_vba", "vba_code", request_hash)
-            pcode_sus, pcode_matches = self._mraptor_check(self.pcode, "all_pcode", "pcode", request_hash)
 
             if self.vba_stomping or pcode_matches and pcode_sus and not vba_sus:
                 stomp_sec = ResultSection("VBA Stomping", heuristic=Heuristic(4))
@@ -1289,8 +1327,8 @@ class Oletools(ServiceBase):
             macro_section.add_subsection(section)
         return macro_section if macro_section.subsections else None
 
-    # TODO: may want to eventually pull this out into a Deobfuscation helper that supports multi-languages
 
+    # TODO: may want to eventually pull this out into a Deobfuscation helper that supports multi-languages
     def _deobfuscator(self, text: str) -> str:
         """Attempts to identify and decode multiple types of deobfuscation in VBA code.
 
@@ -1394,9 +1432,6 @@ class Oletools(ServiceBase):
         vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
         macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
         macro_section.add_tag('file.ole.macro.sha256', vba_code_sha256)
-        if self._flag_macro(analyzed_code):
-            macro_section.add_line("Macro may be packed or obfuscated.")
-            macro_section.set_heuristic(20)
 
         dump_subsection = ResultSection("Macro contents dump", body_format=BODY_FORMAT.MEMORY_DUMP)
         if analyzed_code != vba_code:
