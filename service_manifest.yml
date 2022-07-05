@@ -32,6 +32,7 @@ heuristics:
   - heur_id: 1
     name: External Relationship
     score: 0
+    max_score: 1000
     signature_score_map:
       external_relationship_ip: 500
       link_to_executable: 500
