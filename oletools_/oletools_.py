@@ -33,7 +33,7 @@ from oletools import mraptor, msodde, oleobj
 from oletools.common import clsid
 from oletools.oleobj import OleNativeStream, OOXML_RELATIONSHIP_TAG
 from oletools.oleid import OleID
-from oletools.olevba import VBA_Parser, VBA_Scanner
+from oletools.olevba import VBA_Parser, VBA_Scanner, AUTOEXEC_KEYWORDS
 from oletools.thirdparty.xxxswf import xxxswf
 
 from assemblyline.common.iprange import is_ip_reserved
@@ -48,6 +48,8 @@ from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
+
+AUTO_EXEC = set(chain(*(x for x in AUTOEXEC_KEYWORDS.values())))
 
 
 def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
@@ -1246,8 +1248,9 @@ class Oletools(ServiceBase):
                                               parent=macro_section,
                                               body='\n'.join(auto_exec))
                 for keyword in auto_exec:
-                    assert autoexecution.heuristic
-                    autoexecution.heuristic.add_signature_id(keyword)
+                    if keyword in AUTO_EXEC:
+                        assert autoexecution.heuristic
+                        autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
                 signatures = {keyword.lower().replace(' ', '_'): 1 for keyword in suspicious}
                 heuristic = Heuristic(30, signatures=signatures) if signatures else None
