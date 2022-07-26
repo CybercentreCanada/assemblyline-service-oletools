@@ -255,7 +255,7 @@ heuristics:
   - heur_id: 32
     name: Autoexecution strings
     score: 50
-    max_score: 500
+    max_score: 300
     filetype: document/office
     description: Autoexecution strings
 
