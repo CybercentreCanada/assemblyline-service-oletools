@@ -1857,7 +1857,7 @@ class Oletools(ServiceBase):
             else:
                 raise e
         if not url.scheme or not url.hostname \
-                or url.scheme == b'file' or not re.match('(?i)[a-z0-9.-]+', url.hostname):
+                or url.scheme == 'file' or not re.match('(?i)[a-z0-9.-]+', url.hostname):
             return '', '', ''
 
         if any(pattern in decoded.encode() for pattern in self.pat_safelist):
