@@ -37,6 +37,7 @@ heuristics:
       external_relationship_ip: 500
       link_to_executable: 500
       mhtml_link: 100
+      msdt_exploit: 0 # Let's see how many false positives we get
       # relationship types
       attachedtemplate: 500
       externallink: 500

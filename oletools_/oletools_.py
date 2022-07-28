@@ -1913,6 +1913,10 @@ class Oletools(ServiceBase):
             'network.static.uri': [url],
             hostname_type: [hostname]
         }
+        if url.endswith('!'):
+            tags['network.static.uri'].append(url[:-1])
+            tags['attribution.exploit'] = ['CVE-2022-30190']
+            heuristic.add_signature_id('msdt_exploit')
         if link_type.lower() == 'attachedtemplate':
             heuristic.add_attack_id('T1221')
         if hostname_type == 'network.static.ip' and link_type.lower() != 'hyperlink':
