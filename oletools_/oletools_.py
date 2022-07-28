@@ -37,6 +37,7 @@ from oletools.olevba import VBA_Parser, VBA_Scanner, AUTOEXEC_KEYWORDS
 from oletools.thirdparty.xxxswf import xxxswf
 
 from assemblyline.common.iprange import is_ip_reserved
+from assemblyline.common.net import is_valid_domain, is_valid_ip
 from assemblyline.common.str_utils import safe_str
 from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
@@ -1508,7 +1509,7 @@ class Oletools(ServiceBase):
                     desc_ip = re.match(self.IP_RE, description)
                     uri, tag_type, tag = self.parse_uri(description)
                     if uri:
-                        network.add(f"{keyword}: {safe_str(uri)}")
+                        network.add(f"{keyword}: {uri}")
                         network_section.heuristic.increment_frequency()
                         network_section.add_tag('network.static.uri', uri)
                         if tag and tag_type:
@@ -1824,7 +1825,7 @@ class Oletools(ServiceBase):
 
         return b64_res if b64_res.subsections else None
 
-    def parse_uri(self, check_uri: bytes) -> Tuple[bytes, str, bytes]:
+    def parse_uri(self, check_uri: Union[bytes, str]) -> Tuple[str, str, str]:
         """Use regex to determine if URI valid and should be reported.
 
         Args:
@@ -1838,34 +1839,36 @@ class Oletools(ServiceBase):
 
         If any of the return values aren't parsed they are left empty.
         """
-        if isinstance(check_uri, str):
-            check_uri = check_uri.encode('utf-8', errors='ignore')
-
+        # Url must be at start and can't contain whitespace
         split = check_uri.split(maxsplit=1)
         if not split:
-            return b'', '', b''
+            return '', '', ''
         try:
-            url = urlparse(split[0])
+            # Url can't contain non-ascii characters
+            decoded = split[0].decode('ascii') if isinstance(split[0], bytes) else split[0]
+        except UnicodeDecodeError:
+            return '', '', ''
+        try:
+            url = urlparse(decoded)
         except ValueError as e:
             # Implies we're given an invalid link to parse
             if str(e) == 'Invalid IPv6 URL':
-                return b'', '', b''
+                return '', '', ''
             else:
                 raise e
         if not url.scheme or not url.hostname \
-                or url.scheme == b'file' or not re.match(b'(?i)[a-z0-9.-]+', url.hostname):
-            return b'', '', b''
+                or url.scheme == b'file' or not re.match('(?i)[a-z0-9.-]+', url.hostname):
+            return '', '', ''
 
-        full_uri: bytes = url.geturl()
-        if any(pattern in full_uri for pattern in self.pat_safelist):
-            return b'', '', b''
+        if any(pattern in decoded.encode() for pattern in self.pat_safelist):
+            return '', '', ''
 
-        if re.match(self.IP_RE, url.hostname):
-            if not is_ip_reserved(safe_str(url.hostname)):
-                return full_uri, 'network.static.ip', url.hostname
-        elif re.match(self.DOMAIN_RE, url.hostname):
-            return full_uri, 'network.static.domain', url.hostname
-        return full_uri, '', b''
+        if is_valid_ip(url.hostname):
+            if not is_ip_reserved(url.hostname):
+                return url.geturl(), 'network.static.ip', url.hostname
+        elif is_valid_domain(url.hostname):
+            return url.geturl(), 'network.static.domain', url.hostname
+        return url.geturl(), '', ''
 
     def _process_link(self,
                       link_type: str,
@@ -1884,23 +1887,22 @@ class Oletools(ServiceBase):
         Returns:
             The heuristic that was passed as an argument.
         """
-        safe_link: bytes = safe_str(link).encode()
-        if safe_link.startswith(b'mhtml:'):
+        safe_link: str = safe_str(link)
+        if safe_link.startswith('mhtml:'):
             heuristic.add_signature_id('mhtml_link')
             # Get last url link
-            safe_link = safe_link.rsplit(b'!x-usc:')[-1]
+            safe_link = safe_link.rsplit('!x-usc:')[-1]
         url, hostname_type, hostname = self.parse_uri(safe_link)
-        if url:
+        if hostname:
             heuristic.add_signature_id(link_type.lower())
             section.add_tag('network.static.uri', url)
+            section.add_tag(hostname_type, hostname)
             if link_type.lower() == 'attachedtemplate':
                 heuristic.add_attack_id('T1221')
-        if hostname:
-            section.add_tag(hostname_type, hostname)
         if hostname_type == 'network.static.ip' and link_type.lower() != 'hyperlink':
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
-        if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1]) \
+        if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1].encode()) \
                 and filename not in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
             section.add_tag('file.name.extracted', filename)
