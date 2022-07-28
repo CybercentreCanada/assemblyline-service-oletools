@@ -1183,7 +1183,7 @@ class Oletools(ServiceBase):
             try:
                 if vba_parser.detect_vba_stomping():
                     self.vba_stomping = True
-                pcode = safe_str(vba_parser.extract_pcode())
+                pcode: str = safe_str(vba_parser.extract_pcode())
                 # remove header
                 pcode_l = pcode.split('\n', 2)
                 if len(pcode_l) == 3:
