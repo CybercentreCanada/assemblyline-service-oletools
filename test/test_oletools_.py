@@ -8,11 +8,13 @@ from oletools.msodde import __version__ as msodde_version
 
 from oletools_.oletools_ import Oletools
 
+
 def test_get_oletools_version():
     ole = Oletools()
     ole.start()
     assert ole.get_tool_version() == f"olevba v{olevba_version}, oleid v{oleid_version}, " \
                                      f"rtfobj v{rtfobj_version}, msodde v{msodde_version}"
+
 
 def test_flag_macro():
     ole = Oletools()
@@ -41,27 +43,31 @@ def test_flag_macro():
 def test_parse_uri_empty():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'') == (b'', '', b'')
+    assert ole.parse_uri(b'') == ('', '', '')
+
 
 def test_parse_uri_file():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'file://www.google.com') == (b'', '', b'')
+    assert ole.parse_uri(b'file://www.google.com') == ('', '', '')
+
 
 def test_parse_uri_safelist():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'http://www.microsoft.com') == (b'', '', b'')
+    assert ole.parse_uri(b'http://www.microsoft.com') == ('', '', '')
+
 
 def test_parse_uri_domain():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'http://google.com') == (b'http://google.com', 'network.static.domain', b'google.com')
+    assert ole.parse_uri(b'http://google.com') == ('http://google.com', 'network.static.domain', 'google.com')
+
 
 def test_parse_uri_ip():
     ole = Oletools()
     ole.start()
-    assert ole.parse_uri(b'https://8.8.8.8') == (b'https://8.8.8.8', 'network.static.ip', b'8.8.8.8')
+    assert ole.parse_uri(b'https://8.8.8.8') == ('https://8.8.8.8', 'network.static.ip', '8.8.8.8')
 
 
 def test_process_link_com_false_positive():
