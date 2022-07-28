@@ -52,6 +52,9 @@ from oletools_.stream_parser import PowerPointDoc
 
 AUTO_EXEC = set(chain(*(x for x in AUTOEXEC_KEYWORDS.values())))
 
+# Type definition for tags
+Tags = Dict[str, List[str]]
+
 
 def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
     """Helper to add optional ResultSections to Results."""
@@ -691,7 +694,7 @@ class Oletools(ServiceBase):
         data = ole_file.read()
         sttb_fassoc_idx = data.find(sttb_fassoc_start_bytes)
         if sttb_fassoc_idx < 0:
-            return
+            return None
         current_pos = sttb_fassoc_idx + len(sttb_fassoc_start_bytes)
 
         for i in range(18):
@@ -699,7 +702,7 @@ class Oletools(ServiceBase):
                 str_len, *_ = struct.unpack('H', data[current_pos:current_pos+2])
             except struct.error:
                 self.log.warning('Could not get STTB metadata length, is the data truncated?')
-                return
+                return None
             current_pos += 2
             str_len *= 2
             if str_len > 0:
@@ -710,15 +713,15 @@ class Oletools(ServiceBase):
             else:
                 continue
 
-        if json_body:
-            link = json_body.get(sttb_fassoc_lut[1], '')
-            alternate_section = ResultSection("OLE Alternate Metadata:",
-                                              body=json.dumps(json_body),
-                                              body_format=BODY_FORMAT.KEY_VALUE)
-            if link:
-                alternate_section.set_heuristic(
-                    self._process_link('attachedtemplate', link, Heuristic(1), alternate_section))
-        return None
+        if not json_body:
+            return None
+        link = json_body.get(sttb_fassoc_lut[1], '')
+        heuristic, tags = self._process_link('attachedtemplate', link) if link else (None, {})
+        return ResultSection("OLE Alternate Metadata:",
+                             body=json.dumps(json_body),
+                             body_format=BODY_FORMAT.KEY_VALUE,
+                             heuristic=heuristic,
+                             tags=tags)
 
     def _process_ole_clsid(self, ole: olefile.OleFileIO) -> Optional[ResultSection]:
         """Create section for ole clsids.
@@ -1122,12 +1125,12 @@ class Oletools(ServiceBase):
                     return match_str
             return matchobj.string
         link = re_rtf_escaped_str.sub(unicode_rtf_replace, tplt_data).encode('utf8', 'ignore').strip()
-        safe_link = safe_str(link).encode('utf8', 'ignore')
+        safe_link: str = safe_str(link)
 
         if safe_link:
-            rtf_tmplt_res = ResultSection("RTF Template:", heuristic=Heuristic(1))
+            heuristic, tags = self._process_link('attachedtemplate', safe_link)
+            rtf_tmplt_res = ResultSection("RTF Template:", heuristic=heuristic, tags=tags)
             rtf_tmplt_res.add_line(f'Path found: {safe_link}')
-            self._process_link('attachedtemplate', safe_link, rtf_tmplt_res.heuristic, rtf_tmplt_res)
             return rtf_tmplt_res
         return None
 
@@ -1180,7 +1183,7 @@ class Oletools(ServiceBase):
             try:
                 if vba_parser.detect_vba_stomping():
                     self.vba_stomping = True
-                pcode: str = vba_parser.extract_pcode()
+                pcode = safe_str(vba_parser.extract_pcode())
                 # remove header
                 pcode_l = pcode.split('\n', 2)
                 if len(pcode_l) == 3:
@@ -1219,6 +1222,7 @@ class Oletools(ServiceBase):
         except Exception:
             self.log.debug(f"OleVBA VBA_Parser constructor failed for sample {self.sha}, "
                            f"may not be a supported OLE document")
+        return None
 
     def _create_macro_sections(self, request_hash: str) -> Optional[ResultSection]:
         """ Creates result section for embedded macros of sample.
@@ -1569,13 +1573,11 @@ class Oletools(ServiceBase):
             result: Result sections are added to this result.
             include_fpos: Whether to include possible false positives in results.
         """
-        xml_target_res = ResultSection("External Relationship Targets in XML", heuristic=Heuristic(1))
-        assert xml_target_res.heuristic  # helps typecheckers
         xml_ioc_res = ResultSection("IOCs content:", heuristic=Heuristic(7, frequency=0))
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
-        external_links: List[Tuple[bytes, bytes]] = []
+        external_links: Set[Tuple[bytes, bytes]] = set()
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
@@ -1605,7 +1607,7 @@ class Oletools(ServiceBase):
                         assert xml_big_res.heuristic
                         xml_big_res.heuristic.increment_frequency()
 
-                    external_links.extend(has_external)
+                    external_links.update(has_external)
                     has_dde = re.search(rb'ddeLink', data)  # Extract all files with dde links
                     has_script = re.search(self.JAVASCRIPT_RE, data)  # Extract all files with javascript
                     extract_regex = bool(has_external or has_dde or has_script)
@@ -1632,22 +1634,33 @@ class Oletools(ServiceBase):
         except Exception:
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
-        for ty, link in set(external_links):
-            link_type = safe_str(ty)
-            xml_target_res.add_line(f'{link_type} link: {safe_str(link)}')
-            self._process_link(link_type, link, xml_target_res.heuristic, xml_target_res)
-
         if external_links:
-            result.add_section(xml_target_res)
+            if len(external_links) == 1:
+                ty, link = list(external_links)[0]
+                link_type = safe_str(ty)
+                heuristic, link_tags = self._process_link(link_type, link)
+                ResultSection("External Relationship Targets in XML",
+                              body=f'{link_type} link: {safe_str(link)}',
+                              heuristic=heuristic,
+                              tags=link_tags,
+                              parent=result)
+            else:
+                xml_target_res = ResultSection("External Relationship Targets in XML")
+                for ty, link in external_links:
+                    link_type = safe_str(ty)
+                    url, *host_tag = self.parse_uri(link)
+                    xml_target_res.add_line(f'{link_type} link: {url}')
+                    xml_target_res.add_tag(*host_tag)
+
         if xml_big_res.body:
             result.add_section(xml_big_res)
         if xml_ioc_res.tags:
             for tag_type, res_tags in xml_ioc_res.tags.items():
                 for res_tag in res_tags:
-                    xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.',1)[-1].upper()} string {res_tag} in:")
-                    xml_ioc_res.add_lines(ioc_files[tag_type+res_tag])
+                    xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.', 1)[-1].upper()} string {res_tag} in:")
+                    xml_ioc_res.add_lines(ioc_files[tag_type+safe_str(res_tag)])
                     xml_ioc_res.add_line('')
-                    assert xml_ioc_res
+                    assert xml_ioc_res.heuristic
                     xml_ioc_res.heuristic.increment_frequency()
             result.add_section(xml_ioc_res)
         if xml_b64_res.subsections:
@@ -1657,7 +1670,7 @@ class Oletools(ServiceBase):
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/', 1)[1].encode(), relationship.attrib['Target'].encode())
-            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG)
+            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG, None)
             if 'Target' in relationship.attrib
             and 'Type' in relationship.attrib
             and 'TargetMode' in relationship.attrib
@@ -1806,7 +1819,7 @@ class Oletools(ServiceBase):
 
             sub_b64_res = ResultSection(f"Result {sha256hash}", parent=b64_res)
             sub_b64_res.add_line(f'BASE64 TEXT SIZE: {end-start}')
-            sub_b64_res.add_line(f'BASE64 SAMPLE TEXT: {data[start:min(start+50, end)]}[........]')
+            sub_b64_res.add_line(f'BASE64 SAMPLE TEXT: {data[start:min(start+50, end)].decode()}[........]')
             sub_b64_res.add_line(f'DECODED SHA256: {sha256hash}')
             if dump_section:
                 sub_b64_res.add_subsection(dump_section)
@@ -1872,9 +1885,7 @@ class Oletools(ServiceBase):
 
     def _process_link(self,
                       link_type: str,
-                      link: Union[str, bytes],
-                      heuristic: Heuristic,
-                      section: ResultSection) -> Heuristic:
+                      link: Union[str, bytes]) -> Tuple[Heuristic, Tags]:
         """
         Processes an external link to add the appropriate signatures to heuristic
 
@@ -1887,23 +1898,28 @@ class Oletools(ServiceBase):
         Returns:
             The heuristic that was passed as an argument.
         """
+        heuristic = Heuristic(1)
         safe_link: str = safe_str(link)
         if safe_link.startswith('mhtml:'):
             heuristic.add_signature_id('mhtml_link')
             # Get last url link
             safe_link = safe_link.rsplit('!x-usc:')[-1]
         url, hostname_type, hostname = self.parse_uri(safe_link)
-        if hostname:
-            heuristic.add_signature_id(link_type.lower())
-            section.add_tag('network.static.uri', url)
-            section.add_tag(hostname_type, hostname)
-            if link_type.lower() == 'attachedtemplate':
-                heuristic.add_attack_id('T1221')
+        if not hostname:
+            # Not a valid link
+            return heuristic, {}
+        heuristic.add_signature_id(link_type.lower())
+        tags = {
+            'network.static.uri': [url],
+            hostname_type: [hostname]
+        }
+        if link_type.lower() == 'attachedtemplate':
+            heuristic.add_attack_id('T1221')
         if hostname_type == 'network.static.ip' and link_type.lower() != 'hyperlink':
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
         if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1].encode()) \
                 and filename not in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
-            section.add_tag('file.name.extracted', filename)
-        return heuristic
+            tags['file.name.extracted'] = [filename]
+        return heuristic, tags
