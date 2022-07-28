@@ -37,6 +37,7 @@ heuristics:
       external_relationship_ip: 500
       link_to_executable: 500
       mhtml_link: 100
+      msdt_exploit: 0 # Let's see how many false positives we get
       # relationship types
       attachedtemplate: 500
       externallink: 500
@@ -255,7 +256,7 @@ heuristics:
   - heur_id: 32
     name: Autoexecution strings
     score: 50
-    max_score: 500
+    max_score: 100
     filetype: document/office
     description: Autoexecution strings
 
