@@ -178,6 +178,7 @@ class Oletools(ServiceBase):
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
+        self.xlm_macros: List[str] = []
         self.pcode: List[str] = []
         self.extracted_clsids: Set[str] = set()
         self.excess_extracted: int = 0
@@ -224,6 +225,7 @@ class Oletools(ServiceBase):
         self.extracted_clsids = set()
 
         self.macros = []
+        self.xlm_macros = []
         self.pcode = []
         self.excess_extracted = 0
         self.vba_stomping = False
@@ -1191,13 +1193,19 @@ class Oletools(ServiceBase):
             except Exception as e:
                 self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {str(e)}")
 
+            # Get XLM Macros
+            try:
+                if vba_parser.detect_xlm_macros:
+                    self.xlm_macros = vba_parser.xlm_macros
+            except Exception:
+                pass
             # Get Macros
             try:
                 if vba_parser.detect_vba_macros():
                     # noinspection PyBroadException
                     try:
                         for (subfilename, stream_path, vba_filename, vba_code) in vba_parser.extract_macros():
-                            if stream_path == 'VBA P-code':
+                            if stream_path in ('VBA P-code', 'xlm_macro'):
                                 continue
                             assert isinstance(vba_code, str)
                             if vba_code.strip() == '':
@@ -1234,7 +1242,6 @@ class Oletools(ServiceBase):
         """
         macro_section = ResultSection("OleVBA : Macros detected")
         macro_section.add_tag('technique.macro', "Contains VBA Macro(s)")
-        subsections = []
         # noinspection PyBroadException
         try:
             auto_exec: Set[str] = set()
@@ -1243,10 +1250,19 @@ class Oletools(ServiceBase):
             network_section = ResultSection("Potential host or network IOCs", heuristic=Heuristic(27, frequency=0))
             for vba_code in self.macros:
                 analyzed_code = self._deobfuscator(vba_code)
-                subsection = self._macro_section_builder(vba_code, analyzed_code)
+                flag = self._flag_macro(analyzed_code)
                 if (self._macro_scanner(analyzed_code, auto_exec, suspicious, network, network_section)
-                        or subsection.heuristic):
-                    subsections.append(subsection)
+                        or flag):
+
+                    vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
+                    macro_section.add_tag('file.ole.macro.sha256', vba_code_sha256)
+                    if not macro_section.heuristic and flag:
+                        macro_section.add_line("Macro may be packed or obfuscated.")
+                        macro_section.set_heuristic(20)
+
+                    if analyzed_code != vba_code:
+                        macro_section.add_tag('technique.obfuscation', "VBA Macro String Functions")
+
             if auto_exec:
                 autoexecution = ResultSection("Autoexecution strings",
                                               heuristic=Heuristic(32),
@@ -1268,13 +1284,14 @@ class Oletools(ServiceBase):
                     network_section.set_heuristic(None)
                 network_section.add_line('\n'.join(network))
 
-            for subsection in subsections:  # Add dump sections after string sections
-                macro_section.add_subsection(subsection)
-
             # Compare suspicious content macros to pcode, macros may have been stomped
             vba_sus, vba_matches = self._mraptor_check(self.macros, "all_vba", "vba_code", request_hash)
             pcode_sus, pcode_matches = self._mraptor_check(self.pcode, "all_pcode", "pcode", request_hash)
-
+            _, xlm_matches = self._mraptor_check(self.xlm_macros, "xlm_macros", "XLM macros", request_hash)
+            if self.xlm_macros:
+                xlm_sec = ResultSection("XLM Macros", parent=macro_section, heuristic=Heuristic(51))
+                for match in xlm_matches:
+                    xlm_sec.add_line(match)
             if self.vba_stomping or pcode_matches and pcode_sus and not vba_sus:
                 stomp_sec = ResultSection("VBA Stomping", heuristic=Heuristic(4))
                 pcode_results = '\n'.join(m for m in pcode_matches if m not in set(vba_matches))
@@ -1389,39 +1406,6 @@ class Oletools(ServiceBase):
             deobf = text
 
         return deobf
-
-    def _macro_section_builder(self, vba_code: str, analyzed_code: str) -> ResultSection:
-        """Build an AL result section for Macro (VBA code) content.
-
-        Args:
-            macros: List of VBA codes for building result sections.
-
-        Returns:
-            Section with macro results.
-        """
-        vba_code_sha256 = hashlib.sha256(vba_code.encode()).hexdigest()
-        macro_section = ResultSection(f"Macro SHA256 : {vba_code_sha256}")
-        macro_section.add_tag('file.ole.macro.sha256', vba_code_sha256)
-        if self._flag_macro(analyzed_code):
-            macro_section.add_line("Macro may be packed or obfuscated.")
-            macro_section.set_heuristic(20)
-
-        dump_subsection = ResultSection("Macro contents dump", body_format=BODY_FORMAT.MEMORY_DUMP)
-        if analyzed_code != vba_code:
-            dump_subsection.title_text += " [deobfuscated]"
-            dump_subsection.add_tag('technique.obfuscation', "VBA Macro String Functions")
-
-        if len(analyzed_code) > self.MAX_STRINGDUMP_CHARS:
-            dump_subsection.title_text += f" - Displaying only the first {self.MAX_STRINGDUMP_CHARS} characters."
-            dump_subsection.add_line(analyzed_code[0:self.MAX_STRINGDUMP_CHARS])
-        else:
-            dump_subsection.add_line(analyzed_code)
-
-        # Check for Excel 4.0 macro sheet
-        if re.search(r'Sheet Information - Excel 4\.0 macro sheet', analyzed_code):
-            dump_subsection.set_heuristic(51)
-
-        return dump_subsection
 
     def _flag_macro(self, macro_text: str) -> bool:
         """Flag macros with obfuscated variable names
