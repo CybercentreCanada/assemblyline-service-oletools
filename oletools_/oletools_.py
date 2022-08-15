@@ -1860,12 +1860,16 @@ class Oletools(ServiceBase):
         if any(pattern in decoded.encode() for pattern in self.pat_safelist):
             return '', '', ''
 
+        if ':' in url.path:
+            url_text = url.scheme + '://' + url.netloc + url.path.split(':', 1)[0]
+        else:
+            url_text = url.geturl()
         if is_valid_ip(url.hostname):
             if not is_ip_reserved(url.hostname):
-                return url.geturl(), 'network.static.ip', url.hostname
+                return url_text, 'network.static.ip', url.hostname
         elif is_valid_domain(url.hostname):
-            return url.geturl(), 'network.static.domain', url.hostname
-        return url.geturl(), '', ''
+            return url_text, 'network.static.domain', url.hostname
+        return url_text, '', ''
 
     def _process_link(self,
                       link_type: str,
@@ -1901,6 +1905,8 @@ class Oletools(ServiceBase):
             tags['network.static.uri'].append(url[:-1])
             tags['attribution.exploit'] = ['CVE-2022-30190']
             heuristic.add_signature_id('msdt_exploit')
+        if '../' in url:
+            heuristic.add_signature_id('relative_path')
         if link_type.lower() == 'attachedtemplate':
             heuristic.add_attack_id('T1221')
         if hostname_type == 'network.static.ip' and link_type.lower() != 'hyperlink':
