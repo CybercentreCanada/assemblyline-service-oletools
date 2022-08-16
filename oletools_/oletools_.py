@@ -1645,7 +1645,9 @@ class Oletools(ServiceBase):
                               tags=link_tags,
                               parent=result)
             else:
-                xml_target_res = ResultSection("External Relationship Targets in XML")
+                xml_target_res = ResultSection("External Relationship Targets in XML",
+                                               parent=result,
+                                               heuristic=Heuristic(1))
                 for ty, link in external_links:
                     link_type = safe_str(ty)
                     url, *host_tag = self.parse_uri(link)
