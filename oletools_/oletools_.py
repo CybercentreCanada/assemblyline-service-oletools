@@ -1639,7 +1639,7 @@ class Oletools(ServiceBase):
                 ty, link = list(external_links)[0]
                 link_type = safe_str(ty)
                 heuristic, link_tags = self._process_link(link_type, link)
-                ResultSection("External Relationship Targets in XML",
+                ResultSection("Single External Relationship Target in XML",
                               body=f'{link_type} link: {safe_str(link)}',
                               heuristic=heuristic,
                               tags=link_tags,
