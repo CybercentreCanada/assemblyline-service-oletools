@@ -44,7 +44,7 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.extractor.base64 import find_base64
 from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
-from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT, Heuristic
+from assemblyline_v4_service.common.result import Result, ResultSection, ResultKeyValueSection, BODY_FORMAT, Heuristic
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 
 from oletools_.cleaver import OLEDeepParser
@@ -632,8 +632,8 @@ class Oletools(ServiceBase):
         Returns:
             A result section with metadata info if any metadata was found.
         """
-        meta_sec = ResultSection("OLE Metadata:")
-        meta_sec_json_body = dict()
+        meta_sec = ResultKeyValueSection("OLE Metadata:")
+
         codec = safe_str(getattr(meta, 'codepage', 'latin_1'), force_str=True)
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
@@ -641,7 +641,7 @@ class Oletools(ServiceBase):
                 if prop == "thumbnail":
                     meta_name = f'{hashlib.sha256(value).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(value, meta_name, "OLE metadata thumbnail extracted")
-                    meta_sec_json_body[prop] = "[see extracted files]"
+                    meta_sec.set_item(prop, "[see extracted files]")
                     # Todo: is thumbnail useful as a heuristic?
                     # Doesn't score and causes error how its currently set.
                     # meta_sec.set_heuristic(18)
@@ -651,7 +651,7 @@ class Oletools(ServiceBase):
                     data = value.encode()
                     meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{prop}.data'
                     self._extract_file(data, meta_name, f"OLE metadata from {prop.upper()} attribute")
-                    meta_sec_json_body[prop] = f"[Over {self.metadata_size_to_extract} bytes, see extracted files]"
+                    meta_sec.set_item(prop, f"[Over {self.metadata_size_to_extract} bytes, see extracted files]")
                     meta_sec.set_heuristic(17)
                     continue
                 if isinstance(value, bytes):
@@ -659,14 +659,11 @@ class Oletools(ServiceBase):
                         value = value.decode(codec)
                     except ValueError:
                         self.log.warning('Failed to decode %r with %s' % value, codec)
-                meta_sec_json_body[prop] = safe_str(value, force_str=True)
+                meta_sec(prop, safe_str(value, force_str=True))
                 # Add Tags
                 if prop in self.METADATA_TO_TAG and value:
                     meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
-        if meta_sec_json_body:
-            meta_sec.set_body(json.dumps(meta_sec_json_body), BODY_FORMAT.KEY_VALUE)
-            return meta_sec
-        return None
+        return meta_sec if meta_sec.body else None
 
     def _process_ole_alternate_metadata(self, ole_file: IO[bytes]) -> Optional[ResultSection]:
         """Extract alternate OLE document metadata SttbfAssoc strings
