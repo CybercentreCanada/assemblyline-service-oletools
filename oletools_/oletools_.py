@@ -1566,6 +1566,7 @@ class Oletools(ServiceBase):
             if not zipfile.is_zipfile(path):
                 return  # Not an Open XML format file
             with zipfile.ZipFile(path) as z:
+                _add_section(result, self._process_ooxml_properties(z))
                 for f in z.namelist():
                     try:
                         contents = z.open(f).read()
@@ -1648,6 +1649,37 @@ class Oletools(ServiceBase):
             result.add_section(xml_ioc_res)
         if xml_b64_res.subsections:
             result.add_section(xml_b64_res)
+
+    def _process_ooxml_properties(self, z: zipfile.ZipFile) -> Optional[ResultSection]:
+        property_section = ResultKeyValueSection('OOXML Properties')
+        property_paths = ['docProps/core.xml', 'docProps/app.xml']
+        for prop_path in property_paths:
+            if prop_path in z.NameToInfo:
+                prop_file = z.open(prop_path).read()
+                prop_xml = etree.XML(prop_file)
+                for child in prop_xml:
+                    label = child.tag.rsplit('}', 1)[-1]
+                    if not label or not child.text:
+                        continue
+                    if len(child.text) > self.metadata_size_to_extract:
+                        if not property_section.heuristic:
+                            property_section.set_heuristic(17)
+                        try:
+                            data = bytes.fromhex(child.text)
+                            property_section.heuristic.add_signature_id('hexadecimal')
+                            if '90909090' in child.text:
+                                property_section.heuristic.add_signature_id('shellcode')
+                        except ValueError:
+                            data = child.text.encode()
+                        meta_name = f'{hashlib.sha256(data).hexdigest()[0:15]}.{label}.data'
+                        self._extract_file(data, meta_name, f'OOXML {label} property')
+                        property_section.set_item(label, f"[Over {self.metadata_size_to_extract} bytes,"
+                                                  " see extracted files]")
+                    else:
+                        property_section.set_item(label, child.text)
+                    if label in self.METADATA_TO_TAG and child.text:
+                        property_section.add_tag(self.METADATA_TO_TAG[label], child.text)
+        return property_section if property_section.body else None
 
     @staticmethod
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
