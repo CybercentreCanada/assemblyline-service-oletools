@@ -659,7 +659,7 @@ class Oletools(ServiceBase):
                         value = value.decode(codec)
                     except ValueError:
                         self.log.warning('Failed to decode %r with %s' % value, codec)
-                meta_sec(prop, safe_str(value, force_str=True))
+                meta_sec.set_item(prop, safe_str(value, force_str=True))
                 # Add Tags
                 if prop in self.METADATA_TO_TAG and value:
                     meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
