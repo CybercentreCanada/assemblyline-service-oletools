@@ -987,7 +987,7 @@ class Oletools(ServiceBase):
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtfobj.filename)
 
-                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
+                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext.encode()):
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
