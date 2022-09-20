@@ -634,7 +634,8 @@ class Oletools(ServiceBase):
         """
         meta_sec = ResultKeyValueSection("OLE Metadata:")
 
-        codec = safe_str(getattr(meta, 'codepage', 'latin_1'), force_str=True)
+        codepage = getattr(meta, 'codepage', 'latin_1')
+        codec = safe_str(codepage if codepage else 'latin_1', force_str=True)
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
