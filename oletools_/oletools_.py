@@ -634,7 +634,8 @@ class Oletools(ServiceBase):
         """
         meta_sec = ResultKeyValueSection("OLE Metadata:")
 
-        codec = safe_str(getattr(meta, 'codepage', 'latin_1'), force_str=True)
+        codepage = getattr(meta, 'codepage', 'latin_1')
+        codec = safe_str(codepage if codepage else 'latin_1', force_str=True)
         for prop in chain(meta.SUMMARY_ATTRIBS, meta.DOCSUM_ATTRIBS):
             value = getattr(meta, prop)
             if value is not None and value not in ['"', "'", ""]:
@@ -987,7 +988,7 @@ class Oletools(ServiceBase):
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtfobj.filename)
 
-                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext):
+                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext.encode()):
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
@@ -1632,9 +1633,10 @@ class Oletools(ServiceBase):
                                                heuristic=Heuristic(1))
                 for ty, link in external_links:
                     link_type = safe_str(ty)
-                    url, *host_tag = self.parse_uri(link)
-                    xml_target_res.add_line(f'{link_type} link: {url}')
-                    xml_target_res.add_tag(*host_tag)
+                    url, host_type, hostname = self.parse_uri(link)
+                    if hostname:
+                        xml_target_res.add_line(f'{link_type} link: {url}')
+                        xml_target_res.add_tag(host_type, hostname)
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
