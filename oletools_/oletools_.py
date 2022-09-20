@@ -1633,9 +1633,10 @@ class Oletools(ServiceBase):
                                                heuristic=Heuristic(1))
                 for ty, link in external_links:
                     link_type = safe_str(ty)
-                    url, *host_tag = self.parse_uri(link)
-                    xml_target_res.add_line(f'{link_type} link: {url}')
-                    xml_target_res.add_tag(*host_tag)
+                    url, host_type, hostname = self.parse_uri(link)
+                    if hostname:
+                        xml_target_res.add_line(f'{link_type} link: {url}')
+                        xml_target_res.add_tag(host_type, hostname)
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
