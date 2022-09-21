@@ -72,6 +72,6 @@ def test_parse_uri_ip():
 
 def test_process_link_com_false_positive():
     ole = Oletools()
-    ole.start
-    heur = ole._process_link('hyperlink', b'https://google.com', Heuristic(1), ResultSection('Test'))
+    ole.start()
+    heur, tags = ole._process_link('hyperlink', b'https://google.com')
     assert heur.score == 0
