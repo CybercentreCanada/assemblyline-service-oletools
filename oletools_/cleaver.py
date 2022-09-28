@@ -709,7 +709,7 @@ class OLEDeepParser(object):
 
                 # Do OLE2 deep analysis if requested
                 if parser_id == 'ole2':
-                    ole2_res = ResultSection(f"Hachoir OLE2 Deep Analysis", parent=self.parent_res)
+                    ole2_res = ResultSection("Hachoir OLE2 Deep Analysis", parent=self.parent_res)
                     # this is just so that we don't bail on the NULL property type and we keep on going.
                     for (key, value) in PropertyContent.TYPE_INFO.items():
                         if value[1] is None:

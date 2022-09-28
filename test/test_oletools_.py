@@ -1,6 +1,3 @@
-
-from assemblyline_v4_service.common.result import Heuristic, ResultSection
-
 from oletools.olevba import __version__ as olevba_version
 from oletools.oleid import __version__ as oleid_version
 from oletools.rtfobj import __version__ as rtfobj_version
