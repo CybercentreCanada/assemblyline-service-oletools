@@ -22,7 +22,7 @@ import zlib
 from collections import defaultdict
 from itertools import chain
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple, Union
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 import magic
 from lxml import etree
@@ -1921,6 +1921,16 @@ class Oletools(ServiceBase):
         """
         heuristic = Heuristic(1)
         safe_link: str = safe_str(link)
+        unescaped = unquote(safe_link)
+        if 'SyncAppvPublishingServer.vbs' in unescaped:
+            heuristic.add_attack_id('T1216')
+            heuristic.add_signature_id('embedded_powershell')
+            heuristic.add_signature_id(link_type.lower())
+            powershell = unescaped.split('SyncAppvPublishingServer.vbs', 1)[-1].encode()
+            self._extract_file(powershell,
+                               f'{hashlib.sha256(powershell).hexdigest()[:8]}.ps1',
+                               'powershell hidden in hyperlink external relationship')
+            return heuristic, {}
         if safe_link.startswith('mhtml:'):
             heuristic.add_signature_id('mhtml_link')
             # Get last url link
