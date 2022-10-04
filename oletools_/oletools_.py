@@ -1935,7 +1935,7 @@ class Oletools(ServiceBase):
             'network.static.uri': [url],
             hostname_type: [hostname]
         }
-        if url.endswith('!'):
+        if url.endswith('!') and link_type.lower() == 'oleobject':
             tags['network.static.uri'].append(url[:-1])
             tags['attribution.exploit'] = ['CVE-2022-30190']
             heuristic.add_signature_id('msdt_exploit')

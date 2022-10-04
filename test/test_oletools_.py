@@ -107,3 +107,21 @@ def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, 
     assert heur.attack_ids == heuristic.attack_ids
     assert heur.signatures == heuristic.signatures
     assert filename in ole._extracted_files
+
+
+def test_process_link_exclamation_false_positive():
+    ole = Oletools()
+    ole.start()
+    heur, _ = ole._process_link('hyperlink',
+                                R'https://domain.com/index.cfm?fuseaction='
+                                R'security.viewSILogon%20%20Login:%20username10%20Password:%20password1!')
+    assert heur.score == 0
+
+
+def test_process_link_exclamation_true_positive():
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('oleObject',
+                                   R'https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm!')
+    assert 'msdt_exploit' in heur.signatures
+    assert 'https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm' in tags['network.static.uri']
