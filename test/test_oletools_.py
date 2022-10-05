@@ -122,6 +122,8 @@ def test_process_link_exclamation_true_positive():
     ole = Oletools()
     ole.start()
     heur, tags = ole._process_link('oleObject',
-                                   R'https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm!')
+                                   R'https://cdn.discordapp.com/attachments/98'
+                                   R'6484515985825795/986821210044264468/index.htm!')
     assert 'msdt_exploit' in heur.signatures
-    assert 'https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm' in tags['network.static.uri']
+    assert ('https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm'
+            in tags['network.static.uri'])
