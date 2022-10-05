@@ -37,7 +37,7 @@ heuristics:
       external_relationship_ip: 500
       link_to_executable: 500
       mhtml_link: 100
-      msdt_exploit: 0 # Let's see how many false positives we get
+      msdt_exploit: 500
       # relationship types
       attachedtemplate: 500
       externallink: 500
@@ -159,7 +159,7 @@ heuristics:
     score: 0
     signature_score_map:
       hexadecimal: 0
-      shellcode: 0 # Set to 1000 if no false positives
+      shellcode: 1000
     filetype: document/office
     description: Large metadata content extracted for analysis.
 
