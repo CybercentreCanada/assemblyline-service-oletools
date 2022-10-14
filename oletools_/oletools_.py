@@ -36,6 +36,7 @@ from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser, VBA_Scanner, AUTOEXEC_KEYWORDS
 from oletools.thirdparty.xxxswf import xxxswf
 
+from assemblyline.common.forge import get_identify
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.net import is_valid_domain, is_valid_ip
 from assemblyline.common.str_utils import safe_str
@@ -183,6 +184,7 @@ class Oletools(ServiceBase):
         self.pcode: List[str] = []
         self.extracted_clsids: Set[str] = set()
         self.vba_stomping = False
+        self.identify = get_identify(use_cache=os.environ.get('PRIVILEGED', 'false').lower() == 'true')
 
     def start(self) -> None:
         """Initializes the service."""
@@ -1711,7 +1713,10 @@ class Oletools(ServiceBase):
             file_path = os.path.join(self.working_directory, file_name)
             with open(file_path, 'wb') as f:
                 f.write(data)
-            self._extracted_files[file_name] = description
+            if self.identify.fileinfo(file_path)["type"] == "unknown":
+                self.log.debug(f"Skipping extracting {file_name} because it's type is unknown")
+            else:
+                self._extracted_files[file_name] = description
         except Exception:
             self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
 
