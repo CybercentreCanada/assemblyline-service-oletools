@@ -1928,7 +1928,7 @@ class Oletools(ServiceBase):
                 self._extract_file(
                     script.encode(),
                     f'.mshta_{script_type}',
-                    '{script_type} executed by mshta.exe in external relationship')
+                    f'{script_type} executed by mshta.exe in external relationship')
             else:
                 safe_link = command
         if 'SyncAppvPublishingServer.vbs' in unescaped:
