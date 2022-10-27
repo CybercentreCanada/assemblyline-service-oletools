@@ -208,7 +208,7 @@ class Oletools(ServiceBase):
         self.macro_skip_words = {'var', 'unescape', 'exec', 'for', 'while', 'array', 'object',
                                  'length', 'len', 'substr', 'substring', 'new', 'unicode', 'name', 'base',
                                  'dim', 'set', 'public', 'end', 'getobject', 'createobject', 'content',
-                                 'regexp', 'date', 'false', 'true', 'none', 'break', 'continue', 'ubound',
+                                 'regexp', 'date', 'false', 'true', 'break', 'continue', 'ubound',
                                  'none', 'undefined', 'activexobject', 'document', 'attribute', 'shell',
                                  'thisdocument', 'rem', 'string', 'byte', 'integer', 'int', 'function',
                                  'text', 'next', 'private', 'click', 'change', 'createtextfile', 'savetofile',
@@ -1618,25 +1618,21 @@ class Oletools(ServiceBase):
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
         if external_links:
-            if len(external_links) == 1:
-                ty, link = list(external_links)[0]
-                link_type = safe_str(ty)
-                heuristic, link_tags = self._process_link(link_type, link)
-                ResultSection("Single External Relationship Target in XML",
-                              body=f'{link_type} link: {safe_str(link)}',
-                              heuristic=heuristic,
-                              tags=link_tags,
-                              parent=result)
-            else:
-                xml_target_res = ResultSection("External Relationship Targets in XML",
-                                               parent=result,
-                                               heuristic=Heuristic(1))
-                for ty, link in external_links:
-                    link_type = safe_str(ty)
-                    url, host_type, hostname = self.parse_uri(link)
-                    if hostname:
-                        xml_target_res.add_line(f'{link_type} link: {url}')
-                        xml_target_res.add_tag(host_type, hostname)
+            link_heuristics, tags_list = zip(*[
+                self._process_link(safe_str(link_type), link)
+                for link_type, link in external_links
+            ])
+            # Score only the most malicious link
+            heuristic = max(link_heuristics, key=lambda h: h.score)
+            xml_target_res = ResultSection("External Relationship Targets in XML",
+                                           heuristic=heuristic,
+                                           parent=result)
+            for ty, link in external_links:
+                xml_target_res.add_line(f'{safe_str(ty)} link: {safe_str(link)}')
+            for link_tags in tags_list:
+                for tag_type, tags in link_tags:
+                    for tag in tags:
+                        xml_target_res.add_tag(tag_type, tag)
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
@@ -1917,15 +1913,28 @@ class Oletools(ServiceBase):
         """
         heuristic = Heuristic(1)
         safe_link: str = safe_str(link)
-        unescaped = unquote(safe_link)
+        unescaped = unquote(safe_link).strip()
+        if unescaped.startswith('mshta'):
+            heuristic.add_attack_id('T1218.005')
+            heuristic.add_signature_id('mshta')
+            _, command = unescaped.split(maxsplit=1)
+            if command.startswith('javascript:') or command.startswith('vbscript:'):
+                script_type, script = command.split(':', 1)
+                self._extract_file(
+                    script.encode(),
+                    f'.mshta_{script_type}',
+                    '{script_type} executed by mshta.exe in external relationship')
+            else:
+                safe_link = command
         if 'SyncAppvPublishingServer.vbs' in unescaped:
             heuristic.add_attack_id('T1216')
             heuristic.add_signature_id('embedded_powershell')
             heuristic.add_signature_id(link_type.lower())
             powershell = unescaped.split('SyncAppvPublishingServer.vbs', 1)[-1].encode()
-            self._extract_file(powershell,
-                               '.ps1',
-                               'powershell hidden in hyperlink external relationship')
+            self._extract_file(
+                powershell,
+                '.ps1',
+                'powershell hidden in hyperlink external relationship')
             return heuristic, {}
         if safe_link.startswith('mhtml:'):
             heuristic.add_signature_id('mhtml_link')
