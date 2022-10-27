@@ -1918,6 +1918,11 @@ class Oletools(ServiceBase):
             heuristic.add_attack_id('T1218.005')
             heuristic.add_signature_id('mshta')
             _, command = unescaped.split(maxsplit=1)
+            if command.startswith('"'):
+                if command.endswith('"'):
+                    command = command[1:-1]
+                else:
+                    command = command[1:]
             if command.startswith('javascript:') or command.startswith('vbscript:'):
                 script_type, script = command.split(':', 1)
                 self._extract_file(
