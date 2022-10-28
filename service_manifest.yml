@@ -37,6 +37,7 @@ heuristics:
       external_relationship_ip: 500
       link_to_executable: 500
       mhtml_link: 100
+      mshta: 500
       msdt_exploit: 500
       # relationship types
       attachedtemplate: 500
