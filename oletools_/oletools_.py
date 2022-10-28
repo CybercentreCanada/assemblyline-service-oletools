@@ -1618,6 +1618,8 @@ class Oletools(ServiceBase):
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
         if external_links:
+            link_heuristics: tuple[Heuristic]
+            tags_list: tuple[Tags]
             link_heuristics, tags_list = zip(*[
                 self._process_link(safe_str(link_type), link)
                 for link_type, link in external_links
@@ -1630,9 +1632,9 @@ class Oletools(ServiceBase):
             for ty, link in external_links:
                 xml_target_res.add_line(f'{safe_str(ty)} link: {safe_str(link)}')
             for link_tags in tags_list:
-                for tag_type, tags in link_tags:
-                    for tag in tags:
-                        xml_target_res.add_tag(tag_type, tag)
+                for tag_type, tag_values in link_tags.items():
+                    for t in tag_values:
+                        xml_target_res.add_tag(tag_type, t)
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
