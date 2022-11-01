@@ -71,6 +71,8 @@ def test_parse_uri_ip():
     assert ole.parse_uri(b'https://8.8.8.8') == ('https://8.8.8.8', 'network.static.ip', '8.8.8.8')
 
 
+# -- _process_link
+
 def test_process_link_com_false_positive():
     ole = Oletools()
     ole.start()
@@ -147,3 +149,19 @@ def test_process_link_mshta_link():
     assert 'mshta' in heur.signatures
     assert 'T1218.005' in heur.attack_ids
     assert 'http://link.to/malicious/page.hta' in tags['network.static.uri']
+
+
+def test_process_mhtml_link_xusc():
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('oleObject', 'mhtml:https://first.link.com/!x-usc:https://second.link.com')
+    assert 'mhtml_link' in heur.signatures
+    assert 'https://second.link.com' in tags['network.static.uri']
+
+
+def test_process_mhtml_link_exclamation():
+    ole = Oletools()
+    ole.start()
+    heur, tags = ole._process_link('oleObject', 'mhtml:https://first.link.com!https://second.link.com')
+    assert 'mhtml_link' in heur.signatures
+    assert 'https://first.link.com' in tags['network.static.uri']
