@@ -1944,9 +1944,12 @@ class Oletools(ServiceBase):
                 'powershell hidden in hyperlink external relationship')
             return heuristic, {}
         if safe_link.startswith('mhtml:'):
+            safe_link = safe_link[6:]
             heuristic.add_signature_id('mhtml_link')
             # Get last url link
             safe_link = safe_link.rsplit('!x-usc:')[-1]
+            # Strip the mhtml path
+            safe_link = safe_link.rsplit('!', 1)[0]
         url, hostname_type, hostname = self.parse_uri(safe_link)
         if not hostname:
             # Not a valid link
