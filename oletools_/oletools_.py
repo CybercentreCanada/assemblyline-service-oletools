@@ -1968,7 +1968,7 @@ class Oletools(ServiceBase):
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
         if re.match(self.EXECUTABLE_EXTENSIONS_RE, os.path.splitext(filename)[1].encode()) \
-                and filename not in self.tag_safelist:
+                and filename.encode() not in self.tag_safelist:
             heuristic.add_signature_id('link_to_executable')
             tags['file.name.extracted'] = [filename]
         return heuristic, tags
