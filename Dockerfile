@@ -8,6 +8,9 @@ USER root
 # Get required apt packages
 RUN apt-get update && apt-get install -y default-libmysqlclient-dev wget && rm -rf /var/lib/apt/lists/*
 
+# (Beta) Temporary until integrated into official oletools lib
+RUN wget -O /opt/al_service/onedump.py https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
+
 # Switch to assemblyline user
 USER assemblyline
 
@@ -16,9 +19,6 @@ RUN pip install --no-cache-dir --user hachoir lxml pcodedmp oletools && rm -rf ~
 # Copy Oletools service code
 WORKDIR /opt/al_service
 COPY . .
-
-# (Beta) Temporary until integrated into official oletools lib
-RUN wget https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
 
 # Patch version in manifest
 ARG version=4.0.0.dev1
