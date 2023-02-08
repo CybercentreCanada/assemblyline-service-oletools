@@ -13,12 +13,12 @@ USER assemblyline
 
 RUN pip install --no-cache-dir --user hachoir lxml pcodedmp oletools && rm -rf ~/.cache/pip
 
-# (Beta) Temporary until integrated into official OleTools lib
-RUN wget https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
-
 # Copy Oletools service code
 WORKDIR /opt/al_service
 COPY . .
+
+# (Beta) Temporary until integrated into official oletools lib
+RUN wget https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
 
 # Patch version in manifest
 ARG version=4.0.0.dev1
