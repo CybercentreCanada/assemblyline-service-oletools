@@ -15,6 +15,8 @@ import logging
 import os
 import re
 import struct
+import subprocess
+import tempfile
 import traceback
 import zipfile
 import zlib
@@ -243,6 +245,22 @@ class Oletools(ServiceBase):
         path = request.file_path
         result = request.result
         is_installer = request.task.file_type == 'document/installer/windows'
+
+        if request.file_type == 'document/office/onenote':
+            num_files = 0
+            with tempfile.NamedTemporaryFile() as output:
+                subprocess.run(['python', 'onedump.py', '-o', output.name, request.file_path])
+                output.flush()
+                num_files = len(output.readlines())
+
+            for file_no in range(1, num_files):
+                with tempfile.NamedTemporaryFile(delete=False) as ext_file:
+                    subprocess.run(['python', 'onedump.py',
+                                    '-s', str(file_no), '-d',
+                                    '-o', ext_file.name, request.file_path])
+                    ext_file.flush()
+                    request.add_extracted(ext_file.name, f'{request.file_name}_embedded_content_{file_no}',
+                                          'Embedded OneNote file')
 
         try:
             _add_section(result, self._check_for_indicators(path))
