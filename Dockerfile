@@ -6,7 +6,10 @@ ENV SERVICE_PATH oletools_.oletools_.Oletools
 USER root
 
 # Get required apt packages
-RUN apt-get update && apt-get install -y default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y default-libmysqlclient-dev wget && rm -rf /var/lib/apt/lists/*
+
+# (Beta) Temporary until integrated into official oletools lib
+RUN wget -O /opt/al_service/onedump.py https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
 
 # Switch to assemblyline user
 USER assemblyline
