@@ -189,7 +189,6 @@ class Oletools(ServiceBase):
 
     def start(self) -> None:
         """Initializes the service."""
-
         chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
         with gzip.open(chain_path) as f:
             self.word_chains = json.load(f)
