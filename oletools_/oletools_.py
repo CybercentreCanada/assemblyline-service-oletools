@@ -158,8 +158,10 @@ class Oletools(ServiceBase):
             config: service configuration (defaults to the configuration in the service manifest).
         """
         super().__init__(config)
-        self._oletools_version = f"olevba v{olevba.__version__}, oleid v{oleid.__version__}, " \
-                                 f"rtfobj v{rtfobj.__version__}, msodde v{msodde.__version__}"
+        self._oletools_version = (
+            f"mraptor v{mraptor.__version__}, msodde v{msodde.__version__}, oleid v{oleid.__version__}, "
+            f"olevba v{olevba.__version__}, oleobj v{oleobj.__version__}, rtfobj v{rtfobj.__version__}"
+        )
         self._extracted_files: Dict[str, str] = {}
         self.request: Optional[ServiceRequest] = None
         self.sha = ''
