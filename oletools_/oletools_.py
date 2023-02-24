@@ -30,12 +30,8 @@ import magic
 from lxml import etree
 
 import olefile
-from oletools.rtfobj import RtfObjParser
-from oletools import mraptor, msodde, oleobj
+from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
-from oletools.oleobj import OleNativeStream, OOXML_RELATIONSHIP_TAG
-from oletools.oleid import OleID
-from oletools.olevba import VBA_Parser, VBA_Scanner, AUTOEXEC_KEYWORDS
 from oletools.thirdparty.xxxswf import xxxswf
 
 from assemblyline.common.forge import get_identify
@@ -53,7 +49,7 @@ from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
-AUTO_EXEC = set(chain(*(x for x in AUTOEXEC_KEYWORDS.values())))
+AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
 
 # Type definition for tags
 Tags = Dict[str, List[str]]
@@ -162,7 +158,10 @@ class Oletools(ServiceBase):
             config: service configuration (defaults to the configuration in the service manifest).
         """
         super().__init__(config)
-        self._oletools_version = ''
+        self._oletools_version = (
+            f"mraptor v{mraptor.__version__}, msodde v{msodde.__version__}, oleid v{oleid.__version__}, "
+            f"olevba v{olevba.__version__}, oleobj v{oleobj.__version__}, rtfobj v{rtfobj.__version__}"
+        )
         self._extracted_files: Dict[str, str] = {}
         self.request: Optional[ServiceRequest] = None
         self.sha = ''
@@ -190,15 +189,6 @@ class Oletools(ServiceBase):
 
     def start(self) -> None:
         """Initializes the service."""
-        self.log.debug("Service started")
-
-        from oletools.olevba import __version__ as olevba_version
-        from oletools.oleid import __version__ as oleid_version
-        from oletools.rtfobj import __version__ as rtfobj_version
-        from oletools.msodde import __version__ as msodde_version
-        self._oletools_version = f"olevba v{olevba_version}, oleid v{oleid_version}, " \
-                                 f"rtfobj v{rtfobj_version}, msodde v{msodde_version}"
-
         chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
         with gzip.open(chain_path) as f:
             self.word_chains = json.load(f)
@@ -311,7 +301,7 @@ class Oletools(ServiceBase):
         """
         # noinspection PyBroadException
         try:
-            ole_id = OleID(filename)
+            ole_id = oleid.OleID(filename)
             indicators = ole_id.check()
             section = ResultSection("OleID indicators", heuristic=Heuristic(34))
 
@@ -785,7 +775,7 @@ class Oletools(ServiceBase):
 
         suspicious = False
         sus_sec = ResultSection("Suspicious streams content:")
-        native = OleNativeStream(data)
+        native = oleobj.OleNativeStream(data)
         if not native.data or not native.filename or not native.src_path or not native.temp_path:
             self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
             return False
@@ -968,7 +958,7 @@ class Oletools(ServiceBase):
             A result section if any rtf results were found.
         """
         try:
-            rtfp = RtfObjParser(file_contents)
+            rtfp = rtfobj.RtfObjParser(file_contents)
             rtfp.parse()
         except Exception as e:
             self.log.debug(f'RtfObjParser failed to parse {self.sha}: {str(e)}')
@@ -986,82 +976,82 @@ class Oletools(ServiceBase):
         linked = []
         unknown = []
         # RTF objdata
-        for rtfobj in rtfp.objects:
+        for rtf_object in rtfp.objects:
             try:
                 res_txt = ""
                 res_alert = ""
-                if rtfobj.is_ole:
-                    res_txt += f'format_id: {rtfobj.format_id}\n'
-                    res_txt += f'class name: {rtfobj.class_name}\n'
+                if rtf_object.is_ole:
+                    res_txt += f'format_id: {rtf_object.format_id}\n'
+                    res_txt += f'class name: {rtf_object.class_name}\n'
                     # if the object is linked and not embedded, data_size=None:
-                    if rtfobj.oledata_size is None:
+                    if rtf_object.oledata_size is None:
                         res_txt += 'data size: N/A\n'
                     else:
-                        res_txt += f'data size: {rtfobj.oledata_size}\n'
-                    if rtfobj.is_package:
-                        res_txt = f'Filename: {rtfobj.filename}\n'
-                        res_txt += f'Source path: {rtfobj.src_path}\n'
-                        res_txt += f'Temp path = {rtfobj.temp_path}\n'
+                        res_txt += f'data size: {rtf_object.oledata_size}\n'
+                    if rtf_object.is_package:
+                        res_txt = f'Filename: {rtf_object.filename}\n'
+                        res_txt += f'Source path: {rtf_object.src_path}\n'
+                        res_txt += f'Temp path = {rtf_object.temp_path}\n'
 
                         # check if the file extension is executable:
-                        _, ext = os.path.splitext(rtfobj.filename)
+                        _, ext = os.path.splitext(rtf_object.filename)
 
                         if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext.encode()):
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
                             m = magic.Magic()
-                            ftype = m.from_buffer(rtfobj.olepkgdata)
+                            ftype = m.from_buffer(rtf_object.olepkgdata)
                             if "executable" in ftype:
                                 res_alert += 'CODE/EXECUTABLE FILE'
                     else:
                         res_txt += 'Not an OLE Package'
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
-                    if rtfobj.class_name == 'OLE2Link':
+                    if rtf_object.class_name == 'OLE2Link':
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
-                    if rtfobj.start is not None:
-                        res_txt = f'{hex(rtfobj.start)} is not a well-formed OLE object'
+                    if rtf_object.start is not None:
+                        res_txt = f'{hex(rtf_object.start)} is not a well-formed OLE object'
                     else:
                         res_txt = 'Malformed OLE Object'
-                    if len(rtfobj.rawdata) >= self.LARGE_MALFORMED_BYTES:
+                    if len(rtf_object.rawdata) >= self.LARGE_MALFORMED_BYTES:
                         res_alert += f"Data of malformed OLE object over {self.LARGE_MALFORMED_BYTES} bytes"
                         if streams_res.heuristic is None:
                             streams_res.set_heuristic(19)
 
-                if rtfobj.format_id == oleobj.OleObject.TYPE_EMBEDDED:
+                if rtf_object.format_id == oleobj.OleObject.TYPE_EMBEDDED:
                     embedded.append((res_txt, res_alert))
-                elif rtfobj.format_id == oleobj.OleObject.TYPE_LINKED:
+                elif rtf_object.format_id == oleobj.OleObject.TYPE_LINKED:
                     linked.append((res_txt, res_alert))
                 else:
                     unknown.append((res_txt, res_alert))
 
                 # Write object content to extracted file
-                i = rtfp.objects.index(rtfobj)
-                if rtfobj.is_package:
-                    if rtfobj.filename:
-                        fname = '_' + self._sanitize_filename(rtfobj.filename)
+                i = rtfp.objects.index(rtf_object)
+                if rtf_object.is_package:
+                    if rtf_object.filename:
+                        fname = '_' + self._sanitize_filename(rtf_object.filename)
                     else:
-                        fname = f'_object_{rtfobj.start}.noname'
-                    self._extract_file(rtfobj.olepkgdata, fname, f'OLE Package in object #{i}:')
+                        fname = f'_object_{rtf_object.start}.noname'
+                    self._extract_file(rtf_object.olepkgdata, fname, f'OLE Package in object #{i}:')
 
                 # When format_id=TYPE_LINKED, oledata_size=None
-                elif rtfobj.is_ole and rtfobj.oledata_size is not None:
+                elif rtf_object.is_ole and rtf_object.oledata_size is not None:
                     # set a file extension according to the class name:
-                    class_name = rtfobj.class_name.lower()
+                    class_name = rtf_object.class_name.lower()
                     if class_name.startswith(b'word'):
                         ext = 'doc'
                     elif class_name.startswith(b'package'):
                         ext = 'package'
                     else:
                         ext = 'bin'
-                    fname = f'_object_{hex(rtfobj.start)}.{ext}'
-                    self._extract_file(rtfobj.oledata, fname, f'Embedded in OLE object #{i}:')
+                    fname = f'_object_{hex(rtf_object.start)}.{ext}'
+                    self._extract_file(rtf_object.oledata, fname, f'Embedded in OLE object #{i}:')
 
                 else:
-                    fname = f'_object_{hex(rtfobj.start)}.raw'
-                    self._extract_file(rtfobj.rawdata, fname, f'Raw data in object #{i}:')
+                    fname = f'_object_{hex(rtf_object.start)}.raw'
+                    self._extract_file(rtf_object.rawdata, fname, f'Raw data in object #{i}:')
             except Exception:
                 self.log.warning(f"Failed to process an RTF object for sample {self.sha}: {traceback.format_exc()}")
         if embedded:
@@ -1195,7 +1185,7 @@ class Oletools(ServiceBase):
         """
         # noinspection PyBroadException
         try:
-            vba_parser = VBA_Parser(filename)
+            vba_parser = olevba.VBA_Parser(filename)
 
             # Get P-code
             try:
@@ -1484,7 +1474,7 @@ class Oletools(ServiceBase):
             Whether interesting results were found.
         """
         try:
-            vba_scanner = VBA_Scanner(text)
+            vba_scanner = olevba.VBA_Scanner(text)
             vba_scanner.scan(include_decoded_strings=True)
 
             for string in self.ADDITIONAL_SUSPICIOUS_KEYWORDS:
@@ -1702,7 +1692,7 @@ class Oletools(ServiceBase):
     def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
         return [
             (relationship.attrib['Type'].rsplit('/', 1)[1].encode(), relationship.attrib['Target'].encode())
-            for relationship in parsed.findall(OOXML_RELATIONSHIP_TAG, None)
+            for relationship in parsed.findall(oleobj.OOXML_RELATIONSHIP_TAG, None)
             if 'Target' in relationship.attrib
             and 'Type' in relationship.attrib
             and 'TargetMode' in relationship.attrib
