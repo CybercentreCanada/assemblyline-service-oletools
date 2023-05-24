@@ -86,8 +86,8 @@ def is_safelisted(tag_type: str,
                   safelist_matches: Mapping[str, list[str]],
                   safelist_regexes: Mapping[str, list[str]]) -> bool:
     """Checks if the tag is safelisted by either a match or a regex"""
-    return (tag_contains_match(tag, safelist_matches[tag_type])
-            or regex_matches_tag(tag, safelist_regexes[tag_type]))
+    return (tag_contains_match(tag, safelist_matches.get(tag_type, []))
+            or regex_matches_tag(tag, safelist_regexes.get(tag_type, [])))
 
 
 class Oletools(ServiceBase):

@@ -2,10 +2,7 @@ import pytest
 
 from assemblyline_v4_service.common.result import Heuristic
 
-from oletools.olevba import __version__ as olevba_version
-from oletools.oleid import __version__ as oleid_version
-from oletools.rtfobj import __version__ as rtfobj_version
-from oletools.msodde import __version__ as msodde_version
+from oletools import mraptor, msodde, oleid, olevba, oleobj, rtfobj
 
 from oletools_.oletools_ import Oletools
 
@@ -13,8 +10,10 @@ from oletools_.oletools_ import Oletools
 def test_get_oletools_version():
     ole = Oletools()
     ole.start()
-    assert ole.get_tool_version() == f"olevba v{olevba_version}, oleid v{oleid_version}, " \
-                                     f"rtfobj v{rtfobj_version}, msodde v{msodde_version}"
+    assert ole.get_tool_version() == (
+            f"mraptor v{mraptor.__version__}, msodde v{msodde.__version__}, oleid v{oleid.__version__}, "
+            f"olevba v{olevba.__version__}, oleobj v{oleobj.__version__}, rtfobj v{rtfobj.__version__}"
+        )
 
 
 def test_flag_macro():
