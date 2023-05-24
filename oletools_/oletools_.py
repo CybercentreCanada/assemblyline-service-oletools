@@ -22,6 +22,8 @@ import zipfile
 import zlib
 
 from collections import defaultdict
+from collections.abc import Callable
+from functools import partial
 from itertools import chain
 from typing import Dict, IO, List, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import urlparse, unquote
@@ -67,6 +69,25 @@ def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSe
     """Helper to add optional ResultSections to ResultSections."""
     if subsection:
         result_section.add_subsection(subsection)
+
+
+def tag_contains_match(tag: str, matches: list[str]) -> bool:
+    """Checks if the tag contains any of the matches"""
+    return any(match.lower() in tag.lower() for match in matches)
+
+
+def regex_matches_tag(tag: str, regexes: list[str]) -> bool:
+    """Checks if any of the regexes match the tag"""
+    return any(re.match(regex, tag, re.IGNORECASE) for regex in regexes)
+
+
+def is_safelisted(tag_type: str,
+                  tag: str,
+                  safelist_matches: Mapping[str, list[str]],
+                  safelist_regexes: Mapping[str, list[str]]) -> bool:
+    """Checks if the tag is safelisted by either a match or a regex"""
+    return (tag_contains_match(tag, safelist_matches.get(tag_type, []))
+            or regex_matches_tag(tag, safelist_regexes.get(tag_type, [])))
 
 
 class Oletools(ServiceBase):
@@ -178,6 +199,10 @@ class Oletools(ServiceBase):
                                    for string in self.config.get('ioc_exact_safelist', [])]
         self.pat_safelist: List[bytes] = self.URI_SAFELIST
         self.tag_safelist: List[bytes] = self.TAG_SAFELIST
+        safelist = self.get_api_interface().get_safelist()
+        self.is_safelisted: Callable[[str, str], bool] = partial(is_safelisted,
+                                                                 safelist_matches=safelist.get('match', {}),
+                                                                 safelist_regexes=safelist.get('regex', {}))
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -1747,6 +1772,8 @@ class Oletools(ServiceBase):
                         or ioc.endswith(self.PAT_ENDS) \
                         or ioc.lower() in self.tag_safelist:
                     continue
+                if self.is_safelisted(tag_type, safe_str(ioc)):
+                    continue
                 # Skip .bin files that are common in normal excel files
                 if not include_fpos and \
                         tag_type == 'file.name.extracted' and re.match(self.EXCEL_BIN_RE, ioc):
@@ -1892,7 +1919,9 @@ class Oletools(ServiceBase):
                 or url.scheme == 'file' or not re.match('(?i)[a-z0-9.-]+', url.hostname):
             return '', '', ''
 
-        if any(pattern in decoded.encode() for pattern in self.pat_safelist):
+        if any(pattern in decoded.encode() for pattern in self.pat_safelist) \
+                or decoded.encode() in self.tag_safelist \
+                or self.is_safelisted('network.static.uri', decoded):
             return '', '', ''
 
         if ':' in url.path:
@@ -1981,7 +2010,8 @@ class Oletools(ServiceBase):
         path_extension = os.path.splitext(filename)[1].encode().lower()
         if (path_extension != b'com'
                 and re.match(self.EXECUTABLE_EXTENSIONS_RE, path_extension)
-                and filename.encode() not in self.tag_safelist):
+                and filename.encode() not in self.tag_safelist
+                and not self.is_safelisted('file.name.extracted', filename)):
             heuristic.add_signature_id('link_to_executable')
             tags['file.name.extracted'] = [filename]
         return heuristic, tags
