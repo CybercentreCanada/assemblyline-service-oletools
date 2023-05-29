@@ -1,9 +1,6 @@
 import pytest
-
 from assemblyline_v4_service.common.result import Heuristic
-
-from oletools import mraptor, msodde, oleid, olevba, oleobj, rtfobj
-
+from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools_.oletools_ import Oletools
 
 

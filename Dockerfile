@@ -14,7 +14,9 @@ RUN wget -O /opt/al_service/onedump.py https://raw.githubusercontent.com/DidierS
 # Switch to assemblyline user
 USER assemblyline
 
-RUN pip install --no-cache-dir --user hachoir lxml pcodedmp oletools && rm -rf ~/.cache/pip
+# Install python dependencies
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --user --requirement requirements.txt && rm -rf ~/.cache/pip
 
 # Copy Oletools service code
 WORKDIR /opt/al_service

@@ -20,34 +20,30 @@ import tempfile
 import traceback
 import zipfile
 import zlib
-
 from collections import defaultdict
 from collections.abc import Callable
 from functools import partial
 from itertools import chain
-from typing import Dict, IO, List, Mapping, Optional, Set, Tuple, Union
-from urllib.parse import urlparse, unquote
+from typing import IO, Dict, List, Mapping, Optional, Set, Tuple, Union
+from urllib.parse import unquote, urlparse
 
 import magic
-from lxml import etree
-
 import olefile
-from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
-from oletools.common import clsid
-from oletools.thirdparty.xxxswf import xxxswf
-
 from assemblyline.common.forge import get_identify
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.net import is_valid_domain, is_valid_ip
 from assemblyline.common.str_utils import safe_str
-from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
+from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatch
+from assemblyline_service_utilities.common.extractor.base64 import find_base64
+from assemblyline_service_utilities.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.extractor.base64 import find_base64
-from assemblyline_v4_service.common.extractor.pe_file import find_pe_files
 from assemblyline_v4_service.common.request import ServiceRequest
-from assemblyline_v4_service.common.result import Result, ResultSection, ResultKeyValueSection, BODY_FORMAT, Heuristic
+from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
-
+from lxml import etree
+from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
+from oletools.common import clsid
+from oletools.thirdparty.xxxswf import xxxswf
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
@@ -73,7 +69,7 @@ def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSe
 
 def tag_contains_match(tag: str, matches: list[str]) -> bool:
     """Checks if the tag contains any of the matches"""
-    return any(match.lower() in tag.lower() for match in matches)
+    return any(match.lower() == tag.lower() for match in matches)
 
 
 def regex_matches_tag(tag: str, regexes: list[str]) -> bool:
