@@ -73,7 +73,7 @@ def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSe
 
 def tag_contains_match(tag: str, matches: list[str]) -> bool:
     """Checks if the tag contains any of the matches"""
-    return any(match.lower() in tag.lower() for match in matches)
+    return any(match.lower() == tag.lower() for match in matches)
 
 
 def regex_matches_tag(tag: str, regexes: list[str]) -> bool:
