@@ -33,7 +33,5 @@ jobs:
           [ -f $(pwd)/tests/requirements.txt ] && sudo env "PATH=$PATH" python -m pip install -U --no-cache-dir -r $(pwd)/tests/requirements.txt
           sudo rm -rf /tmp/* /var/lib/apt/lists/* ~/.cache/pip
         displayName: Setup environment
-      - script: python -m pytest --durations=10 -rsx -vv --cov-report=xml --cov=oletools_
+      - script: python -m pytest --durations=10 -rsx -vv
         displayName: Test
-      - script: python -m codecov
-        displayName: Upload Coverage
