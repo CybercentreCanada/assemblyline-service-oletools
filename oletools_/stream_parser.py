@@ -3,6 +3,7 @@
 import struct
 import zlib
 
+
 class PowerPointDoc(object):
     # Taken DIRECTLY from hachoir-parser - msoffice.pt
     # Credits:
