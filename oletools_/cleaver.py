@@ -1,22 +1,26 @@
 
 import json
-import hachoir.core.config as hachoir_config
 
-from hachoir.core.log import log as hachoir_log
+import hachoir.core.config as hachoir_config
+from assemblyline.common.str_utils import safe_str, translate_str
+from assemblyline_v4_service.common.result import BODY_FORMAT, ResultSection
 from hachoir.core.error import getBacktrace
+from hachoir.core.log import log as hachoir_log
 from hachoir.field import Int8
 from hachoir.field.basic_field_set import ParserError
 from hachoir.field.field import MissingField
 from hachoir.field.seekable_field_set import RootSeekableFieldSet
 from hachoir.parser.guess import createParser, guessParser
 from hachoir.parser.misc.msoffice import RootEntry
-from hachoir.parser.misc.msoffice_summary import Summary, PropertyContent, PropertyIndex, CompObj, SummarySection, \
-    DocSummary
+from hachoir.parser.misc.msoffice_summary import (
+    CompObj,
+    DocSummary,
+    PropertyContent,
+    PropertyIndex,
+    Summary,
+    SummarySection,
+)
 from hachoir.parser.misc.ole2 import HEADER_SIZE
-
-from assemblyline.common.str_utils import translate_str, safe_str
-from assemblyline_v4_service.common.result import ResultSection, BODY_FORMAT
-
 from oletools_.codepages import CODEPAGE_MAP
 
 
