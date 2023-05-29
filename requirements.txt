@@ -1,0 +1,5 @@
+assemblyline-service-utilities
+hachoir
+lxml
+pcodedmp
+oletools
