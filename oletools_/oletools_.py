@@ -21,8 +21,6 @@ import traceback
 import zipfile
 import zlib
 from collections import defaultdict
-from collections.abc import Callable
-from functools import partial
 from itertools import chain, groupby
 from typing import IO, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
@@ -193,7 +191,6 @@ class Oletools(ServiceBase):
         self.sha = ''
 
         self.word_chains: Dict[str, Set[str]] = {}
-        self.macro_skip_words: Set[str] = set()
 
         self.macro_score_max_size: Optional[int] = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
@@ -204,10 +201,6 @@ class Oletools(ServiceBase):
                                    for string in self.config.get('ioc_exact_safelist', [])]
         self.pat_safelist: List[bytes] = self.URI_SAFELIST
         self.tag_safelist: List[bytes] = self.TAG_SAFELIST
-        safelist = self.get_api_interface().get_safelist()
-        self.is_safelisted: Callable[[str, str], bool] = partial(is_safelisted,
-                                                                 safelist_matches=safelist.get('match', {}),
-                                                                 safelist_regexes=safelist.get('regex', {}))
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -216,15 +209,6 @@ class Oletools(ServiceBase):
         self.extracted_clsids: Set[str] = set()
         self.vba_stomping = False
         self.identify = get_identify(use_cache=os.environ.get('PRIVILEGED', 'false').lower() == 'true')
-
-    def start(self) -> None:
-        """Initializes the service."""
-        chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
-        with gzip.open(chain_path) as f:
-            self.word_chains = json.load(f)
-
-        for k, v in self.word_chains.items():
-            self.word_chains[k] = set(v)
 
         # Don't reward use of common keywords
         self.macro_skip_words = {'var', 'unescape', 'exec', 'for', 'while', 'array', 'object',
@@ -236,6 +220,22 @@ class Oletools(ServiceBase):
                                  'text', 'next', 'private', 'click', 'change', 'createtextfile', 'savetofile',
                                  'responsebody', 'opentextfile', 'resume', 'open', 'environment', 'write', 'close',
                                  'error', 'else', 'number', 'chr', 'sub', 'loop'}
+
+        self.match_safelist: dict[str, list[str]] = {}
+        self.regex_safelist: dict[str, list[str]] = {}
+
+    def start(self) -> None:
+        """Initializes the service."""
+        chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
+        with gzip.open(chain_path) as f:
+            self.word_chains = {k: set(v) for k, v in json.load(f).items()}
+
+        safelist = self.get_api_interface().get_safelist()
+        self.match_safelist = safelist.get('match', {})
+        self.regex_safelist = safelist.get('regex', {})
+
+    def is_safelisted(self, tag_type: str, tag: str) -> bool:
+        return is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
 
     def get_tool_version(self) -> str:
         """Returns the version of oletools used by the service."""
