@@ -1665,16 +1665,18 @@ class Oletools(ServiceBase):
                     return "Informative"
 
             for verdict, processed_links in groupby(
-                (
-                    (link_type, link, *self._process_link(link_type, link))
-                    for link_type, link in external_links
+                sorted(
+                    ((external_link, *self._process_link(*external_link))
+                     for external_link in external_links),
+                    key=lambda x: x[1].score,
+                    reverse=True
                 ),
-                key=lambda x: get_verdict(x[2])
+                key=lambda x: get_verdict(x[1])
             ):
-                *_, heuristics, tags_list = zip(*processed_links)
+                grouped_links, heuristics, tags_list = zip(*processed_links)
 
                 result.add_section(ResultSection(verdict + " External Relationship Targets"),
-                                   body='\n'.join(f'{_type} link: {link}' for _type, link, *_ in processed_links),
+                                   body='\n'.join(f'{_type} link: {link}' for _type, link in grouped_links),
                                    # Score only the most malicious link per category
                                    heuristic=max(heuristics, key=lambda h: h.score),
                                    tags=collate_tags(tags_list))
