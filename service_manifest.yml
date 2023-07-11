@@ -5,7 +5,7 @@ description: >-
   Microsoft OLE and XML documents using the Python library py-oletools by Philippe
   Lagadec - http://www.decalage.info.
 
-accepts: document/office/.*|document/odt/*|installer/windows
+accepts: document/office/.*|document/installer/windows
 rejects: empty|metadata/.*
 
 stage: CORE
