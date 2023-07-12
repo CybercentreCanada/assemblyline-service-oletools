@@ -44,6 +44,7 @@ from lxml import etree
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
+
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
@@ -1003,7 +1004,7 @@ class Oletools(ServiceBase):
                 res_alert = ""
                 if rtf_object.is_ole:
                     res_txt += f'format_id: {rtf_object.format_id}\n'
-                    res_txt += f'class name: {rtf_object.class_name}\n'
+                    res_txt += f'class name: {safe_str(rtf_object.class_name)}\n'
                     # if the object is linked and not embedded, data_size=None:
                     if rtf_object.oledata_size is None:
                         res_txt += 'data size: N/A\n'
@@ -1029,7 +1030,7 @@ class Oletools(ServiceBase):
                         res_txt += 'Not an OLE Package'
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
-                    if rtf_object.class_name == 'OLE2Link':
+                    if rtf_object.class_name.upper() == b'OLE2LINK':
                         res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
                 else:
                     if rtf_object.start is not None:

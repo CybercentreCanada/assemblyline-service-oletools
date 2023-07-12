@@ -35,4 +35,5 @@
         "--ignore=E203,W503"
     ],
     "python.linting.pylintEnabled": false,
+    "python.analysis.stubPath": "stubs",
 }
