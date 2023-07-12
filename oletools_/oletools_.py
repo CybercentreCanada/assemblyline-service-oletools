@@ -1005,11 +1005,7 @@ class Oletools(ServiceBase):
                 if rtf_object.is_ole:
                     res_txt += f'format_id: {rtf_object.format_id}\n'
                     res_txt += f'class name: {safe_str(rtf_object.class_name)}\n'
-                    # if the object is linked and not embedded, data_size=None:
-                    if rtf_object.oledata_size is None:
-                        res_txt += 'data size: N/A\n'
-                    else:
-                        res_txt += f'data size: {rtf_object.oledata_size}\n'
+                    res_txt += f'data size: {rtf_object.oledata_size}\n'
                     if rtf_object.is_package:
                         res_txt = f'Filename: {rtf_object.filename}\n'
                         res_txt += f'Source path: {rtf_object.src_path}\n'
