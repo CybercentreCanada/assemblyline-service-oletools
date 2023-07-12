@@ -1012,12 +1012,8 @@ class Oletools(ServiceBase):
                 res_alert = ""
                 if rtf_object.is_ole:
                     res_txt += f'format_id: {rtf_object.format_id}\n'
-                    res_txt += f'class name: {rtf_object.class_name}\n'
-                    # if the object is linked and not embedded, data_size=None:
-                    if rtf_object.oledata_size is None:
-                        res_txt += 'data size: N/A\n'
-                    else:
-                        res_txt += f'data size: {rtf_object.oledata_size}\n'
+                    res_txt += f'class name: {safe_str(rtf_object.class_name)}\n'
+                    res_txt += f'data size: {rtf_object.oledata_size}\n'
                     if rtf_object.is_package:
                         res_txt = f'Filename: {rtf_object.filename}\n'
                         res_txt += f'Source path: {rtf_object.src_path}\n'
@@ -1038,8 +1034,10 @@ class Oletools(ServiceBase):
                         res_txt += 'Not an OLE Package'
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
-                    if rtf_object.class_name == 'OLE2Link':
-                        res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
+                    # Also possible indicator for https://nvd.nist.gov/vuln/detail/CVE-2023-36884
+                    if rtf_object.class_name and rtf_object.class_name.upper() == b'OLE2LINK':
+                        res_alert += ('Possibly an exploit for the OLE2Link vulnerability '
+                                      '(VU#921560, CVE-2017-0199) or (CVE-2023-36884)')
                 else:
                     if rtf_object.start is not None:
                         res_txt = f'{hex(rtf_object.start)} is not a well-formed OLE object'
