@@ -119,23 +119,13 @@ heuristics:
     filetype: document/office
     description: Base64 content discovered in OLE Object.
 
-  - heur_id: 11
-    name: Suspicious Embedded RTF
-    score: 1000
-    filetype: document/office
-    description: Malicious properties discovered in embedded RTF object(s).
-
-  - heur_id: 12
-    name: Suspicious Embedded Link
-    score: 1000
-    filetype: document/office
-    description: Malicious properties discovered in embedded link object(s).
-
   - heur_id: 13
     name: Linked Object
     score: 10
     filetype: document/office
-    description: Malicious properties discovered in embedded link object(s).
+    description: Link object in RTF.
+    signature_score_map:
+      malicious_link_object: 1000
 
   - heur_id: 14
     name: Suspicious Unknown Object
@@ -187,6 +177,8 @@ heuristics:
     score: 10
     filetype: document/office
     description: RTF Embedded Object.
+    signature_score_map:
+      malicious_embedded_object: 1000
 
   - heur_id: 22
     name: Compressed macros found
