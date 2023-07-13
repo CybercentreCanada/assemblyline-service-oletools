@@ -44,6 +44,7 @@ from lxml import etree
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
+
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
@@ -1003,12 +1004,8 @@ class Oletools(ServiceBase):
                 res_alert = ""
                 if rtf_object.is_ole:
                     res_txt += f'format_id: {rtf_object.format_id}\n'
-                    res_txt += f'class name: {rtf_object.class_name}\n'
-                    # if the object is linked and not embedded, data_size=None:
-                    if rtf_object.oledata_size is None:
-                        res_txt += 'data size: N/A\n'
-                    else:
-                        res_txt += f'data size: {rtf_object.oledata_size}\n'
+                    res_txt += f'class name: {safe_str(rtf_object.class_name)}\n'
+                    res_txt += f'data size: {rtf_object.oledata_size}\n'
                     if rtf_object.is_package:
                         res_txt = f'Filename: {rtf_object.filename}\n'
                         res_txt += f'Source path: {rtf_object.src_path}\n'
@@ -1029,8 +1026,10 @@ class Oletools(ServiceBase):
                         res_txt += 'Not an OLE Package'
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
-                    if rtf_object.class_name == 'OLE2Link':
-                        res_alert += 'Possibly an exploit for the OLE2Link vulnerability (VU#921560, CVE-2017-0199)'
+                    # Also possible indicator for https://nvd.nist.gov/vuln/detail/CVE-2023-36884
+                    if rtf_object.class_name and rtf_object.class_name.upper() == b'OLE2LINK':
+                        res_alert += ('Possibly an exploit for the OLE2Link vulnerability '
+                                      '(VU#921560, CVE-2017-0199) or (CVE-2023-36884)')
                 else:
                     if rtf_object.start is not None:
                         res_txt = f'{hex(rtf_object.start)} is not a well-formed OLE object'
@@ -1076,40 +1075,45 @@ class Oletools(ServiceBase):
             except Exception:
                 self.log.warning(f"Failed to process an RTF object for sample {self.sha}: {traceback.format_exc()}")
         if embedded:
-            emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(21))
+            emb_sec = ResultSection("RTF Embedded Object Details",
+                                    body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(21),
+                                    parent=streams_res)
+            assert emb_sec.heuristic
             for txt, alert in embedded:
                 emb_sec.add_line(sep)
                 emb_sec.add_line(txt)
-                if alert != '':
-                    emb_sec.set_heuristic(11)
+                if alert:
+                    emb_sec.heuristic.add_signature_id('malicious_embedded_object')
                     for cve in re.findall(self.CVE_RE, alert):
                         emb_sec.add_tag('attribution.exploit', cve)
                     emb_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(emb_sec)
         if linked:
-            lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(13))
+            link_sec = ResultSection("Linked Object Details",
+                                     body_format=BODY_FORMAT.MEMORY_DUMP,
+                                     heuristic=Heuristic(13),
+                                     parent=streams_res)
+            assert link_sec.heuristic
             for txt, alert in linked:
-                lik_sec.add_line(txt)
+                link_sec.add_line(txt)
                 if alert != '':
                     for cve in re.findall(self.CVE_RE, alert):
-                        lik_sec.add_tag('attribution.exploit', cve)
-                    lik_sec.set_heuristic(12)
-                    lik_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(lik_sec)
+                        link_sec.add_tag('attribution.exploit', cve)
+                    link_sec.heuristic.add_signature_id('malicious_link_object', 1000)
+                    link_sec.add_line(f"Malicious Properties found: {alert}")
         if unknown:
-            unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
-            hits = 0
+            unk_sec = ResultSection("Unknown Object Details",
+                                    body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    parent=streams_res)
+            is_suspicious = False
             for txt, alert in unknown:
                 unk_sec.add_line(txt)
                 if alert != '':
                     for cve in re.findall(self.CVE_RE, alert):
                         unk_sec.add_tag('attribution.exploit', cve)
-                    hits += 1
+                    is_suspicious = True
                     unk_sec.add_line(f"Malicious Properties found: {alert}")
-            unk_sec.set_heuristic(Heuristic(14, frequency=hits) if hits else None)
-            streams_res.add_subsection(unk_sec)
+            unk_sec.set_heuristic(Heuristic(14) if is_suspicious else None)
 
         if streams_res.body or streams_res.subsections:
             return streams_res
