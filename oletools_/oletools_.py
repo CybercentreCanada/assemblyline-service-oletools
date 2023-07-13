@@ -1075,40 +1075,45 @@ class Oletools(ServiceBase):
             except Exception:
                 self.log.warning(f"Failed to process an RTF object for sample {self.sha}: {traceback.format_exc()}")
         if embedded:
-            emb_sec = ResultSection("RTF Embedded Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(21))
+            emb_sec = ResultSection("RTF Embedded Object Details",
+                                    body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    heuristic=Heuristic(21),
+                                    parent=streams_res)
+            assert emb_sec.heuristic
             for txt, alert in embedded:
                 emb_sec.add_line(sep)
                 emb_sec.add_line(txt)
-                if alert != '':
-                    emb_sec.set_heuristic(11)
+                if alert:
+                    emb_sec.heuristic.add_signature_id('malicious_embedded_object')
                     for cve in re.findall(self.CVE_RE, alert):
                         emb_sec.add_tag('attribution.exploit', cve)
                     emb_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(emb_sec)
         if linked:
-            lik_sec = ResultSection("Linked Object Details", body_format=BODY_FORMAT.MEMORY_DUMP,
-                                    heuristic=Heuristic(13))
+            link_sec = ResultSection("Linked Object Details",
+                                     body_format=BODY_FORMAT.MEMORY_DUMP,
+                                     heuristic=Heuristic(13),
+                                     parent=streams_res)
+            assert link_sec.heuristic
             for txt, alert in linked:
-                lik_sec.add_line(txt)
+                link_sec.add_line(txt)
                 if alert != '':
                     for cve in re.findall(self.CVE_RE, alert):
-                        lik_sec.add_tag('attribution.exploit', cve)
-                    lik_sec.set_heuristic(12)
-                    lik_sec.add_line(f"Malicious Properties found: {alert}")
-            streams_res.add_subsection(lik_sec)
+                        link_sec.add_tag('attribution.exploit', cve)
+                    link_sec.heuristic.add_signature_id('malicious_link_object', 1000)
+                    link_sec.add_line(f"Malicious Properties found: {alert}")
         if unknown:
-            unk_sec = ResultSection("Unknown Object Details", body_format=BODY_FORMAT.MEMORY_DUMP)
-            hits = 0
+            unk_sec = ResultSection("Unknown Object Details",
+                                    body_format=BODY_FORMAT.MEMORY_DUMP,
+                                    parent=streams_res)
+            is_suspicious = False
             for txt, alert in unknown:
                 unk_sec.add_line(txt)
                 if alert != '':
                     for cve in re.findall(self.CVE_RE, alert):
                         unk_sec.add_tag('attribution.exploit', cve)
-                    hits += 1
+                    is_suspicious = True
                     unk_sec.add_line(f"Malicious Properties found: {alert}")
-            unk_sec.set_heuristic(Heuristic(14, frequency=hits) if hits else None)
-            streams_res.add_subsection(unk_sec)
+            unk_sec.set_heuristic(Heuristic(14) if is_suspicious else None)
 
         if streams_res.body or streams_res.subsections:
             return streams_res
