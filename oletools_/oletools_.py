@@ -1331,7 +1331,7 @@ class Oletools(ServiceBase):
                                                            body=pcode_results))
                     stomp_sec.add_line("Suspicious VBA content different in pcode dump than in macro dump content.")
                     assert stomp_sec.heuristic
-                    stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=500)
+                    stomp_sec.heuristic.add_signature_id("Suspicious VBA stomped", score=0)
                     vba_stomp_sec = ResultSection("Suspicious content in macro dump:", parent=stomp_sec)
                     vba_stomp_sec.add_lines(vba_matches)
                     if not vba_matches:
