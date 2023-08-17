@@ -1744,7 +1744,7 @@ class Oletools(ServiceBase):
             file_path = os.path.join(self.working_directory, file_name)
             with open(file_path, 'wb') as f:
                 f.write(data)
-            if self.identify.fileinfo(file_path)["type"] == "unknown":
+            if self.identify.fileinfo(file_path, generate_hashes=False)["type"] == "unknown":
                 self.log.debug(f"Skipping extracting {file_name} because it's type is unknown")
             else:
                 self._extracted_files[file_name] = description
