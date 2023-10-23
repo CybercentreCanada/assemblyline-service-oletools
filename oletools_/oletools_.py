@@ -21,10 +21,8 @@ import traceback
 import zipfile
 import zlib
 from collections import defaultdict
-from collections.abc import Callable
-from functools import partial
-from itertools import chain
-from typing import IO, Dict, List, Mapping, Optional, Set, Tuple, Union
+from itertools import chain, groupby
+from typing import IO, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 import magic
@@ -66,6 +64,14 @@ def _add_subsection(result_section: ResultSection, subsection: Optional[ResultSe
     """Helper to add optional ResultSections to ResultSections."""
     if subsection:
         result_section.add_subsection(subsection)
+
+
+def collate_tags(tags_list: Iterable[Tags]) -> Tags:
+    collated: defaultdict[str, set[str]] = defaultdict(set)
+    for tags in tags_list:
+        for _type, values in tags.items():
+            collated[_type].update(values)
+    return {_type: list(tag_set) for _type, tag_set in collated.items()}
 
 
 def tag_contains_match(tag: str, matches: list[str]) -> bool:
@@ -185,7 +191,6 @@ class Oletools(ServiceBase):
         self.sha = ''
 
         self.word_chains: Dict[str, Set[str]] = {}
-        self.macro_skip_words: Set[str] = set()
 
         self.macro_score_max_size: Optional[int] = self.config.get('macro_score_max_file_size', None)
         self.macro_score_min_alert = self.config.get('macro_score_min_alert', 0.6)
@@ -196,10 +201,6 @@ class Oletools(ServiceBase):
                                    for string in self.config.get('ioc_exact_safelist', [])]
         self.pat_safelist: List[bytes] = self.URI_SAFELIST
         self.tag_safelist: List[bytes] = self.TAG_SAFELIST
-        safelist = self.get_api_interface().get_safelist()
-        self.is_safelisted: Callable[[str, str], bool] = partial(is_safelisted,
-                                                                 safelist_matches=safelist.get('match', {}),
-                                                                 safelist_regexes=safelist.get('regex', {}))
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -208,15 +209,6 @@ class Oletools(ServiceBase):
         self.extracted_clsids: Set[str] = set()
         self.vba_stomping = False
         self.identify = get_identify(use_cache=os.environ.get('PRIVILEGED', 'false').lower() == 'true')
-
-    def start(self) -> None:
-        """Initializes the service."""
-        chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
-        with gzip.open(chain_path) as f:
-            self.word_chains = json.load(f)
-
-        for k, v in self.word_chains.items():
-            self.word_chains[k] = set(v)
 
         # Don't reward use of common keywords
         self.macro_skip_words = {'var', 'unescape', 'exec', 'for', 'while', 'array', 'object',
@@ -228,6 +220,22 @@ class Oletools(ServiceBase):
                                  'text', 'next', 'private', 'click', 'change', 'createtextfile', 'savetofile',
                                  'responsebody', 'opentextfile', 'resume', 'open', 'environment', 'write', 'close',
                                  'error', 'else', 'number', 'chr', 'sub', 'loop'}
+
+        self.match_safelist: dict[str, list[str]] = {}
+        self.regex_safelist: dict[str, list[str]] = {}
+
+    def start(self) -> None:
+        """Initializes the service."""
+        chain_path = os.path.join(os.path.dirname(__file__), "chains.json.gz")
+        with gzip.open(chain_path) as f:
+            self.word_chains = {k: set(v) for k, v in json.load(f).items()}
+
+        safelist = self.get_api_interface().get_safelist()
+        self.match_safelist = safelist.get('match', {})
+        self.regex_safelist = safelist.get('regex', {})
+
+    def is_safelisted(self, tag_type: str, tag: str) -> bool:
+        return is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
 
     def get_tool_version(self) -> str:
         """Returns the version of oletools used by the service."""
@@ -731,7 +739,7 @@ class Oletools(ServiceBase):
 
         for i in range(18):
             try:
-                str_len, *_ = struct.unpack('H', data[current_pos:current_pos+2])
+                str_len, *_ = struct.unpack('H', data[current_pos : current_pos + 2])
             except struct.error:
                 self.log.warning('Could not get STTB metadata length, is the data truncated?')
                 return None
@@ -1592,7 +1600,7 @@ class Oletools(ServiceBase):
         xml_b64_res = ResultSection("Base64 content:")
         xml_big_res = ResultSection("Files too large to be fully scanned", heuristic=Heuristic(3, frequency=0))
 
-        external_links: Set[Tuple[bytes, bytes]] = set()
+        external_links: Set[Tuple[str, str]] = set()
         ioc_files: Mapping[str, List[str]] = defaultdict(list)
         # noinspection PyBroadException
         try:
@@ -1633,7 +1641,7 @@ class Oletools(ServiceBase):
                     if iocs:
                         for tag_type, tags in iocs.items():
                             for tag in tags:
-                                ioc_files[tag_type+safe_str(tag)].append(f)
+                                ioc_files[tag_type + safe_str(tag)].append(f)
                                 xml_ioc_res.add_tag(tag_type, tag)
 
                     f_b64res = self._check_for_b64(data, f)
@@ -1651,23 +1659,33 @@ class Oletools(ServiceBase):
             self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
 
         if external_links:
-            link_heuristics: tuple[Heuristic]
-            tags_list: tuple[Tags]
-            link_heuristics, tags_list = zip(*[
-                self._process_link(safe_str(link_type), link)
-                for link_type, link in external_links
-            ])
-            # Score only the most malicious link
-            heuristic = max(link_heuristics, key=lambda h: h.score)
-            xml_target_res = ResultSection("External Relationship Targets in XML",
-                                           heuristic=heuristic,
-                                           parent=result)
-            for ty, link in external_links:
-                xml_target_res.add_line(f'{safe_str(ty)} link: {safe_str(link)}')
-            for link_tags in tags_list:
-                for tag_type, tag_values in link_tags.items():
-                    for t in tag_values:
-                        xml_target_res.add_tag(tag_type, t)
+            def get_verdict(heuristic: Heuristic):
+                if heuristic.score >= 1000:
+                    return "Malicious"
+                elif heuristic.score >= 500:
+                    return "Suspicious"
+                else:
+                    return "Informative"
+
+            for verdict, processed_links in groupby(
+                sorted(
+                    ((external_link, *self._process_link(*external_link))
+                     for external_link in external_links),
+                    key=lambda x: x[1].score,
+                    reverse=True
+                ),
+                key=lambda x: get_verdict(x[1])
+            ):
+                grouped_links, heuristics, tags_list = zip(*processed_links)
+
+                result.add_section(
+                    ResultSection(
+                        verdict + " External Relationship Targets",
+                        body='\n'.join(f'{_type} link: {link}' for _type, link in grouped_links),
+                        # Score only the most malicious link per category
+                        heuristic=max(heuristics, key=lambda h: h.score),
+                        tags=collate_tags(tags_list)
+                    ))
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
@@ -1675,7 +1693,7 @@ class Oletools(ServiceBase):
             for tag_type, res_tags in xml_ioc_res.tags.items():
                 for res_tag in res_tags:
                     xml_ioc_res.add_line(f"Found the {tag_type.rsplit('.', 1)[-1].upper()} string {res_tag} in:")
-                    xml_ioc_res.add_lines(ioc_files[tag_type+safe_str(res_tag)])
+                    xml_ioc_res.add_lines(ioc_files[tag_type + safe_str(res_tag)])
                     xml_ioc_res.add_line('')
                     assert xml_ioc_res.heuristic
                     xml_ioc_res.heuristic.increment_frequency()
@@ -1714,9 +1732,9 @@ class Oletools(ServiceBase):
         return property_section if property_section.body else None
 
     @staticmethod
-    def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[bytes, bytes]]:
+    def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[str, str]]:
         return [
-            (relationship.attrib['Type'].rsplit('/', 1)[1].encode(), relationship.attrib['Target'].encode())
+            (relationship.attrib['Type'].rsplit('/', 1)[1], relationship.attrib['Target'])
             for relationship in parsed.findall(oleobj.OOXML_RELATIONSHIP_TAG, None)
             if 'Target' in relationship.attrib
             and 'Type' in relationship.attrib
