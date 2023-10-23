@@ -1678,11 +1678,14 @@ class Oletools(ServiceBase):
             ):
                 grouped_links, heuristics, tags_list = zip(*processed_links)
 
-                result.add_section(ResultSection(verdict + " External Relationship Targets"),
-                                   body='\n'.join(f'{_type} link: {link}' for _type, link in grouped_links),
-                                   # Score only the most malicious link per category
-                                   heuristic=max(heuristics, key=lambda h: h.score),
-                                   tags=collate_tags(tags_list))
+                result.add_section(
+                    ResultSection(
+                        verdict + " External Relationship Targets",
+                        body='\n'.join(f'{_type} link: {link}' for _type, link in grouped_links),
+                        # Score only the most malicious link per category
+                        heuristic=max(heuristics, key=lambda h: h.score),
+                        tags=collate_tags(tags_list)
+                    ))
 
         if xml_big_res.body:
             result.add_section(xml_big_res)
