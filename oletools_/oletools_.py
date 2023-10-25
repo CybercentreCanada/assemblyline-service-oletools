@@ -22,7 +22,7 @@ import zipfile
 import zlib
 from collections import defaultdict
 from itertools import chain, groupby
-from typing import IO, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
+from typing import IO, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 import magic
@@ -1903,7 +1903,10 @@ class Oletools(ServiceBase):
 
         return b64_res if b64_res.subsections else None
 
-    def parse_uri(self, check_uri: Union[bytes, str]) -> Tuple[str, str, str]:
+    def parse_uri(
+            self,
+            check_uri: Union[bytes, str],
+        ) -> Tuple[str, Literal['', 'network.static.ip', 'network.static.domain'], str]:
         """Use regex to determine if URI valid and should be reported.
 
         Args:
@@ -2010,6 +2013,8 @@ class Oletools(ServiceBase):
         if not hostname:
             # Not a valid link
             return heuristic, {}
+        if link_type.lower() == 'oleobject' and '.sharepoint.' in hostname:
+            heuristic.add_signature_id('oleobject', score=0)  # Don't score oleobject links to sharepoint servers
         heuristic.add_signature_id(link_type.lower())
         tags = {
             'network.static.uri': [url],
