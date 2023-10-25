@@ -2015,7 +2015,8 @@ class Oletools(ServiceBase):
             return heuristic, {}
         if link_type.lower() == 'oleobject' and '.sharepoint.' in hostname:
             heuristic.add_signature_id('oleobject', score=0)  # Don't score oleobject links to sharepoint servers
-        heuristic.add_signature_id(link_type.lower())
+        else:
+            heuristic.add_signature_id(link_type.lower())
         tags = {
             'network.static.uri': [url],
             hostname_type: [hostname]
