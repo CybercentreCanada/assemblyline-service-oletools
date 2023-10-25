@@ -124,9 +124,13 @@ class Oletools(ServiceBase):
     DDE_SUS_KEYWORDS = ('powershell.exe', 'cmd.exe', 'webclient', 'downloadstring', 'mshta.exe', 'scrobj.dll',
                         'bitstransfer', 'cscript.exe', 'wscript.exe')
     # Extensions of interesting files
-    FILES_OF_INTEREST = [b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EPS', b'.EXE',
+    FILES_OF_INTEREST = {b'.APK', b'.APP', b'.BAT', b'.BIN', b'.CLASS', b'.CMD', b'.DAT', b'.DLL', b'.EPS', b'.EXE',
                          b'.JAR', b'.JS', b'.JSE', b'.LNK', b'.MSI', b'.OSX', b'.PAF', b'.PS1', b'.RAR',
-                         b'.SCR', b'.SCT', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP']
+                         b'.SCR', b'.SCT', b'.SWF', b'.SYS', b'.TMP', b'.VBE', b'.VBS', b'.WSF', b'.WSH', b'.ZIP'}
+    EXECUTABLE_EXTENSIONS = {b'.exe', b'.com', b'.pif', b'.gadget', b'.msi', b'.msp', b'.msc', b'.vbs', b'.vbe',
+                             b'.vb', b'.jse', b'.js', b'.wsf', b'.wsc', b'.wsh', b'.ws', b'.bat', b'.cmd', b'.dll',
+                             b'.scr', b'.hta', b'.cpl', b'class', b'.jar', b'.ps1xml', b'.ps1', b'.ps2xml', b'.ps2',
+                             b'.psc1', b'.psc2', b'.scf', b'.sct', b'.lnk', b'.inf', b'.reg'}
 
     # Safelists
     TAG_SAFELIST = [b"management", b"manager", b"microsoft.com"]
@@ -137,13 +141,10 @@ class Oletools(ServiceBase):
     PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL",
                 b"VBE7.DLL")
     # Common blacklist false positives
-    BLACKLIST_IGNORE = [b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request']
+    BLACKLIST_IGNORE = {b'connect', b'protect', b'background', b'enterprise', b'account', b'waiting', b'request'}
 
     # Bytes Regex's
     DOMAIN_RE = rb'^(?:(?:[a-zA-Z0-9-]+)\.)+[a-zA-Z]{2,5}'
-    EXECUTABLE_EXTENSIONS_RE = rb"(?i)\.(EXE|COM|PIF|GADGET|MSI|MSP|MSC|VBS|VBE" \
-                               rb"|VB|JSE|JS|WSF|WSC|WSH|WS|BAT|CMD|DLL|SCR" \
-                               rb"|HTA|CPL|CLASS|JAR|PS1XML|PS1|PS2XML|PS2|PSC1|PSC2|SCF|SCT|LNK|INF|REG)\b"
     IP_RE = rb'^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))'
     EXTERNAL_LINK_RE = rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}' \
                        rb'[Tt]argetMode="External"'
@@ -1022,7 +1023,7 @@ class Oletools(ServiceBase):
                         # check if the file extension is executable:
                         _, ext = os.path.splitext(rtf_object.filename)
 
-                        if re.match(self.EXECUTABLE_EXTENSIONS_RE, ext.encode()):
+                        if ext.encode().lower() in self.EXECUTABLE_EXTENSIONS:
                             res_alert += 'CODE/EXECUTABLE FILE'
                         else:
                             # check if the file content is executable:
@@ -2026,8 +2027,8 @@ class Oletools(ServiceBase):
             heuristic.add_signature_id('external_link_ip')
         filename = os.path.basename(urlparse(url).path)
         path_extension = os.path.splitext(filename)[1].encode().lower()
-        if (path_extension != b'com'
-                and re.match(self.EXECUTABLE_EXTENSIONS_RE, path_extension)
+        if (path_extension != b'.com'
+                and path_extension in self.EXECUTABLE_EXTENSIONS
                 and filename.encode() not in self.tag_safelist
                 and not self.is_safelisted('file.name.extracted', filename)):
             heuristic.add_signature_id('link_to_executable')
