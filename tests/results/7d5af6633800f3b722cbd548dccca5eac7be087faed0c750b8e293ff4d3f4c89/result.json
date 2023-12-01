@@ -1,0 +1,457 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 464,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Excel 97-2003 Workbook or Template\nContainer format: OLE, Container type\nApplication name: b'Microsoft Excel', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'admin', Author declared in properties\nVBA Macros (Yes, suspicious): This file contains VBA macros. Suspicious keywords were found. Use olevba and mraptor for more info.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "VBA Macros": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document 7d5af6633800f3b722cbd548dccca5eac7be087faed0c750b8e293ff4d3f4c89",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "author": "admin",
+          "codepage": "1252",
+          "codepage_doc": "1252",
+          "create_time": "2018-12-06 20:43:11",
+          "creating_application": "Microsoft Excel",
+          "hlinks_changed": "False",
+          "last_saved_by": "oplup",
+          "last_saved_time": "2023-11-27 07:59:37",
+          "links_dirty": "False",
+          "scale_crop": "False",
+          "security": "0",
+          "shared_doc": "False",
+          "version": "917504"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "summary": {
+                "author": [
+                  "admin"
+                ],
+                "codepage": [
+                  1252
+                ],
+                "create_time": [
+                  "2018-12-06 20:43:11"
+                ],
+                "last_saved_by": [
+                  "oplup"
+                ],
+                "last_saved_time": [
+                  "2023-11-27 07:59:37"
+                ]
+              }
+            }
+          }
+        },
+        "title_text": "OLE Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "00020820-0000-0000-C000-000000000046": "Microsoft Microsoft Excel 97-2003 Worksheet (Excel.Sheet.8)"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "clsid": [
+                "00020820-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in ThisWorkbook:\n    Found the following BLACKLISTED string(s):\n    WScript  |  WScript.Shell  |  Shell.Application\nIOCs in _VBA_PROJECT:\n    Found the following BLACKLISTED string(s):\n    SaveToFile",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 4,
+          "heur_id": 9,
+          "score": 4,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "string": {
+              "blacklisted": [
+                "WScript",
+                "WScript.Shell",
+                "Shell.Application",
+                "SaveToFile"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Macro may be packed or obfuscated.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 20,
+          "score": 100,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "macro": {
+                "sha256": [
+                  "5a95ef0114727794f35988ee065f5435711d5299507f06b78947b8355e808fdf",
+                  "8e442a8e542ca01c7d87af7e9ad015863e0a19232a647712a6e31b3911beb372",
+                  "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312",
+                  "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0"
+                ]
+              }
+            }
+          },
+          "technique": {
+            "macro": [
+              "Contains VBA Macro(s)"
+            ],
+            "obfuscation": [
+              "VBA Macro String Functions"
+            ]
+          }
+        },
+        "title_text": "OleVBA : Macros detected",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "workbook_open",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 32,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Autoexecution strings",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "shell\nshell.application\nmicrosoft.xmlhttp\nadodb.stream\nwscript.shell\nhex strings\ncall\nsavetofile\nopen\nwrite\ncreateobject",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 0,
+          "heur_id": 30,
+          "score": 300,
+          "score_map": {},
+          "signatures": {
+            "adodb.stream": 1,
+            "call": 1,
+            "createobject": 1,
+            "hex_strings": 1,
+            "microsoft.xmlhttp": 1,
+            "open": 1,
+            "savetofile": 1,
+            "shell": 1,
+            "shell.application": 1,
+            "write": 1,
+            "wscript.shell": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious strings or functions",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Suspicious VBA content different in pcode dump than in macro dump content.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 4,
+          "score": 0,
+          "score_map": {
+            "Suspicious VBA stomped": 0
+          },
+          "signatures": {
+            "Suspicious VBA stomped": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "VBA Stomping",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "SaveToFile",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious content in pcode dump not found in macro dump:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Workbook_Open\nadodb.stream\nCall",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious content in macro dump:",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "05bfa527_all_pcode.data",
+        "sha256": "05bfa5275f2b26a947e9e1d92bb78a1d428d81507013c543be172fa65f098fac"
+      },
+      {
+        "name": "b475d38f_all_vba.data",
+        "sha256": "b475d38fbe4f52c8c2511b7f277927a172efd9cdb03ec0dc0e327174e8033e33"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 4,
+        "signatures": [
+          "Suspicious VBA stomped"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 20,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 30,
+        "signatures": [
+          "shell",
+          "shell.application",
+          "microsoft.xmlhttp",
+          "adodb.stream",
+          "wscript.shell",
+          "hex_strings",
+          "call",
+          "savetofile",
+          "open",
+          "write",
+          "createobject"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 32,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "VBA Macros"
+        ]
+      }
+    ],
+    "tags": {
+      "file.ole.clsid": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "00020820-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.ole.macro.sha256": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "5a95ef0114727794f35988ee065f5435711d5299507f06b78947b8355e808fdf"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "8e442a8e542ca01c7d87af7e9ad015863e0a19232a647712a6e31b3911beb372"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0"
+        }
+      ],
+      "file.ole.summary.author": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "admin"
+        }
+      ],
+      "file.ole.summary.codepage": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": 1252
+        }
+      ],
+      "file.ole.summary.create_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2018-12-06 20:43:11"
+        }
+      ],
+      "file.ole.summary.last_saved_by": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "oplup"
+        }
+      ],
+      "file.ole.summary.last_saved_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2023-11-27 07:59:37"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SaveToFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Shell.Application"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript.Shell"
+        }
+      ],
+      "technique.macro": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "Contains VBA Macro(s)"
+        }
+      ],
+      "technique.obfuscation": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "VBA Macro String Functions"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}
