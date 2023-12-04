@@ -1,0 +1,328 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 517,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Excel 2007+ Macro-Enabled Add-in (.xlam)\nContainer format: OpenXML, Container type",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Embedded OLE files",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document xl/embeddings/XWUDmqe.Uwo2WUa",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "keywords": "\\x00D\\x00E\\x00F\\x00G\\x00H\\x00I\\x00J\\x00K\\x00L\\x00M\\x00N\\x00O\\x00P\\x00Q\\x00R\\x00S\\x00T\\x00U\\x00V\\x00W\\x00X\\x00Y\\x00Z\\x00[\\x00\\\\x00]\\x00^\\x00_\\x00`\\x00a\\x00b\\x00c\\x00d\\x00",
+          "template": "\\x00\\x1e\\x00\\x1f\\x00 \\x00!\\x00\"\\x00#\\x00$\\x00%\\x00&\\x00'\\x00(\\x00)\\x00*\\x00+\\x00",
+          "title": "\\x00-\\x00.\\x00/\\x000\\x001\\x002\\x003\\x004\\x005\\x006\\x007\\x008\\x009\\x00:\\x00;\\x00<\\x00=\\x00>\\x00?\\x00@\\x00A\\x00B"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 1,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Alternate Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "0002CE02-0000-0000-C000-000000000046": "Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 52,
+          "score": 500,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "attribution": {
+            "exploit": [
+              "CVE-2017-11882",
+              "CVE-2018-0802"
+            ]
+          },
+          "file": {
+            "ole": {
+              "clsid": [
+                "0002CE02-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in \\x01OLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    ftp  |  smb  |  imap",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 3,
+          "heur_id": 9,
+          "score": 3,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "string": {
+              "blacklisted": [
+                "ftp",
+                "smb",
+                "imap"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "AppVersion": "12.0000",
+          "Application": "Microsoft Excel",
+          "DocSecurity": "0",
+          "HyperlinksChanged": "false",
+          "LinksUpToDate": "false",
+          "ScaleCrop": "false",
+          "SharedDoc": "false",
+          "created": "2023-07-26T19:45:53Z",
+          "creator": "HP",
+          "lastModifiedBy": "HP",
+          "modified": "2023-07-26T19:46:34Z"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OOXML Properties",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "xl/embeddings/XWUDmqe.Uwo2WUa",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 3,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Files too large to be fully scanned",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Found the API string connect in:\nxl/drawings/vmlDrawing1.vml\n\nFound the BLACKLISTED string ftp in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string smb in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string imap in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 4,
+          "heur_id": 7,
+          "score": 4,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "string": {
+              "api": [
+                "connect"
+              ],
+              "blacklisted": [
+                "ftp",
+                "smb",
+                "imap"
+              ]
+            }
+          }
+        },
+        "title_text": "IOCs content:",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "f0df4a7b.xml",
+        "sha256": "f0df4a7be1537174c64a7701d63de965f663dd0df70a4351499d3202ecf9b49d"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 1,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 3,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 7,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 52,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "attribution.exploit": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2017-11882"
+        },
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2018-0802"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "0002CE02-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "connect"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ftp"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "ftp"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "imap"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "imap"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "smb"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "smb"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}
