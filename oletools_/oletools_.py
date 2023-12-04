@@ -164,7 +164,12 @@ class Oletools(ServiceBase):
         (rb'(?s)MZ.{32,1024}PE\000\000', b"embedded executable"),
         # Javascript
         (rb'(function\(|\beval[ \t]*\(|new[ \t]+ActiveXObject\(|xfa\.((resolve|create)Node|datasets|form)'
-         rb'|\.oneOfChild)', b"embedded javascript")
+         rb'|\.oneOfChild)', b"embedded javascript"),
+        # Inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
+        (rb'(unescape\(|document\.write)', b"embedded javascript"),
+        # Malicious RTF codes, inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
+        (rb'(%28%22%45%6E%61%62%6C%65%20%65%64%69%74%69%6E%67%22%29|Enable editing|\\objhtml|\\objdata|\\bin'
+         rb'|\\objautlink|No\: 20724414|%4E%6F%3A%20%32%30%37%32%34%34%31%34|passwordhash)', b"suspicious rtf code"),
     ]
 
     # String Regex's
