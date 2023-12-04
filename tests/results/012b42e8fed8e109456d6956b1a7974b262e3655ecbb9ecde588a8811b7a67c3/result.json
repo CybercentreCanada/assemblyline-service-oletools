@@ -97,7 +97,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "hex strings\nsendkeys\nbase64 strings",
+        "body": "base64 strings\nhex strings\nsendkeys",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -150,9 +150,9 @@
         "attack_ids": [],
         "heur_id": 30,
         "signatures": [
+          "base64_strings",
           "hex_strings",
-          "sendkeys",
-          "base64_strings"
+          "sendkeys"
         ]
       },
       {

@@ -111,7 +111,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in \\x01OLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    ftp  |  smb  |  imap",
+        "body": "IOCs in \\x01OLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    ftp  |  imap  |  smb",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -130,8 +130,8 @@
             "string": {
               "blacklisted": [
                 "ftp",
-                "smb",
-                "imap"
+                "imap",
+                "smb"
               ]
             }
           }
@@ -186,7 +186,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "Found the API string connect in:\nxl/drawings/vmlDrawing1.vml\n\nFound the BLACKLISTED string ftp in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string smb in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string imap in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n",
+        "body": "Found the API string connect in:\nxl/drawings/vmlDrawing1.vml\n\nFound the BLACKLISTED string ftp in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string imap in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n\nFound the BLACKLISTED string smb in:\nxl/embeddings/XWUDmqe.Uwo2WUa\n",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -208,8 +208,8 @@
               ],
               "blacklisted": [
                 "ftp",
-                "smb",
-                "imap"
+                "imap",
+                "smb"
               ]
             }
           }

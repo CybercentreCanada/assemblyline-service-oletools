@@ -112,7 +112,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in ThisWorkbook:\n    Found the following BLACKLISTED string(s):\n    WScript  |  WScript.Shell  |  Shell.Application\nIOCs in _VBA_PROJECT:\n    Found the following BLACKLISTED string(s):\n    SaveToFile",
+        "body": "IOCs in ThisWorkbook:\n    Found the following BLACKLISTED string(s):\n    Shell.Application  |  WScript  |  WScript.Shell\nIOCs in _VBA_PROJECT:\n    Found the following BLACKLISTED string(s):\n    SaveToFile",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -130,9 +130,9 @@
           "file": {
             "string": {
               "blacklisted": [
+                "Shell.Application",
                 "WScript",
                 "WScript.Shell",
-                "Shell.Application",
                 "SaveToFile"
               ]
             }
@@ -204,7 +204,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "shell\nshell.application\nmicrosoft.xmlhttp\nadodb.stream\nwscript.shell\nhex strings\ncall\nsavetofile\nopen\nwrite\ncreateobject",
+        "body": "adodb.stream\ncall\ncreateobject\nhex strings\nmicrosoft.xmlhttp\nopen\nsavetofile\nshell\nshell.application\nwrite\nwscript.shell",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -322,17 +322,17 @@
         "attack_ids": [],
         "heur_id": 30,
         "signatures": [
+          "adodb.stream",
+          "call",
+          "createobject",
+          "hex_strings",
+          "microsoft.xmlhttp",
+          "open",
+          "savetofile",
           "shell",
           "shell.application",
-          "microsoft.xmlhttp",
-          "adodb.stream",
-          "wscript.shell",
-          "hex_strings",
-          "call",
-          "savetofile",
-          "open",
           "write",
-          "createobject"
+          "wscript.shell"
         ]
       },
       {

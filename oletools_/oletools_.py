@@ -620,8 +620,8 @@ class Oletools(ServiceBase):
                     for tag_type, tags in iocs.items():
                         sus_sec.add_line(
                             f"    Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                        sus_sec.add_line('    ' + safe_str(b'  |  '.join(tags)))
-                        for tag in tags:
+                        sus_sec.add_line('    ' + safe_str(b'  |  '.join(sorted(tags))))
+                        for tag in sorted(tags):
                             sus_sec.add_tag(tag_type, tag)
                 ole_b64_res = self._check_for_b64(data, stream)
                 if ole_b64_res:
@@ -1317,11 +1317,11 @@ class Oletools(ServiceBase):
                         assert autoexecution.heuristic
                         autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
-                signatures = {keyword.lower().replace(' ', '_'): 1 for keyword in suspicious}
+                signatures = {keyword.lower().replace(' ', '_'): 1 for keyword in sorted(suspicious)}
                 heuristic = Heuristic(30, signatures=signatures) if signatures else None
                 macro_section.add_subsection(ResultSection("Suspicious strings or functions",
                                                            heuristic=heuristic,
-                                                           body='\n'.join(suspicious)))
+                                                           body='\n'.join(sorted(suspicious))))
             if network:
                 assert network_section.heuristic
                 if network_section.heuristic.frequency == 0:
@@ -1645,7 +1645,7 @@ class Oletools(ServiceBase):
                     iocs, extract_ioc = self._check_for_patterns(data, include_fpos)
                     if iocs:
                         for tag_type, tags in iocs.items():
-                            for tag in tags:
+                            for tag in sorted(tags):
                                 ioc_files[tag_type + safe_str(tag)].append(f)
                                 xml_ioc_res.add_tag(tag_type, tag)
 
