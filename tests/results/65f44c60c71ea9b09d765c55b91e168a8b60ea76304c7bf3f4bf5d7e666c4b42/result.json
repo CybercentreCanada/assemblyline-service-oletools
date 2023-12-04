@@ -87,7 +87,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in \\x01oLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    smb  |  ftp",
+        "body": "IOCs in \\x01oLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    ftp  |  smb",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -105,8 +105,8 @@
           "file": {
             "string": {
               "blacklisted": [
-                "smb",
-                "ftp"
+                "ftp",
+                "smb"
               ]
             }
           }

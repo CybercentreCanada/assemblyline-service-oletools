@@ -164,7 +164,12 @@ class Oletools(ServiceBase):
         (rb'(?s)MZ.{32,1024}PE\000\000', b"embedded executable"),
         # Javascript
         (rb'(function\(|\beval[ \t]*\(|new[ \t]+ActiveXObject\(|xfa\.((resolve|create)Node|datasets|form)'
-         rb'|\.oneOfChild)', b"embedded javascript")
+         rb'|\.oneOfChild)', b"embedded javascript"),
+        # Inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
+        (rb'(unescape\(|document\.write)', b"embedded javascript"),
+        # Malicious RTF codes, inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
+        (rb'(%28%22%45%6E%61%62%6C%65%20%65%64%69%74%69%6E%67%22%29|Enable editing|\\objhtml|\\objdata|\\bin'
+         rb'|\\objautlink|No\: 20724414|%4E%6F%3A%20%32%30%37%32%34%34%31%34|passwordhash)', b"suspicious rtf code"),
     ]
 
     # String Regex's
@@ -618,10 +623,11 @@ class Oletools(ServiceBase):
                         sus_sec.add_line(f"IOCs in {stream}:")
                         sus_res = True
                     for tag_type, tags in iocs.items():
+                        sorted_tags = sorted(tags)
                         sus_sec.add_line(
                             f"    Found the following {tag_type.rsplit('.', 1)[-1].upper()} string(s):")
-                        sus_sec.add_line('    ' + safe_str(b'  |  '.join(tags)))
-                        for tag in tags:
+                        sus_sec.add_line('    ' + safe_str(b'  |  '.join(sorted_tags)))
+                        for tag in sorted_tags:
                             sus_sec.add_tag(tag_type, tag)
                 ole_b64_res = self._check_for_b64(data, stream)
                 if ole_b64_res:
@@ -1037,12 +1043,19 @@ class Oletools(ServiceBase):
                                 res_alert += 'CODE/EXECUTABLE FILE'
                     else:
                         res_txt += 'Not an OLE Package'
+                    # Supported by https://github.com/viper-framework/viper-modules/blob/00ee6cd2b2ad4ed278279ca9e383e48bc23a2555/rtf.py#L89
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
                     # Also possible indicator for https://nvd.nist.gov/vuln/detail/CVE-2023-36884
                     if rtf_object.class_name and rtf_object.class_name.upper() == b'OLE2LINK':
                         res_alert += ('Possibly an exploit for the OLE2Link vulnerability '
                                       '(VU#921560, CVE-2017-0199) or (CVE-2023-36884)')
+                    # Inspired by https://github.com/viper-framework/viper-modules/blob/00ee6cd2b2ad4ed278279ca9e383e48bc23a2555/rtf.py#L89
+                    # Detect Equation Editor exploit
+                    # https://www.kb.cert.org/vuls/id/421280/
+                    elif rtf_object.class_name and rtf_object.class_name.upper() == b'EQUATION.3':
+                        res_alert += ('Possibly an exploit for the Equation Editor vulnerability '
+                                      '(VU#421280, CVE-2017-11882)')
                 else:
                     if rtf_object.start is not None:
                         res_txt = f'{hex(rtf_object.start)} is not a well-formed OLE object'
@@ -1317,11 +1330,12 @@ class Oletools(ServiceBase):
                         assert autoexecution.heuristic
                         autoexecution.heuristic.add_signature_id(keyword)
             if suspicious:
-                signatures = {keyword.lower().replace(' ', '_'): 1 for keyword in suspicious}
+                sorted_suspicious = sorted(suspicious)
+                signatures = {keyword.lower().replace(' ', '_'): 1 for keyword in sorted_suspicious}
                 heuristic = Heuristic(30, signatures=signatures) if signatures else None
                 macro_section.add_subsection(ResultSection("Suspicious strings or functions",
                                                            heuristic=heuristic,
-                                                           body='\n'.join(suspicious)))
+                                                           body='\n'.join(sorted_suspicious)))
             if network:
                 assert network_section.heuristic
                 if network_section.heuristic.frequency == 0:
@@ -1645,7 +1659,7 @@ class Oletools(ServiceBase):
                     iocs, extract_ioc = self._check_for_patterns(data, include_fpos)
                     if iocs:
                         for tag_type, tags in iocs.items():
-                            for tag in tags:
+                            for tag in sorted(tags):
                                 ioc_files[tag_type + safe_str(tag)].append(f)
                                 xml_ioc_res.add_tag(tag_type, tag)
 

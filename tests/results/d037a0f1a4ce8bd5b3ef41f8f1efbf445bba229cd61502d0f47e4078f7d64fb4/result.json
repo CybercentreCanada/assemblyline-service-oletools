@@ -96,7 +96,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "Found the BLACKLISTED string Accepted in:\nword/document.xml\n\nFound the BLACKLISTED string channel in:\nword/document.xml\n\nFound the BLACKLISTED string attempt in:\nword/document.xml\n\nFound the BLACKLISTED string Manufacturer in:\nword/document.xml\n\nFound the API string connect in:\nword/document.xml\n\nFound the URI string http://zang3.conyersdill.top/_errorpages/wealthzx.doc in:\nword/_rels/settings.xml.rels\n\nFound the EXTRACTED string wealthzx.doc in:\nword/_rels/settings.xml.rels\n",
+        "body": "Found the BLACKLISTED string Accepted in:\nword/document.xml\n\nFound the BLACKLISTED string Manufacturer in:\nword/document.xml\n\nFound the BLACKLISTED string attempt in:\nword/document.xml\n\nFound the BLACKLISTED string channel in:\nword/document.xml\n\nFound the API string connect in:\nword/document.xml\n\nFound the URI string http://zang3.conyersdill.top/_errorpages/wealthzx.doc in:\nword/_rels/settings.xml.rels\n\nFound the EXTRACTED string wealthzx.doc in:\nword/_rels/settings.xml.rels\n",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -123,9 +123,9 @@
               ],
               "blacklisted": [
                 "Accepted",
-                "channel",
+                "Manufacturer",
                 "attempt",
-                "Manufacturer"
+                "channel"
               ]
             }
           },
