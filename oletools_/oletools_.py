@@ -1042,12 +1042,19 @@ class Oletools(ServiceBase):
                                 res_alert += 'CODE/EXECUTABLE FILE'
                     else:
                         res_txt += 'Not an OLE Package'
+                    # Supported by https://github.com/viper-framework/viper-modules/blob/00ee6cd2b2ad4ed278279ca9e383e48bc23a2555/rtf.py#L89
                     # Detect OLE2Link exploit
                     # http://www.kb.cert.org/vuls/id/921560
                     # Also possible indicator for https://nvd.nist.gov/vuln/detail/CVE-2023-36884
                     if rtf_object.class_name and rtf_object.class_name.upper() == b'OLE2LINK':
                         res_alert += ('Possibly an exploit for the OLE2Link vulnerability '
                                       '(VU#921560, CVE-2017-0199) or (CVE-2023-36884)')
+                    # Inspired by https://github.com/viper-framework/viper-modules/blob/00ee6cd2b2ad4ed278279ca9e383e48bc23a2555/rtf.py#L89
+                    # Detect Equation Editor exploit
+                    # https://www.kb.cert.org/vuls/id/421280/
+                    elif rtf_object.class_name and rtf_object.class_name.upper() == b'EQUATION.3':
+                        res_alert += ('Possibly an exploit for the Equation Editor vulnerability '
+                                      '(VU#421280, CVE-2017-11882)')
                 else:
                     if rtf_object.start is not None:
                         res_txt = f'{hex(rtf_object.start)} is not a well-formed OLE object'
