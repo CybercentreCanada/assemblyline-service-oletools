@@ -1,0 +1,200 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 510,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 0002CE02-0000-0000-C000-000000000046 - Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: None, Code page used for properties\nAuthor: None, Author declared in properties",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document ec82959bb9c34cfbbd6fbfcb8afce89ba25f09722fc4996d0d16f64368ee67e4",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "keywords": "\\x00D\\x00E\\x00F\\x00G\\x00H\\x00I\\x00J\\x00K\\x00L\\x00M\\x00N\\x00O\\x00P\\x00Q\\x00R\\x00S\\x00T\\x00U\\x00V\\x00W\\x00X\\x00Y\\x00Z\\x00[\\x00\\\\x00]\\x00^\\x00_\\x00`\\x00a\\x00b\\x00c\\x00d\\x00",
+          "template": "\\x00\\x1e\\x00\\x1f\\x00 \\x00!\\x00\"\\x00#\\x00$\\x00%\\x00&\\x00'\\x00(\\x00)\\x00*\\x00+\\x00",
+          "title": "\\x00-\\x00.\\x00/\\x000\\x001\\x002\\x003\\x004\\x005\\x006\\x007\\x008\\x009\\x00:\\x00;\\x00<\\x00=\\x00>\\x00?\\x00@\\x00A\\x00B"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 1,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Alternate Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "0002CE02-0000-0000-C000-000000000046": "Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 52,
+          "score": 500,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "attribution": {
+            "exploit": [
+              "CVE-2017-11882",
+              "CVE-2018-0802"
+            ]
+          },
+          "file": {
+            "ole": {
+              "clsid": [
+                "0002CE02-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "\\x01Ole10Native (\u00ef\u0097$[\\x01\\x08So\u00bd\u00ea\u00c3\u00e7q\u0081\u00eda\\x06\u00a2q\u008b}\u00b3\u008b\\x0f\u00be\u00f3\\x7fv*\u0081\u00e6\u00b0\u00e7F@\u008b.Q\u00ff\u00d5\u0083\u00c0n\u00ff\u00e0\u00f7T\u009b\"\"\u00ce\u00cb\u00d3\u00ceD):\n\tFilepath: \u00beAz\\x01@\\x05\u00e2p\\x14\u00ebn\\x15]\u00d5\u00cc\u0093\u008d\\x0c31\\x1e\u00ec\u00b4\u00abiV\u0083$}\u00e5;D\u00ab\u00ce&\u00ccN\u00c6\u00b3\u00fc\u0089J\u00a4q\\x1eK\u00f7\u00d8N\\x7fF-\u00e9/\\x01\n\tTemp path: \\x0c\n\tData Length: 103032243",
+        "body_config": {},
+        "body_format": "MEMORY_DUMP",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 29,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "\u00ef\u0097$[\u0001\bSo\u00bd\u00ea\u00c3\u00e7q\u0081\u00eda\u0006\u00a2q\u008b}\u00b3\u008b\u000f\u00be\u00f3\u007fv*\u0081\u00e6\u00b0\u00e7F@\u008b.Q\u00ff\u00d5\u0083\u00c0n\u00ff\u00e0\u00f7T\u009b\"\"\u00ce\u00cb\u00d3\u00ceD",
+                "\u00beAz\u0001@\u0005\u00e2p\u0014\u00ebn\u0015]\u00d5\u00cc\u0093\u008d\f31\u001e\u00ec\u00b4\u00abiV\u0083$}\u00e5;D\u00ab\u00ce&\u00ccN\u00c6\u00b3\u00fc\u0089J\u00a4q\u001eK\u00f7\u00d8N\u007fF-\u00e9/\u0001",
+                "\f"
+              ]
+            }
+          }
+        },
+        "title_text": "Extracted Ole10Native streams:",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 1,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 29,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 52,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "attribution.exploit": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2017-11882"
+        },
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2018-0802"
+        }
+      ],
+      "file.name.extracted": [
+        {
+          "heur_id": 29,
+          "signatures": [],
+          "value": "\f"
+        },
+        {
+          "heur_id": 29,
+          "signatures": [],
+          "value": "\u00beAz\u0001@\u0005\u00e2p\u0014\u00ebn\u0015]\u00d5\u00cc\u0093\u008d\f31\u001e\u00ec\u00b4\u00abiV\u0083$}\u00e5;D\u00ab\u00ce&\u00ccN\u00c6\u00b3\u00fc\u0089J\u00a4q\u001eK\u00f7\u00d8N\u007fF-\u00e9/\u0001"
+        },
+        {
+          "heur_id": 29,
+          "signatures": [],
+          "value": "\u00ef\u0097$[\u0001\bSo\u00bd\u00ea\u00c3\u00e7q\u0081\u00eda\u0006\u00a2q\u008b}\u00b3\u008b\u000f\u00be\u00f3\u007fv*\u0081\u00e6\u00b0\u00e7F@\u008b.Q\u00ff\u00d5\u0083\u00c0n\u00ff\u00e0\u00f7T\u009b\"\"\u00ce\u00cb\u00d3\u00ceD"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "0002CE02-0000-0000-C000-000000000046"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

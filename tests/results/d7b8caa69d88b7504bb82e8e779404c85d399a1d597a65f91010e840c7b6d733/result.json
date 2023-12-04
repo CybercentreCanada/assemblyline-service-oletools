@@ -1,0 +1,1581 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 410,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 000C1084-0000-0000-C000-000000000046 - None\nContainer format: OLE, Container type\nApplication name: b'Advanced Installer 12.3 build 64631', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Copyright \\xa9 2023', Author declared in properties",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document d7b8caa69d88b7504bb82e8e779404c85d399a1d597a65f91010e840c7b6d733",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "author": "Copyright \u00a9 2023",
+          "codepage": "1252",
+          "comments": "Copyright \u00a9 2023.",
+          "create_time": "2009-12-11 11:47:44.850000",
+          "creating_application": "Advanced Installer 12.3 build 64631",
+          "keywords": "Installer, MSI, Database",
+          "last_printed": "2009-12-11 11:47:44.850000",
+          "last_saved_by": "",
+          "last_saved_time": "2009-12-11 11:47:44.850000",
+          "num_pages": "200",
+          "num_words": "10",
+          "revision_number": "{241BBFF9-2DA7-4D2E-95A2-557D2DF6DD12}",
+          "security": "0",
+          "subject": "Copyright \u00a9 2023",
+          "template": ";1033",
+          "title": "Installation Database"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "summary": {
+                "author": [
+                  "Copyright \u00a9 2023"
+                ],
+                "codepage": [
+                  1252
+                ],
+                "comment": [
+                  "Copyright \u00a9 2023."
+                ],
+                "create_time": [
+                  "2009-12-11 11:47:44.850000"
+                ],
+                "last_printed": [
+                  "2009-12-11 11:47:44.850000"
+                ],
+                "last_saved_time": [
+                  "2009-12-11 11:47:44.850000"
+                ],
+                "subject": [
+                  "Copyright \u00a9 2023"
+                ],
+                "title": [
+                  "Installation Database"
+                ]
+              }
+            }
+          }
+        },
+        "title_text": "OLE Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "000C1084-0000-0000-C000-000000000046": "unknown CLSID"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "clsid": [
+                "000C1084-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    wizard.You  |  resource.At\n    Found the following EXTRACTED string(s):\n    Freeing RICHED20.DLL  |  Could not find required file IMAGEHLP.DLL  |  CABINET.DLL  |  and has been truncated.Loading RICHED20.DLL\n    Found the following BLACKLISTED string(s):\n    Windows 2000  |  Administrator  |  Transaction  |  file not found  |  virtual  |  command  |  Server 2008  |  Shutdown  |  attempt  |  Windows Vista  |  Manufacturer  |  completed  |  TypeLib  |  AppData  |  Windows NT  |  account  |  logFile  |  Protect  |  Connecting  |  ActiveX  |  extract  |  WScript  |  WScript.Shell  |  Connect  |  Windows NT 4.0  |  Install\n    Found the following API string(s):\n    StartService  |  WinVerifyTrust  |  MoveFile  |  connect  |  DeleteService  |  RegisterTypeLib  |  GetLastError  |  BindImage  |  SQLFetch\n    Found the following CMDLET string(s):\n    AppData\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://t2.symcb.com0  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://ocsp.thawte.com0  |  http://crl.thawte.com/ThawteTimestampingCA.crl0  |  http://ts-aia.ws.symantec.com/tss-ca-g2.cer0  |  http://www.advancedinstaller.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  https://www.thawte.com/cps0/  |  http://ts-ocsp.ws.symantec.com07  |  http://tl.symcd.com0  |  http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(  |  https://www.thawte.com/repository0\n    Found the following DOMAIN string(s):\n    www.advancedinstaller.com  |  crl.thawte.com  |  t2.symcb.com  |  www.thawte.com  |  ts-aia.ws.symantec.com  |  tl.symcb.com  |  tl.symcd.com  |  t1.symcb.com  |  ocsp.thawte.com  |  ts-crl.ws.symantec.com  |  ts-ocsp.ws.symantec.com\n    Found the following PDB_FILENAME string(s):\n    Branch\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    WININET.dll  |  SHELL32.dll  |  KERNEL32.dll  |  msi.dll  |  NETAPI32.dll  |  SHLWAPI.dll  |  ole32.dll  |  GDI32.dll  |  COMDLG32.dll  |  aicustact.dll  |  WS2_32.dll  |  USER32.dll  |  ADVAPI32.dll\n    Found the following BLACKLISTED string(s):\n    TokenPrivilege  |  TokenPrivileges  |  Privilege  |  Symantec  |  Connection  |  Connect  |  Install\n    Found the following API string(s):\n    ShellExecuteEx  |  GetSidSubAuthority  |  RegEnumKey  |  GetCurrentProcess  |  GetDesktopWindow  |  CoCreateInstance  |  DuplicateHandle  |  AdjustTokenPrivileges  |  wsprintf  |  GetTempPath  |  NetUserGetInfo  |  GetWindowThreadProcessId  |  lstrcat  |  OpenService  |  WriteFile  |  RegQueryValue  |  GetTickCount  |  QueryServiceStatusEx  |  SHGetMalloc  |  LogonUser  |  LookupPrivilegeValue  |  GetSidLengthRequired  |  RegSetValueEx  |  GetProcessHeap  |  FreeLibrary  |  GetSidIdentifierAuthority  |  WideCharToMultiByte  |  strcmpi  |  CloseServiceHandle  |  TerminateProcess  |  OpenFile  |  GetProcessId  |  SetEndOfFile  |  CloseHandle  |  NetGroupGetInfo  |  ControlService  |  GetProcAddress  |  ChangeServiceConfig  |  FreeSid  |  GetLastError  |  OpenProcess  |  EnumServicesStatus  |  Extract  |  PostMessage  |  RegCloseKey  |  GetForegroundWindow  |  GetSidSubAuthorityCount  |  LsaAddAccountRights  |  InternetCheckConnection  |  ole32.dll  |  FindClose  |  LsaOpenPolicy  |  MessageBox  |  GetStdHandle  |  lstrlen  |  SetFilePointer  |  InitializeSid  |  CreateToolhelp32Snapshot  |  RaiseException  |  DeleteFile  |  lstrcpyn  |  RemoveDirectory  |  OpenProcessToken  |  GetExitCodeProcess  |  EnumChildWindows  |  InternetConnect  |  QueryServiceStatus  |  GetLocaleInfo  |  AllocateAndInitializeSid  |  LocalAlloc  |  ConvertStringSidToSid  |  OpenMutex  |  Process32First  |  SHGetSpecialFolderLocation  |  ConvertSidToStringSid  |  LocalFree  |  NetQueryDisplayInformation  |  RegEnumKeyEx  |  msi.dll  |  RegSetValue  |  CoInitialize  |  SendMessage  |  Process32Next  |  ShellExecute  |  NetUserModalsGet  |  lstrcpy  |  CoUninitialize  |  RegCreateKey  |  ReadFile  |  SetLastError  |  LookupAccountName  |  RegQueryValueEx  |  LookupAccountSid  |  FindFirstFile  |  RegOpenKey  |  GetModuleHandle  |  LsaClose  |  EnumWindows  |  CreateProcess  |  sprintf  |  lstrcpynW  |  ChangeServiceConfig2  |  GetDiskFreeSpace  |  SHGetSpecialFolderPath  |  NetLocalGroupGetInfo  |  RegCreateKeyEx  |  OpenSCManager  |  LoadLibrary  |  GetTempFileName  |  RegOpenKeyEx  |  FindNextFile",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 195,
+          "heur_id": 9,
+          "score": 100,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "Freeing RICHED20.DLL",
+                "Could not find required file IMAGEHLP.DLL",
+                "CABINET.DLL",
+                "and has been truncated.Loading RICHED20.DLL",
+                "WININET.dll",
+                "SHELL32.dll",
+                "KERNEL32.dll",
+                "msi.dll",
+                "NETAPI32.dll",
+                "SHLWAPI.dll",
+                "ole32.dll",
+                "GDI32.dll",
+                "COMDLG32.dll",
+                "aicustact.dll",
+                "WS2_32.dll",
+                "USER32.dll",
+                "ADVAPI32.dll"
+              ]
+            },
+            "pe": {
+              "pdb_filename": [
+                "Branch\\win\\Release\\custact\\x86\\AICustAct.pdb"
+              ]
+            },
+            "powershell": {
+              "cmdlet": [
+                "AppData"
+              ]
+            },
+            "string": {
+              "api": [
+                "StartService",
+                "WinVerifyTrust",
+                "MoveFile",
+                "connect",
+                "DeleteService",
+                "RegisterTypeLib",
+                "GetLastError",
+                "BindImage",
+                "SQLFetch",
+                "ShellExecuteEx",
+                "GetSidSubAuthority",
+                "RegEnumKey",
+                "GetCurrentProcess",
+                "GetDesktopWindow",
+                "CoCreateInstance",
+                "DuplicateHandle",
+                "AdjustTokenPrivileges",
+                "wsprintf",
+                "GetTempPath",
+                "NetUserGetInfo",
+                "GetWindowThreadProcessId",
+                "lstrcat",
+                "OpenService",
+                "WriteFile",
+                "RegQueryValue",
+                "GetTickCount",
+                "QueryServiceStatusEx",
+                "SHGetMalloc",
+                "LogonUser",
+                "LookupPrivilegeValue",
+                "GetSidLengthRequired",
+                "RegSetValueEx",
+                "GetProcessHeap",
+                "FreeLibrary",
+                "GetSidIdentifierAuthority",
+                "WideCharToMultiByte",
+                "strcmpi",
+                "CloseServiceHandle",
+                "TerminateProcess",
+                "OpenFile",
+                "GetProcessId",
+                "SetEndOfFile",
+                "CloseHandle",
+                "NetGroupGetInfo",
+                "ControlService",
+                "GetProcAddress",
+                "ChangeServiceConfig",
+                "FreeSid",
+                "OpenProcess",
+                "EnumServicesStatus",
+                "Extract",
+                "PostMessage",
+                "RegCloseKey",
+                "GetForegroundWindow",
+                "GetSidSubAuthorityCount",
+                "LsaAddAccountRights",
+                "InternetCheckConnection",
+                "ole32.dll",
+                "FindClose",
+                "LsaOpenPolicy",
+                "MessageBox",
+                "GetStdHandle",
+                "lstrlen",
+                "SetFilePointer",
+                "InitializeSid",
+                "CreateToolhelp32Snapshot",
+                "RaiseException",
+                "DeleteFile",
+                "lstrcpyn",
+                "RemoveDirectory",
+                "OpenProcessToken",
+                "GetExitCodeProcess",
+                "EnumChildWindows",
+                "InternetConnect",
+                "QueryServiceStatus",
+                "GetLocaleInfo",
+                "AllocateAndInitializeSid",
+                "LocalAlloc",
+                "ConvertStringSidToSid",
+                "OpenMutex",
+                "Process32First",
+                "SHGetSpecialFolderLocation",
+                "ConvertSidToStringSid",
+                "LocalFree",
+                "NetQueryDisplayInformation",
+                "RegEnumKeyEx",
+                "msi.dll",
+                "RegSetValue",
+                "CoInitialize",
+                "SendMessage",
+                "Process32Next",
+                "ShellExecute",
+                "NetUserModalsGet",
+                "lstrcpy",
+                "CoUninitialize",
+                "RegCreateKey",
+                "ReadFile",
+                "SetLastError",
+                "LookupAccountName",
+                "RegQueryValueEx",
+                "LookupAccountSid",
+                "FindFirstFile",
+                "RegOpenKey",
+                "GetModuleHandle",
+                "LsaClose",
+                "EnumWindows",
+                "CreateProcess",
+                "sprintf",
+                "lstrcpynW",
+                "ChangeServiceConfig2",
+                "GetDiskFreeSpace",
+                "SHGetSpecialFolderPath",
+                "NetLocalGroupGetInfo",
+                "RegCreateKeyEx",
+                "OpenSCManager",
+                "LoadLibrary",
+                "GetTempFileName",
+                "RegOpenKeyEx",
+                "FindNextFile"
+              ],
+              "blacklisted": [
+                "Install",
+                "Windows 2000",
+                "Administrator",
+                "Transaction",
+                "file not found",
+                "virtual",
+                "command",
+                "Server 2008",
+                "Shutdown",
+                "attempt",
+                "Windows Vista",
+                "Manufacturer",
+                "completed",
+                "TypeLib",
+                "AppData",
+                "Windows NT",
+                "account",
+                "logFile",
+                "Protect",
+                "Connecting",
+                "ActiveX",
+                "extract",
+                "WScript",
+                "WScript.Shell",
+                "Connect",
+                "Windows NT 4.0",
+                "TokenPrivilege",
+                "TokenPrivileges",
+                "Privilege",
+                "Symantec",
+                "Connection"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "domain": [
+                "wizard.You",
+                "resource.At",
+                "www.advancedinstaller.com",
+                "crl.thawte.com",
+                "t2.symcb.com",
+                "www.thawte.com",
+                "ts-aia.ws.symantec.com",
+                "tl.symcb.com",
+                "tl.symcd.com",
+                "t1.symcb.com",
+                "ocsp.thawte.com",
+                "ts-crl.ws.symantec.com",
+                "ts-ocsp.ws.symantec.com"
+              ],
+              "uri": [
+                "http://t2.symcb.com0",
+                "http://t1.symcb.com/ThawtePCA.crl0",
+                "http://ocsp.thawte.com0",
+                "http://crl.thawte.com/ThawteTimestampingCA.crl0",
+                "http://ts-aia.ws.symantec.com/tss-ca-g2.cer0",
+                "http://www.advancedinstaller.com0",
+                "http://tl.symcb.com/tl.crl0",
+                "http://tl.symcb.com/tl.crt0",
+                "https://www.thawte.com/cps0/",
+                "http://ts-ocsp.ws.symantec.com07",
+                "http://tl.symcd.com0",
+                "http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(",
+                "https://www.thawte.com/repository0"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'new ActiveXObject(' string found in stream \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824, indicating embedded javascript",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 23,
+          "score": 250,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'javascript'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'ShellExecute' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating use of suspicious system function",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 25,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'This program cannot be run in DOS mode' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xe8\\x00\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x08\\x02\\x98\\x8fLc\\xf6\\xdcLc\\xf6\\xdcLc\\xf6\\xdcR1r\\xdcOc\\xf6\\xdcE\\x1bu\\xdcMc\\xf6\\xdcE\\x1be\\xdcCc\\xf6\\xdcLc\\xf7\\xdc\\xf5c\\xf6\\xdcE\\x1b|\\xdcpc\\xf6\\xdcE\\x1bd\\xdcMc\\xf6\\xdcR1b\\xdcMc\\xf6\\xdcE\\x1bg\\xdcMc\\xf6\\xdcRichLc\\xf6\\xdc\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "050282e6.ole_stream",
+        "sha256": "050282e679ac80f6a357fff92f1e7a95d30a06b35247e25cbfd2dd8ceee1a412"
+      },
+      {
+        "name": "4503e6a9.ole_stream",
+        "sha256": "4503e6a9fa0484ab39cee9bdf0aad9a9186658f5d74727e96dd33f7cfa64c8ef"
+      },
+      {
+        "name": "48278165.ole_stream",
+        "sha256": "48278165490487ee414be65e20501b19a65edaf1b6f473eb7d8c55023175ec88"
+      },
+      {
+        "name": "4d25fb2b.ole_stream",
+        "sha256": "4d25fb2bef3d0c11bb4bfd753e4d62128f704051695d285eec0df7d9ab597dca"
+      },
+      {
+        "name": "4f92e804.ole_stream",
+        "sha256": "4f92e804a11453382ebff7fb0958879bae88fe3366306911dec9d811cd306eed"
+      },
+      {
+        "name": "573e3260.ole_stream",
+        "sha256": "573e3260eed63604f24f6f10ce5294e25e22fda9e5bfd9010134de6e684bab98"
+      },
+      {
+        "name": "593f94ef.ole_stream",
+        "sha256": "593f94ef1405422b3e453f4422b22c990d84303668d60344c6fd257318e92428"
+      },
+      {
+        "name": "6a9f617a.ole_stream",
+        "sha256": "6a9f617ad2117b3756188ff46ae14e43981f0672904d68b9ba0b9c5ab3525ecf"
+      },
+      {
+        "name": "719e644c.ole_stream",
+        "sha256": "719e644c31d0cc6b891f6a1253655dfba39a3b78e06d24817be1d8492b172b48"
+      },
+      {
+        "name": "7f012132.ole_stream",
+        "sha256": "7f0121322785c107bfdfe343e49f06c604c719baff849d07b6e099675d173961"
+      },
+      {
+        "name": "88dd7ee9.ole_stream",
+        "sha256": "88dd7ee9fa22ecdbdc6b3d47db83bc3d72360aeb43588e6a9a008b224389cb1c"
+      },
+      {
+        "name": "99d490c2.ole_stream",
+        "sha256": "99d490c2bdef5115f306a595964663540370141f65a25c5052352155f2603f68"
+      },
+      {
+        "name": "9ae4a96b.ole_stream",
+        "sha256": "9ae4a96bf2a349667e844acc1e2ac4f89361a6182268438f4d063df3a6fc47bc"
+      },
+      {
+        "name": "e728f794.ole_stream",
+        "sha256": "e728f79439e07df1afbcf03e8788fa0b8b08cf459db31fc8568bc511bf799537"
+      },
+      {
+        "name": "f2f3ae8c.ole_stream",
+        "sha256": "f2f3ae8ca06f5cf320ca1d234a623bf55cf2b84c1d6dea3d85d5392e29aaf437"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 23,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ADVAPI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CABINET.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "COMDLG32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Could not find required file IMAGEHLP.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Freeing RICHED20.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GDI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "KERNEL32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NETAPI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHELL32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHLWAPI.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "USER32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WININET.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WS2_32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "aicustact.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "and has been truncated.Loading RICHED20.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "msi.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ole32.dll"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "000C1084-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.ole.summary.author": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Copyright \u00a9 2023"
+        }
+      ],
+      "file.ole.summary.codepage": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": 1252
+        }
+      ],
+      "file.ole.summary.comment": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Copyright \u00a9 2023."
+        }
+      ],
+      "file.ole.summary.create_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2009-12-11 11:47:44.850000"
+        }
+      ],
+      "file.ole.summary.last_printed": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2009-12-11 11:47:44.850000"
+        }
+      ],
+      "file.ole.summary.last_saved_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2009-12-11 11:47:44.850000"
+        }
+      ],
+      "file.ole.summary.subject": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Copyright \u00a9 2023"
+        }
+      ],
+      "file.ole.summary.title": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Installation Database"
+        }
+      ],
+      "file.pe.pdb_filename": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Branch\\win\\Release\\custact\\x86\\AICustAct.pdb"
+        }
+      ],
+      "file.powershell.cmdlet": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AppData"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AdjustTokenPrivileges"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AllocateAndInitializeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "BindImage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ChangeServiceConfig"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ChangeServiceConfig2"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CloseHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CloseServiceHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoCreateInstance"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoInitialize"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoUninitialize"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ControlService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ConvertSidToStringSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ConvertStringSidToSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateToolhelp32Snapshot"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DuplicateHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumChildWindows"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumServicesStatus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumWindows"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Extract"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindClose"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindFirstFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindNextFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FreeLibrary"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FreeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCurrentProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDesktopWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDiskFreeSpace"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetExitCodeProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetForegroundWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetLastError"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetLocaleInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetModuleHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcAddress"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcessHeap"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcessId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidIdentifierAuthority"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidLengthRequired"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidSubAuthority"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidSubAuthorityCount"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetStdHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTempFileName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTempPath"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTickCount"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetWindowThreadProcessId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InitializeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InternetCheckConnection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InternetConnect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LoadLibrary"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LocalAlloc"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LocalFree"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LogonUser"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupAccountName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupAccountSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupPrivilegeValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaAddAccountRights"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaClose"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaOpenPolicy"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "MessageBox"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "MoveFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetGroupGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetLocalGroupGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetQueryDisplayInformation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetUserGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetUserModalsGet"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenMutex"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenProcessToken"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenSCManager"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "PostMessage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Process32First"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Process32Next"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryServiceStatus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryServiceStatusEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RaiseException"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ReadFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCloseKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCreateKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCreateKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegEnumKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegEnumKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegOpenKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegOpenKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegQueryValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegQueryValueEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegSetValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegSetValueEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegisterTypeLib"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RemoveDirectory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetMalloc"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetSpecialFolderLocation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetSpecialFolderPath"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SQLFetch"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SendMessage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetEndOfFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetFilePointer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetLastError"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ShellExecute"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ShellExecuteEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "StartService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TerminateProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WideCharToMultiByte"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WinVerifyTrust"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WriteFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "connect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcat"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpy"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpyn"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpynW"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrlen"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "msi.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ole32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "sprintf"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "strcmpi"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "wsprintf"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ActiveX"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Administrator"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AppData"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Connect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Connecting"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Connection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Install"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Manufacturer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Privilege"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Protect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Server 2008"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Shutdown"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Symantec"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TokenPrivilege"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TokenPrivileges"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Transaction"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TypeLib"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript.Shell"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 2000"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows NT"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows NT 4.0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows Vista"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "account"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "attempt"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "command"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "completed"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "extract"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "file not found"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "logFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "virtual"
+        }
+      ],
+      "network.static.domain": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "crl.thawte.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ocsp.thawte.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "resource.At"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "t1.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "t2.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "tl.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "tl.symcd.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ts-aia.ws.symantec.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ts-crl.ws.symantec.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ts-ocsp.ws.symantec.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "wizard.You"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "www.advancedinstaller.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "www.thawte.com"
+        }
+      ],
+      "network.static.uri": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://crl.thawte.com/ThawteTimestampingCA.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ocsp.thawte.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://t1.symcb.com/ThawtePCA.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://t2.symcb.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcb.com/tl.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcb.com/tl.crt0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcd.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ts-aia.ws.symantec.com/tss-ca-g2.cer0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ts-crl.ws.symantec.com/tss-ca-g2.crl0("
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ts-ocsp.ws.symantec.com07"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://www.advancedinstaller.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.thawte.com/cps0/"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.thawte.com/repository0"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

@@ -1,0 +1,336 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 514,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Excel 2007+ Macro-Enabled Add-in (.xlam)\nContainer format: OpenXML, Container type",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Embedded OLE files",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document xl/embeddings/t7y7wIj.uJCV2",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "0002CE02-0000-0000-C000-000000000046": "Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 52,
+          "score": 500,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "attribution": {
+            "exploit": [
+              "CVE-2017-11882",
+              "CVE-2018-0802"
+            ]
+          },
+          "file": {
+            "ole": {
+              "clsid": [
+                "0002CE02-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in \\x01oLE10nAtIVe:\n    Found the following BLACKLISTED string(s):\n    smb  |  ftp",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 2,
+          "heur_id": 9,
+          "score": 2,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "string": {
+              "blacklisted": [
+                "smb",
+                "ftp"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "AppVersion": "16.0300",
+          "Application": "Microsoft Excel",
+          "DocSecurity": "0",
+          "HyperlinksChanged": "false",
+          "LinksUpToDate": "false",
+          "ScaleCrop": "false",
+          "SharedDoc": "false",
+          "created": "2023-08-03T11:34:29Z",
+          "creator": "USER",
+          "lastModifiedBy": "USER",
+          "modified": "2023-08-03T11:37:28Z"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OOXML Properties",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "xl/embeddings/t7y7wIj.uJCV2",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 3,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Files too large to be fully scanned",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Found the EXTRACTED string C:\\Users\\USER\\Music\\Trillium_Security_MultiSploit_Tool_v6.5.28_Release in:\nxl/workbook.xml\n\nFound the API string connect in:\nxl/drawings/vmlDrawing1.vml\n",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 2,
+          "heur_id": 7,
+          "score": 2,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "C:\\Users\\USER\\Music\\Trillium_Security_MultiSploit_Tool_v6.5.28_Release"
+              ]
+            },
+            "string": {
+              "api": [
+                "connect"
+              ]
+            }
+          }
+        },
+        "title_text": "IOCs content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Base64 content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 8,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Base64 in xl/embeddings/t7y7wIj.uJCV2:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "BASE64 TEXT SIZE: 411192\nBASE64 SAMPLE TEXT: ygPa8i2s3pKIDNrPx9pz3eDNVfG9fzB0WQ6sJ4FLMrSI4HnmNO[........]\nDECODED SHA256: 95a63c3c0b79c18197557f626703ec120f6420723ad52413dd5ca954a9099930\nDECODED_FILE_DUMP: Possible base64 file contents were extracted. See extracted file 95a63c3c0b_b64_decoded",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Result 95a63c3c0b79c18197557f626703ec120f6420723ad52413dd5ca954a9099930",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "5a0b6e3e.xml",
+        "sha256": "5a0b6e3eb8c931fded7e6c0836271f47041cb0f4309ff79d9f135da749cc8b89"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 3,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 7,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 8,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 52,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "attribution.exploit": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2017-11882"
+        },
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "CVE-2018-0802"
+        }
+      ],
+      "file.name.extracted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "C:\\Users\\USER\\Music\\Trillium_Security_MultiSploit_Tool_v6.5.28_Release"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": 52,
+          "signatures": [],
+          "value": "0002CE02-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "connect"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ftp"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "smb"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

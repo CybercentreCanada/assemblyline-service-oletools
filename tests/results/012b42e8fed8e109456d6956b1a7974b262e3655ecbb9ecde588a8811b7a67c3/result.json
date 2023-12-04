@@ -1,0 +1,228 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 210,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Excel 5.0/95 Workbook, Template or Add-in\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: -535: Unknown code page, Code page used for properties\nAuthor: None, Author declared in properties\nVBA Macros (Yes): This file contains VBA macros. No suspicious keyword was found. Use olevba and mraptor for more info.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "VBA Macros": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Type: \\x01\\x04\\x041000027454\nText: Desktop Blank ATR Triage form US 10 24 19.xlsx\n\n\n",
+        "body_config": {},
+        "body_format": "MEMORY_DUMP",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 15,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "dde_link": [
+                "Desktop Blank ATR Triage form US 10 24 19.xlsx"
+              ]
+            }
+          }
+        },
+        "title_text": "MSO DDE Links:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Macro may be packed or obfuscated.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 20,
+          "score": 100,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "macro": {
+                "sha256": [
+                  "f36d490372e1ef33bbf02c4f72d8aedebf0ac3f4292e288de6162cbc20a7b3c4",
+                  "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312",
+                  "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0",
+                  "12a0f7735c6438a01176ea862764077f158f4cf3ceec0025bc7bea6477a8f5e1",
+                  "cd4ccf9c57caf9e1488d28f6b101daa166cef8282c33bb1566da71d568d2a8d0",
+                  "14de0425a62586687c3d59b7d3d7dc60268f989ab7e07a61403525064d98502a",
+                  "81e88462c64c2201a24df7872d6a68a7816c7c002f0a87d05daf6703c6c4fb02",
+                  "c6cd80c393edd2ea268230ae102b228c6076fbc6fa7d1e96ee327c9c4a1fe98d"
+                ]
+              }
+            }
+          },
+          "technique": {
+            "macro": [
+              "Contains VBA Macro(s)"
+            ]
+          }
+        },
+        "title_text": "OleVBA : Macros detected",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "hex strings\nsendkeys\nbase64 strings",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 0,
+          "heur_id": 30,
+          "score": 50,
+          "score_map": {},
+          "signatures": {
+            "base64_strings": 1,
+            "hex_strings": 1,
+            "sendkeys": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious strings or functions",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "22a4b2fd_all_vba.data",
+        "sha256": "22a4b2fddb77947f433cf7895b99f3b872a5907607b1915e14df1b0a3127c7d1"
+      },
+      {
+        "name": "eeca6832_all_pcode.data",
+        "sha256": "eeca683294ec59be9743af36de2976f526e5358a4e218300a64d0c2eac8ea7de"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 15,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 20,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 30,
+        "signatures": [
+          "hex_strings",
+          "sendkeys",
+          "base64_strings"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "VBA Macros"
+        ]
+      }
+    ],
+    "tags": {
+      "file.ole.dde_link": [
+        {
+          "heur_id": 15,
+          "signatures": [],
+          "value": "Desktop Blank ATR Triage form US 10 24 19.xlsx"
+        }
+      ],
+      "file.ole.macro.sha256": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "12a0f7735c6438a01176ea862764077f158f4cf3ceec0025bc7bea6477a8f5e1"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "14de0425a62586687c3d59b7d3d7dc60268f989ab7e07a61403525064d98502a"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "81e88462c64c2201a24df7872d6a68a7816c7c002f0a87d05daf6703c6c4fb02"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "c6cd80c393edd2ea268230ae102b228c6076fbc6fa7d1e96ee327c9c4a1fe98d"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "cd4ccf9c57caf9e1488d28f6b101daa166cef8282c33bb1566da71d568d2a8d0"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0"
+        },
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "f36d490372e1ef33bbf02c4f72d8aedebf0ac3f4292e288de6162cbc20a7b3c4"
+        }
+      ],
+      "technique.macro": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "Contains VBA Macro(s)"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

@@ -21,6 +21,7 @@ import traceback
 import zipfile
 import zlib
 from collections import defaultdict
+from datetime import datetime
 from itertools import chain, groupby
 from typing import IO, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
@@ -704,7 +705,10 @@ class Oletools(ServiceBase):
                 meta_sec.set_item(prop, safe_str(value, force_str=True))
                 # Add Tags
                 if prop in self.METADATA_TO_TAG and value:
-                    meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
+                    if isinstance(value, datetime):
+                        meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value, force_str=True))
+                    else:
+                        meta_sec.add_tag(self.METADATA_TO_TAG[prop], safe_str(value))
         return meta_sec if meta_sec.body else None
 
     def _process_ole_alternate_metadata(self, ole_file: IO[bytes]) -> Optional[ResultSection]:
