@@ -1,6 +1,7 @@
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
+
 from oletools_.oletools_ import Oletools
 
 
@@ -163,3 +164,17 @@ def test_process_mhtml_link_exclamation():
     heur, tags = ole._process_link("oleObject", "mhtml:https://first.link.com!https://second.link.com")
     assert "mhtml_link" in heur.signatures
     assert "https://first.link.com" in tags["network.static.uri"]
+
+
+def test_process_obfuscated_link():
+    ole = Oletools()
+    heur, tags = ole._process_link(
+        "frame",
+        "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000LLLLL00000000000OOOLL"
+        "LLLLL@134744072/x......xx.......doc",
+    )
+    assert "frame" in heur.signatures
+    assert (
+        "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000LLLLL00000000000OOOLL"
+        "LLLLL@134744072/x......xx.......doc" in tags["network.static.uri"]
+    )
