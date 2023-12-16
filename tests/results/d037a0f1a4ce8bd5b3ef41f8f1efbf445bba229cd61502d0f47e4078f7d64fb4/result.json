@@ -1,0 +1,247 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 517,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Word 2007+ Document (.docx)\nContainer format: OpenXML, Container type\nExternal Relationships (1): External relationships found: attachedTemplate - use oleobj for details",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "External Relationships": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "AppVersion": "12.0000",
+          "Application": "Microsoft Office Word",
+          "Characters": "18113",
+          "CharactersWithSpaces": "21248",
+          "DocSecurity": "0",
+          "HyperlinksChanged": "false",
+          "Lines": "150",
+          "LinksUpToDate": "false",
+          "Pages": "7",
+          "Paragraphs": "42",
+          "ScaleCrop": "false",
+          "SharedDoc": "false",
+          "Template": "Normal.dotm",
+          "TotalTime": "19",
+          "Words": "3177",
+          "created": "2023-03-27T22:13:00Z",
+          "creator": "Modexcomm",
+          "lastModifiedBy": "Modexcomm",
+          "modified": "2023-08-16T13:25:00Z",
+          "revision": "7"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OOXML Properties",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "attachedTemplate link: http://zang3.conyersdill.top/_errorpages/wealthzx.doc",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [
+            "T1221"
+          ],
+          "frequency": 1,
+          "heur_id": 1,
+          "score": 500,
+          "score_map": {},
+          "signatures": {
+            "attachedtemplate": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {
+          "network": {
+            "static": {
+              "domain": [
+                "zang3.conyersdill.top"
+              ],
+              "uri": [
+                "http://zang3.conyersdill.top/_errorpages/wealthzx.doc"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious External Relationship Targets",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Found the BLACKLISTED string Accepted in:\nword/document.xml\n\nFound the BLACKLISTED string Manufacturer in:\nword/document.xml\n\nFound the BLACKLISTED string attempt in:\nword/document.xml\n\nFound the BLACKLISTED string channel in:\nword/document.xml\n\nFound the API string connect in:\nword/document.xml\n\nFound the URI string http://zang3.conyersdill.top/_errorpages/wealthzx.doc in:\nword/_rels/settings.xml.rels\n\nFound the EXTRACTED string wealthzx.doc in:\nword/_rels/settings.xml.rels\n",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 7,
+          "heur_id": 7,
+          "score": 7,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "wealthzx.doc"
+              ]
+            },
+            "string": {
+              "api": [
+                "connect"
+              ],
+              "blacklisted": [
+                "Accepted",
+                "Manufacturer",
+                "attempt",
+                "channel"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "uri": [
+                "http://zang3.conyersdill.top/_errorpages/wealthzx.doc"
+              ]
+            }
+          }
+        },
+        "title_text": "IOCs content:",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "07eec137.xml",
+        "sha256": "07eec137bb46cc068c0bdb3dae9f3e0aec4984d0cd76f4abc2b19cb6fca8742c"
+      },
+      {
+        "name": "84e713a0.xml",
+        "sha256": "84e713a0fb4938da959a9e58b4b0dfa50d55c3c3c5f2ebba34abf514082ceca3"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [
+          "T1221"
+        ],
+        "heur_id": 1,
+        "signatures": [
+          "attachedtemplate"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 7,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "External Relationships"
+        ]
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "wealthzx.doc"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "connect"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Accepted"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Manufacturer"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "attempt"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "channel"
+        }
+      ],
+      "network.static.domain": [
+        {
+          "heur_id": 1,
+          "signatures": [
+            "attachedtemplate"
+          ],
+          "value": "zang3.conyersdill.top"
+        }
+      ],
+      "network.static.uri": [
+        {
+          "heur_id": 1,
+          "signatures": [
+            "attachedtemplate"
+          ],
+          "value": "http://zang3.conyersdill.top/_errorpages/wealthzx.doc"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://zang3.conyersdill.top/_errorpages/wealthzx.doc"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

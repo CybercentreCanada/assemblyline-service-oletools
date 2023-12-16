@@ -1,0 +1,465 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 369,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Word 97-2003 Document or Template\nContainer format: OLE, Container type\nApplication name: b'Microsoft Office Word', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Admin', Author declared in properties\nVBA Macros (Yes, suspicious): This file contains VBA macros. Suspicious keywords were found. Use olevba and mraptor for more info.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "VBA Macros": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document 44e593c98acaf52aee91c09fe00fa196668351783fc8a623fc1da5325635130f",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "author": "Admin",
+          "chars_with_spaces": "3582",
+          "codepage": "1252",
+          "codepage_doc": "1252",
+          "comments": "",
+          "company": "",
+          "create_time": "2023-11-01 09:39:00",
+          "creating_application": "Microsoft Office Word",
+          "hlinks_changed": "False",
+          "keywords": "",
+          "last_saved_by": "Admin",
+          "last_saved_time": "2023-11-05 17:11:00",
+          "lines": "25",
+          "links_dirty": "False",
+          "num_chars": "3054",
+          "num_pages": "3",
+          "num_words": "535",
+          "paragraphs": "7",
+          "revision_number": "3",
+          "scale_crop": "False",
+          "security": "0",
+          "shared_doc": "False",
+          "subject": "",
+          "template": "Normal.dotm",
+          "title": "",
+          "total_edit_time": "60",
+          "version": "1048576"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "summary": {
+                "author": [
+                  "Admin"
+                ],
+                "codepage": [
+                  1252
+                ],
+                "create_time": [
+                  "2023-11-01 09:39:00"
+                ],
+                "last_saved_by": [
+                  "Admin"
+                ],
+                "last_saved_time": [
+                  "2023-11-05 17:11:00"
+                ]
+              }
+            }
+          }
+        },
+        "title_text": "OLE Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "author": "Admin",
+          "last_saved_by": "Admin"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Alternate Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "00020906-0000-0000-C000-000000000046": "Microsoft Word 97-2003 Document (Word.Document.8)"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "clsid": [
+                "00020906-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in ThisDocument:\n    Found the following IP string(s):\n    89.23.98.22\n    Found the following EXTRACTED string(s):\n    89.23.98.22\\LN\\Konstantin.exe  |  G.exe  |  powershell.exe\n    Found the following BLACKLISTED string(s):\n    WScript  |  WScript.Shell  |  powershell\n    Found the following CMDLET string(s):\n    Stop-Process\nIOCs in \\x01CompObj:\n    Found the following BLACKLISTED string(s):\n    Word.Document.8",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 9,
+          "heur_id": 9,
+          "score": 9,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "89.23.98.22\\LN\\Konstantin.exe",
+                "G.exe",
+                "powershell.exe"
+              ]
+            },
+            "powershell": {
+              "cmdlet": [
+                "Stop-Process"
+              ]
+            },
+            "string": {
+              "blacklisted": [
+                "WScript",
+                "WScript.Shell",
+                "powershell",
+                "Word.Document.8"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "ip": [
+                "89.23.98.22"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 2,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Embedded OLE files",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Macro may be packed or obfuscated.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 20,
+          "score": 100,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "macro": {
+                "sha256": [
+                  "6a4417a8086164adfbf40e0c328542e048d3f1bfa17d496537bc78de4991fd8a"
+                ]
+              }
+            }
+          },
+          "technique": {
+            "macro": [
+              "Contains VBA Macro(s)"
+            ]
+          }
+        },
+        "title_text": "OleVBA : Macros detected",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "document_open",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 32,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Autoexecution strings",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "createobject\npowershell\nrun\nshell\nwscript.shell",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 0,
+          "heur_id": 30,
+          "score": 200,
+          "score_map": {},
+          "signatures": {
+            "createobject": 1,
+            "powershell": 1,
+            "run": 1,
+            "shell": 1,
+            "wscript.shell": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious strings or functions",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "87c77696_all_vba.data",
+        "sha256": "87c77696e24355acd2e78f0903fbd128f020da3565bcc985c7334bf72615d671"
+      },
+      {
+        "name": "c2862d36_all_pcode.data",
+        "sha256": "c2862d36adb2e069e5322df2daf02558b87ad91fbbe53b4bef280bdc16d65dff"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 2,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 20,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 30,
+        "signatures": [
+          "createobject",
+          "powershell",
+          "run",
+          "shell",
+          "wscript.shell"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 32,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "VBA Macros"
+        ]
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "89.23.98.22\\LN\\Konstantin.exe"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "G.exe"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "powershell.exe"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "00020906-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.ole.macro.sha256": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "6a4417a8086164adfbf40e0c328542e048d3f1bfa17d496537bc78de4991fd8a"
+        }
+      ],
+      "file.ole.summary.author": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Admin"
+        }
+      ],
+      "file.ole.summary.codepage": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": 1252
+        }
+      ],
+      "file.ole.summary.create_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2023-11-01 09:39:00"
+        }
+      ],
+      "file.ole.summary.last_saved_by": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Admin"
+        }
+      ],
+      "file.ole.summary.last_saved_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2023-11-05 17:11:00"
+        }
+      ],
+      "file.powershell.cmdlet": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Stop-Process"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WScript.Shell"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Word.Document.8"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "powershell"
+        }
+      ],
+      "network.static.ip": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "89.23.98.22"
+        }
+      ],
+      "technique.macro": [
+        {
+          "heur_id": 20,
+          "signatures": [],
+          "value": "Contains VBA Macro(s)"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}

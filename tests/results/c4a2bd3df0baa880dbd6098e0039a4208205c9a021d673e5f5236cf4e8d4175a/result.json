@@ -1,0 +1,2734 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 310,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 000C1084-0000-0000-C000-000000000046 - None\nContainer format: OLE, Container type\nApplication name: b'Cheat Space', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Cheat Space Inc.', Author declared in properties",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document c4a2bd3df0baa880dbd6098e0039a4208205c9a021d673e5f5236cf4e8d4175a",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "author": "Cheat Space Inc.",
+          "codepage": "1252",
+          "comments": "This installer database contains the logic and data required to install Cheat Space.",
+          "create_time": "2009-12-11 11:47:44.850000",
+          "creating_application": "Cheat Space",
+          "keywords": "Installer, MSI, Database",
+          "last_printed": "2009-12-11 11:47:44.850000",
+          "last_saved_by": "",
+          "last_saved_time": "2020-09-18 14:06:51.913000",
+          "num_pages": "200",
+          "num_words": "2",
+          "revision_number": "{93FCE59F-76E6-42CA-8C12-BC76DC208BAD}",
+          "security": "0",
+          "subject": "Cheat Space",
+          "template": ";1033",
+          "title": "Installation Database"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "summary": {
+                "author": [
+                  "Cheat Space Inc."
+                ],
+                "codepage": [
+                  1252
+                ],
+                "comment": [
+                  "This installer database contains the logic and data required to install Cheat Space."
+                ],
+                "create_time": [
+                  "2009-12-11 11:47:44.850000"
+                ],
+                "last_printed": [
+                  "2009-12-11 11:47:44.850000"
+                ],
+                "last_saved_time": [
+                  "2020-09-18 14:06:51.913000"
+                ],
+                "subject": [
+                  "Cheat Space"
+                ],
+                "title": [
+                  "Installation Database"
+                ]
+              }
+            }
+          }
+        },
+        "title_text": "OLE Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "000C1084-0000-0000-C000-000000000046": "unknown CLSID"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "clsid": [
+                "000C1084-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    iesBadActionData.AI  |  validation.AI\n    Found the following EXTRACTED string(s):\n    CABINET.DLL  |  EXE and MSI file signature mismatch.SetProgressProgressSelectionDescriptionIgnoreChangeSelectionNoItemsEnabledEXCLUS~1.BAT  |  Freeing RICHED20.DLL  |  LuaJIT.exe  |  Resource too large.Specified path is empty.Could not find required file IMAGEHLP.DLL  |  and has been truncated.Loading RICHED20.DLL  |  exclusion.bat\n    Found the following BLACKLISTED string(s):\n    Administrator  |  Connect  |  Connecting  |  Download  |  Downloading  |  Extracting  |  HideWindow  |  Install  |  Manufacturer  |  Protect  |  Server 2008  |  Shutdown  |  Transaction  |  TypeLib  |  Windows 10  |  Windows 2000  |  Windows 7  |  Windows 8  |  Windows 8.1  |  Windows NT  |  Windows NT 4.0  |  Windows Vista  |  Windows XP  |  account  |  attempt  |  command  |  completed  |  extract  |  file not found  |  logFile  |  password  |  virtual\n    Found the following API string(s):\n    BindImage  |  DeleteService  |  Extract  |  GetLastError  |  LogonUser  |  MessageBox  |  MoveFile  |  RegisterTypeLib  |  SQLFetch  |  StartService  |  WinVerifyTrust  |  connect\nIOCs in \u430b\u4131\u4735\u413e\u45ac\u42e6\u41e8\u43f8\u4568\u4782\u43e7\u482f:\n    Found the following URI string(s):\n    http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0  |  http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0  |  http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P  |  http://crl3.digicert.com/sha2-assured-ts.crl02  |  http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:  |  http://crl4.digicert.com/sha2-assured-ts.crl0  |  http://ocsp.digicert.com0C  |  http://ocsp.digicert.com0O  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://www.digicert.com/CPS0  |  https://www.advancedinstaller.com  |  https://www.digicert.com/CPS0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0W\n    Found the following DOMAIN string(s):\n    cacerts.digicert.com  |  crl3.digicert.com  |  crl4.digicert.com  |  ocsp.digicert.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  www.advancedinstaller.com  |  www.digicert.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    JobRelease\\win\\Release\\custact\\x86\\aischeduler2.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  OLEAUT32.dll  |  aischeduler2.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    CompareString  |  Console  |  Destroy  |  FileType  |  Privilege  |  Protect  |  Symantec  |  anonymous  |  virtual\n    Found the following API string(s):\n    CloseHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ConvertSecurityDescriptorToStringSecurityDescriptor  |  ConvertStringSidToSid  |  CreateEvent  |  CryptAcquireContext  |  CryptCreateHash  |  CryptDecrypt  |  CryptDeriveKey  |  CryptDestroyHash  |  CryptDestroyKey  |  CryptHashData  |  CryptReleaseContext  |  DecodePointer  |  DeleteCriticalSection  |  EncodePointer  |  EnterCriticalSection  |  ExitProcess  |  FindClose  |  FindFirstFile  |  FindFirstFileEx  |  FindNextFile  |  FindResource  |  FindResourceEx  |  FlushFileBuffers  |  FreeEnvironmentStrings  |  FreeLibrary  |  GetCommandLine  |  GetCurrentProcess  |  GetCurrentProcessId  |  GetCurrentThread  |  GetCurrentThreadId  |  GetEnvironmentStrings  |  GetFile  |  GetFileType  |  GetLastError  |  GetModuleFileName  |  GetModuleHandle  |  GetModuleHandleEx  |  GetOEMCP  |  GetProcAddress  |  GetProcessHeap  |  GetSecurityDescriptorDacl  |  GetStartupInfo  |  GetStdHandle  |  GetSystemDirectory  |  GetSystemInfo  |  GetTimeZoneInformation  |  InitializeCriticalSection  |  InitializeSecurityDescriptor  |  IsDebuggerPresent  |  IsProcessorFeaturePresent  |  LCMapString  |  LeaveCriticalSection  |  LoadLibrary  |  LoadLibraryEx  |  LoadResource  |  LocalAlloc  |  LocalFree  |  LockResource  |  LookupAccountName  |  LookupAccountSid  |  MultiByteToWideChar  |  NetLocalGroupGetInfo  |  OutputDebugString  |  QueryPerformanceCounter  |  RaiseException  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegDeleteKey  |  RegDeleteValue  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  ResetEvent  |  RtlUnwind  |  SetEntriesInAcl  |  SetEnvironmentVariable  |  SetEvent  |  SetFilePointer  |  SetFilePointerEx  |  SetLastError  |  SetSecurityDescriptorDacl  |  SetStdHandle  |  SetUnhandledExceptionFilter  |  SizeofResource  |  TerminateProcess  |  TlsGetValue  |  TlsSetValue  |  UnhandledExceptionFilter  |  VirtualProtect  |  VirtualQuery  |  WideCharToMultiByte  |  WriteConsole  |  WriteFile  |  msi.dll  |  ole32.dll\nIOCs in \u430b\u4131\u4735\u3f3e\u4272\u46b7\u4564\u3b68\u45e8\u41a8\u44b7\u47b5\u43e7\u482f:\n    Found the following URI string(s):\n    http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0  |  http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0  |  http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P  |  http://crl3.digicert.com/sha2-assured-ts.crl02  |  http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:  |  http://crl4.digicert.com/sha2-assured-ts.crl0  |  http://ocsp.digicert.com0C  |  http://ocsp.digicert.com0O  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://www.digicert.com/CPS0  |  https://www.advancedinstaller.com  |  https://www.digicert.com/CPS0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0W\n    Found the following DOMAIN string(s):\n    cacerts.digicert.com  |  crl3.digicert.com  |  crl4.digicert.com  |  ocsp.digicert.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  www.advancedinstaller.com  |  www.digicert.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    JobRelease\\win\\Release\\custact\\x86\\SoftwareDetector.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  GDI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  OLEAUT32.dll  |  PSAPI.DLL  |  SHELL32.dll  |  SHLWAPI.dll  |  Secur32.dll  |  SoftwareDetector.dll  |  USER32.dll  |  VERSION.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/  |  CompareString  |  Console  |  Destroy  |  FileType  |  Privilege  |  Redirection  |  Symantec  |  anonymous  |  antivirus  |  broken pipe  |  connection aborted  |  connection already in progress  |  connection refused  |  host unreachable  |  network down  |  network reset  |  network unreachable  |  owner dead  |  permission denied  |  protocol error  |  virtual  |  wrong protocol type\n    Found the following API string(s):\n    CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoInitializeEx  |  CoInitializeSecurity  |  CoSetProxyBlanket  |  CoUninitialize  |  CopyFile  |  CreateDirectory  |  CreateEvent  |  CreateProcess  |  CreateThread  |  CreateToolhelp32Snapshot  |  DecodePointer  |  DeleteCriticalSection  |  DeleteFile  |  DllGetVersion  |  DriveType  |  DuplicateHandle  |  EncodePointer  |  EnterCriticalSection  |  ExitProcess  |  FindAtom  |  FindClose  |  FindFirstFile  |  FindFirstFileEx  |  FindNextFile  |  FindResource  |  FindResourceEx  |  FlushFileBuffers  |  FreeEnvironmentStrings  |  FreeLibrary  |  GetCommandLine  |  GetCurrentProcess  |  GetCurrentProcessId  |  GetCurrentThread  |  GetCurrentThreadId  |  GetDriveType  |  GetEnvironmentStrings  |  GetEnvironmentVariable  |  GetExitCodeProcess  |  GetFile  |  GetFileType  |  GetFileVersionInfo  |  GetFileVersionInfoSize  |  GetLastError  |  GetLocaleInfo  |  GetLogicalDriveStrings  |  GetModuleFileName  |  GetModuleFileNameEx  |  GetModuleHandle  |  GetModuleHandleEx  |  GetOEMCP  |  GetProcAddress  |  GetProcessHeap  |  GetStartupInfo  |  GetStdHandle  |  GetSystemDirectory  |  GetSystemFirmwareTable  |  GetTempFileName  |  GetTempPath  |  GetTimeZoneInformation  |  GetUserName  |  GetUserNameEx  |  GetVersion  |  GetWindowsDirectory  |  GlobalFindAtom  |  GlobalMemoryStatus  |  GlobalMemoryStatusEx  |  InitializeCriticalSection  |  InterlockedPushEntrySList  |  IsDebuggerPresent  |  IsProcessorFeaturePresent  |  LCMapString  |  LeaveCriticalSection  |  LoadLibrary  |  LoadLibraryEx  |  LoadResource  |  LocalFree  |  LockFile  |  LockResource  |  LockServiceDatabase  |  MultiByteToWideChar  |  NetLocalGroupGetMembers  |  NetUserGetInfo  |  NetUserGetLocalGroups  |  NtQueryInformationProcess  |  OpenProcess  |  OpenSCManager  |  OpenService  |  OutputDebugString  |  Process32First  |  Process32Next  |  QueryPerformanceCounter  |  QueryServiceStatus  |  RaiseException  |  ReadConsole  |  ReadFile  |  ReadProcessMemory  |  RegCloseKey  |  RegEnumKey  |  RegEnumKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RemoveDirectory  |  ResetEvent  |  RtlUnwind  |  SHGetFolderPath  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SetEndOfFile  |  SetEnvironmentVariable  |  SetEvent  |  SetFilePointer  |  SetFilePointerEx  |  SetLastError  |  SetStdHandle  |  SetUnhandledExceptionFilter  |  SizeofResource  |  TerminateProcess  |  TlsGetValue  |  TlsSetValue  |  UnhandledExceptionFilter  |  UnlockFile  |  UnlockServiceDatabase  |  WideCharToMultiByte  |  Wow64DisableWow64FsRedirection  |  WriteConsole  |  WriteFile  |  connect  |  lstrlen  |  msi.dll  |  ole32.dll\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0  |  http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0  |  http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P  |  http://crl3.digicert.com/sha2-assured-ts.crl02  |  http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:  |  http://crl4.digicert.com/sha2-assured-ts.crl0  |  http://ocsp.digicert.com0C  |  http://ocsp.digicert.com0O  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://www.digicert.com/CPS0  |  https://www.advancedinstaller.com  |  https://www.digicert.com/CPS0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0W\n    Found the following DOMAIN string(s):\n    cacerts.digicert.com  |  crl3.digicert.com  |  crl4.digicert.com  |  ocsp.digicert.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  www.advancedinstaller.com  |  www.digicert.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    JobRelease\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  AI_CustAct.log  |  COMDLG32.dll  |  GDI32.dll  |  IPHLPAPI.DLL  |  KERNEL32.dll  |  NETAPI32.dll  |  OLEAUT32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  WS2_32.dll  |  aicustact.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/  |  Console  |  Destroy  |  FileType  |  GetDomain  |  Install  |  Privilege  |  Symantec  |  TokenPrivilege  |  TokenPrivileges  |  anonymous  |  broken pipe  |  connection aborted  |  connection already in progress  |  connection refused  |  host unreachable  |  network down  |  network reset  |  network unreachable  |  owner dead  |  permission denied  |  protocol error  |  virtual  |  wrong protocol type\n    Found the following API string(s):\n    AddAtom  |  AdjustTokenPrivileges  |  AllocateAndInitializeSid  |  AllowSetForegroundWindow  |  CLSIDFromString  |  ChangeServiceConfig  |  ChangeServiceConfig2  |  CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ControlService  |  ConvertSidToStringSid  |  ConvertStringSidToSid  |  CreateEvent  |  CreateProcess  |  CreateToolhelp32Snapshot  |  DecodePointer  |  DeleteAtom  |  DeleteCriticalSection  |  DeleteFile  |  DuplicateHandle  |  EncodePointer  |  EnterCriticalSection  |  EnumChildWindows  |  EnumServicesStatus  |  EnumWindows  |  ExitProcess  |  Extract  |  FindAtom  |  FindClose  |  FindFirstFile  |  FindFirstFileEx  |  FindNextFile  |  FindResource  |  FindResourceEx  |  FlushFileBuffers  |  FreeEnvironmentStrings  |  FreeLibrary  |  FreeSid  |  GetCommandLine  |  GetCurrentProcess  |  GetCurrentProcessId  |  GetCurrentThread  |  GetCurrentThreadId  |  GetDesktopWindow  |  GetDiskFreeSpace  |  GetEnvironmentStrings  |  GetExitCodeProcess  |  GetFile  |  GetFileType  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleFileName  |  GetModuleHandle  |  GetModuleHandleEx  |  GetOEMCP  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetSecurityDescriptorDacl  |  GetSidIdentifierAuthority  |  GetSidLengthRequired  |  GetSidSubAuthority  |  GetSidSubAuthorityCount  |  GetStartupInfo  |  GetStdHandle  |  GetSystemDirectory  |  GetTcpTable  |  GetTempFileName  |  GetTempPath  |  GetTickCount  |  GetTokenInformation  |  GetWindowThreadProcessId  |  GetWindowsDirectory  |  GlobalAddAtom  |  GlobalDeleteAtom  |  GlobalFindAtom  |  InitializeCriticalSection  |  InitializeSecurityDescriptor  |  InitializeSid  |  IsDebuggerPresent  |  IsProcessorFeaturePresent  |  LCMapString  |  LeaveCriticalSection  |  LoadLibrary  |  LoadLibraryEx  |  LoadResource  |  LocalAlloc  |  LocalFree  |  LockResource  |  LogonUser  |  LookupAccountName  |  LookupAccountSid  |  LookupPrivilegeValue  |  LsaAddAccountRights  |  LsaClose  |  LsaOpenPolicy  |  MessageBox  |  MoveFile  |  MultiByteToWideChar  |  NetGetDCName  |  NetGroupGetInfo  |  NetLocalGroupGetInfo  |  NetQueryDisplayInformation  |  NetUserGetInfo  |  NetUserModalsGet  |  NtQueryInformationProcess  |  NtWow64QueryInformationProcess64  |  NtWow64ReadVirtualMemory64  |  OpenFile  |  OpenMutex  |  OpenProcess  |  OpenProcessToken  |  OpenSCManager  |  OpenService  |  OutputDebugString  |  PostMessage  |  Process32First  |  Process32Next  |  QueryPerformanceCounter  |  QueryServiceObjectSecurity  |  QueryServiceStatus  |  QueryServiceStatusEx  |  RaiseException  |  ReadFile  |  ReadProcessMemory  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  RemoveDirectory  |  ResetEvent  |  RtlUnwind  |  SHGetFolderPath  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SHGetSpecialFolderPath  |  SendMessage  |  SetEndOfFile  |  SetEntriesInAcl  |  SetEvent  |  SetFilePointer  |  SetFilePointerEx  |  SetForegroundWindow  |  SetLastError  |  SetSecurityDescriptorDacl  |  SetServiceObjectSecurity  |  SetStdHandle  |  SetUnhandledExceptionFilter  |  ShellExecute  |  ShellExecuteEx  |  SizeofResource  |  StartService  |  TerminateProcess  |  TlsGetValue  |  TlsSetValue  |  UnhandledExceptionFilter  |  WideCharToMultiByte  |  WriteConsole  |  WriteFile  |  connect  |  lstrcat  |  lstrcpy  |  lstrcpyn  |  lstrcpynW  |  lstrlen  |  msi.dll  |  ole32.dll  |  sprintf  |  strcmpi  |  wsprintf\nIOCs in \u430b\u4131\u4735\u467e\u422c\u423a\u47b5\u46e8\u4828:\n    Found the following URI string(s):\n    http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0  |  http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0  |  http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P  |  http://crl3.digicert.com/sha2-assured-ts.crl02  |  http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:  |  http://crl4.digicert.com/sha2-assured-ts.crl0  |  http://ocsp.digicert.com0C  |  http://ocsp.digicert.com0O  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://www.digicert.com/CPS0  |  https://www.advancedinstaller.com  |  https://www.digicert.com/CPS0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0W\n    Found the following DOMAIN string(s):\n    cacerts.digicert.com  |  crl3.digicert.com  |  crl4.digicert.com  |  ocsp.digicert.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  www.advancedinstaller.com  |  www.digicert.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    JobRelease\\win\\Release\\custact\\x86\\viewer.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  KERNEL32.dll  |  OLEAUT32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/  |  CompareString  |  Console  |  Destroy  |  FileType  |  Privilege  |  Symantec  |  anonymous  |  broken pipe  |  connection aborted  |  connection already in progress  |  connection refused  |  host unreachable  |  network down  |  network reset  |  network unreachable  |  owner dead  |  permission denied  |  protocol error  |  virtual  |  wrong protocol type\n    Found the following API string(s):\n    AllowSetForegroundWindow  |  CloseHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ConvertSidToStringSid  |  CreateEvent  |  CreateToolhelp32Snapshot  |  DecodePointer  |  DeleteCriticalSection  |  DeleteFile  |  EncodePointer  |  EnterCriticalSection  |  EnumWindows  |  ExitProcess  |  FindClose  |  FindFirstFile  |  FindFirstFileEx  |  FindNextFile  |  FindResource  |  FindResourceEx  |  FlushFileBuffers  |  FreeEnvironmentStrings  |  FreeLibrary  |  GetCommandLine  |  GetCurrentProcess  |  GetCurrentProcessId  |  GetCurrentThread  |  GetCurrentThreadId  |  GetEnvironmentStrings  |  GetExitCodeProcess  |  GetFile  |  GetFileType  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleFileName  |  GetModuleHandle  |  GetModuleHandleEx  |  GetOEMCP  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetProcessTimes  |  GetStartupInfo  |  GetStdHandle  |  GetSystemDirectory  |  GetTempFileName  |  GetTempPath  |  GetTimeZoneInformation  |  GetTokenInformation  |  GetWindowThreadProcessId  |  GetWindowsDirectory  |  InitializeCriticalSection  |  IsDebuggerPresent  |  IsProcessorFeaturePresent  |  LCMapString  |  LeaveCriticalSection  |  LoadLibrary  |  LoadLibraryEx  |  LoadResource  |  LocalAlloc  |  LocalFree  |  LockResource  |  MoveFile  |  MultiByteToWideChar  |  NtQueryInformationProcess  |  OpenProcess  |  OpenProcessToken  |  OutputDebugString  |  Process32First  |  Process32Next  |  QueryPerformanceCounter  |  RaiseException  |  ReadProcessMemory  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  ResetEvent  |  RtlUnwind  |  SetEnvironmentVariable  |  SetEvent  |  SetFilePointer  |  SetFilePointerEx  |  SetForegroundWindow  |  SetLastError  |  SetStdHandle  |  SetUnhandledExceptionFilter  |  ShellExecute  |  ShellExecuteEx  |  SizeofResource  |  TerminateProcess  |  TlsGetValue  |  TlsSetValue  |  UnhandledExceptionFilter  |  WideCharToMultiByte  |  WriteConsole  |  WriteFile  |  connect  |  ole32.dll\nIOCs in \u4327\u43b6\u4781\u4126\u4825:\n    Found the following EXTRACTED string(s):\n    LuaJIT.exe  |  exclusion.bat",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 351,
+          "heur_id": 9,
+          "score": 100,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "CABINET.DLL",
+                "EXE and MSI file signature mismatch.SetProgressProgressSelectionDescriptionIgnoreChangeSelectionNoItemsEnabledEXCLUS~1.BAT",
+                "Freeing RICHED20.DLL",
+                "LuaJIT.exe",
+                "Resource too large.Specified path is empty.Could not find required file IMAGEHLP.DLL",
+                "and has been truncated.Loading RICHED20.DLL",
+                "exclusion.bat",
+                "ADVAPI32.dll",
+                "KERNEL32.dll",
+                "NETAPI32.dll",
+                "OLEAUT32.dll",
+                "aischeduler2.dll",
+                "msi.dll",
+                "ole32.dll",
+                "GDI32.dll",
+                "PSAPI.DLL",
+                "SHELL32.dll",
+                "SHLWAPI.dll",
+                "Secur32.dll",
+                "SoftwareDetector.dll",
+                "USER32.dll",
+                "VERSION.dll",
+                "AI_CustAct.log",
+                "COMDLG32.dll",
+                "IPHLPAPI.DLL",
+                "WS2_32.dll",
+                "aicustact.dll"
+              ]
+            },
+            "pe": {
+              "pdb_filename": [
+                "JobRelease\\win\\Release\\custact\\x86\\aischeduler2.pdb",
+                "JobRelease\\win\\Release\\custact\\x86\\SoftwareDetector.pdb",
+                "JobRelease\\win\\Release\\custact\\x86\\AICustAct.pdb",
+                "JobRelease\\win\\Release\\custact\\x86\\viewer.pdb"
+              ]
+            },
+            "string": {
+              "api": [
+                "BindImage",
+                "DeleteService",
+                "Extract",
+                "GetLastError",
+                "LogonUser",
+                "MessageBox",
+                "MoveFile",
+                "RegisterTypeLib",
+                "SQLFetch",
+                "StartService",
+                "WinVerifyTrust",
+                "connect",
+                "CloseHandle",
+                "CoCreateInstance",
+                "CoInitialize",
+                "CoUninitialize",
+                "ConvertSecurityDescriptorToStringSecurityDescriptor",
+                "ConvertStringSidToSid",
+                "CreateEvent",
+                "CryptAcquireContext",
+                "CryptCreateHash",
+                "CryptDecrypt",
+                "CryptDeriveKey",
+                "CryptDestroyHash",
+                "CryptDestroyKey",
+                "CryptHashData",
+                "CryptReleaseContext",
+                "DecodePointer",
+                "DeleteCriticalSection",
+                "EncodePointer",
+                "EnterCriticalSection",
+                "ExitProcess",
+                "FindClose",
+                "FindFirstFile",
+                "FindFirstFileEx",
+                "FindNextFile",
+                "FindResource",
+                "FindResourceEx",
+                "FlushFileBuffers",
+                "FreeEnvironmentStrings",
+                "FreeLibrary",
+                "GetCommandLine",
+                "GetCurrentProcess",
+                "GetCurrentProcessId",
+                "GetCurrentThread",
+                "GetCurrentThreadId",
+                "GetEnvironmentStrings",
+                "GetFile",
+                "GetFileType",
+                "GetModuleFileName",
+                "GetModuleHandle",
+                "GetModuleHandleEx",
+                "GetOEMCP",
+                "GetProcAddress",
+                "GetProcessHeap",
+                "GetSecurityDescriptorDacl",
+                "GetStartupInfo",
+                "GetStdHandle",
+                "GetSystemDirectory",
+                "GetSystemInfo",
+                "GetTimeZoneInformation",
+                "InitializeCriticalSection",
+                "InitializeSecurityDescriptor",
+                "IsDebuggerPresent",
+                "IsProcessorFeaturePresent",
+                "LCMapString",
+                "LeaveCriticalSection",
+                "LoadLibrary",
+                "LoadLibraryEx",
+                "LoadResource",
+                "LocalAlloc",
+                "LocalFree",
+                "LockResource",
+                "LookupAccountName",
+                "LookupAccountSid",
+                "MultiByteToWideChar",
+                "NetLocalGroupGetInfo",
+                "OutputDebugString",
+                "QueryPerformanceCounter",
+                "RaiseException",
+                "RegCloseKey",
+                "RegCreateKey",
+                "RegCreateKeyEx",
+                "RegDeleteKey",
+                "RegDeleteValue",
+                "RegOpenKey",
+                "RegOpenKeyEx",
+                "RegQueryValue",
+                "RegQueryValueEx",
+                "RegSetValue",
+                "RegSetValueEx",
+                "ResetEvent",
+                "RtlUnwind",
+                "SetEntriesInAcl",
+                "SetEnvironmentVariable",
+                "SetEvent",
+                "SetFilePointer",
+                "SetFilePointerEx",
+                "SetLastError",
+                "SetSecurityDescriptorDacl",
+                "SetStdHandle",
+                "SetUnhandledExceptionFilter",
+                "SizeofResource",
+                "TerminateProcess",
+                "TlsGetValue",
+                "TlsSetValue",
+                "UnhandledExceptionFilter",
+                "VirtualProtect",
+                "VirtualQuery",
+                "WideCharToMultiByte",
+                "WriteConsole",
+                "WriteFile",
+                "msi.dll",
+                "ole32.dll",
+                "CloseServiceHandle",
+                "CoInitializeEx",
+                "CoInitializeSecurity",
+                "CoSetProxyBlanket",
+                "CopyFile",
+                "CreateDirectory",
+                "CreateProcess",
+                "CreateThread",
+                "CreateToolhelp32Snapshot",
+                "DeleteFile",
+                "DllGetVersion",
+                "DriveType",
+                "DuplicateHandle",
+                "FindAtom",
+                "GetDriveType",
+                "GetEnvironmentVariable",
+                "GetExitCodeProcess",
+                "GetFileVersionInfo",
+                "GetFileVersionInfoSize",
+                "GetLocaleInfo",
+                "GetLogicalDriveStrings",
+                "GetModuleFileNameEx",
+                "GetSystemFirmwareTable",
+                "GetTempFileName",
+                "GetTempPath",
+                "GetUserName",
+                "GetUserNameEx",
+                "GetVersion",
+                "GetWindowsDirectory",
+                "GlobalFindAtom",
+                "GlobalMemoryStatus",
+                "GlobalMemoryStatusEx",
+                "InterlockedPushEntrySList",
+                "LockFile",
+                "LockServiceDatabase",
+                "NetLocalGroupGetMembers",
+                "NetUserGetInfo",
+                "NetUserGetLocalGroups",
+                "NtQueryInformationProcess",
+                "OpenProcess",
+                "OpenSCManager",
+                "OpenService",
+                "Process32First",
+                "Process32Next",
+                "QueryServiceStatus",
+                "ReadConsole",
+                "ReadFile",
+                "ReadProcessMemory",
+                "RegEnumKey",
+                "RegEnumKeyEx",
+                "RemoveDirectory",
+                "SHGetFolderPath",
+                "SHGetMalloc",
+                "SHGetSpecialFolderLocation",
+                "SetEndOfFile",
+                "UnlockFile",
+                "UnlockServiceDatabase",
+                "Wow64DisableWow64FsRedirection",
+                "lstrlen",
+                "AddAtom",
+                "AdjustTokenPrivileges",
+                "AllocateAndInitializeSid",
+                "AllowSetForegroundWindow",
+                "CLSIDFromString",
+                "ChangeServiceConfig",
+                "ChangeServiceConfig2",
+                "ControlService",
+                "ConvertSidToStringSid",
+                "DeleteAtom",
+                "EnumChildWindows",
+                "EnumServicesStatus",
+                "EnumWindows",
+                "FreeSid",
+                "GetDesktopWindow",
+                "GetDiskFreeSpace",
+                "GetForegroundWindow",
+                "GetProcessId",
+                "GetSidIdentifierAuthority",
+                "GetSidLengthRequired",
+                "GetSidSubAuthority",
+                "GetSidSubAuthorityCount",
+                "GetTcpTable",
+                "GetTickCount",
+                "GetTokenInformation",
+                "GetWindowThreadProcessId",
+                "GlobalAddAtom",
+                "GlobalDeleteAtom",
+                "InitializeSid",
+                "LookupPrivilegeValue",
+                "LsaAddAccountRights",
+                "LsaClose",
+                "LsaOpenPolicy",
+                "NetGetDCName",
+                "NetGroupGetInfo",
+                "NetQueryDisplayInformation",
+                "NetUserModalsGet",
+                "NtWow64QueryInformationProcess64",
+                "NtWow64ReadVirtualMemory64",
+                "OpenFile",
+                "OpenMutex",
+                "OpenProcessToken",
+                "PostMessage",
+                "QueryServiceObjectSecurity",
+                "QueryServiceStatusEx",
+                "SHGetSpecialFolderPath",
+                "SendMessage",
+                "SetForegroundWindow",
+                "SetServiceObjectSecurity",
+                "ShellExecute",
+                "ShellExecuteEx",
+                "lstrcat",
+                "lstrcpy",
+                "lstrcpyn",
+                "lstrcpynW",
+                "sprintf",
+                "strcmpi",
+                "wsprintf",
+                "GetProcessTimes"
+              ],
+              "blacklisted": [
+                "Install",
+                "Administrator",
+                "Connect",
+                "Connecting",
+                "Download",
+                "Downloading",
+                "Extracting",
+                "HideWindow",
+                "Manufacturer",
+                "Protect",
+                "Server 2008",
+                "Shutdown",
+                "Transaction",
+                "TypeLib",
+                "Windows 10",
+                "Windows 2000",
+                "Windows 7",
+                "Windows 8",
+                "Windows 8.1",
+                "Windows NT",
+                "Windows NT 4.0",
+                "Windows Vista",
+                "Windows XP",
+                "account",
+                "attempt",
+                "command",
+                "completed",
+                "extract",
+                "file not found",
+                "logFile",
+                "password",
+                "virtual",
+                "CompareString",
+                "Console",
+                "Destroy",
+                "FileType",
+                "Privilege",
+                "Symantec",
+                "anonymous",
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+                "Redirection",
+                "antivirus",
+                "broken pipe",
+                "connection aborted",
+                "connection already in progress",
+                "connection refused",
+                "host unreachable",
+                "network down",
+                "network reset",
+                "network unreachable",
+                "owner dead",
+                "permission denied",
+                "protocol error",
+                "wrong protocol type",
+                "GetDomain",
+                "TokenPrivilege",
+                "TokenPrivileges"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "domain": [
+                "iesBadActionData.AI",
+                "validation.AI",
+                "cacerts.digicert.com",
+                "crl3.digicert.com",
+                "crl4.digicert.com",
+                "ocsp.digicert.com",
+                "t1.symcb.com",
+                "t2.symcb.com",
+                "tl.symcb.com",
+                "tl.symcd.com",
+                "www.advancedinstaller.com",
+                "www.digicert.com",
+                "www.thawte.com"
+              ],
+              "uri": [
+                "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0",
+                "http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0",
+                "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P",
+                "http://crl3.digicert.com/sha2-assured-ts.crl02",
+                "http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:",
+                "http://crl4.digicert.com/sha2-assured-ts.crl0",
+                "http://ocsp.digicert.com0C",
+                "http://ocsp.digicert.com0O",
+                "http://t1.symcb.com/ThawtePCA.crl0",
+                "http://t2.symcb.com0",
+                "http://tl.symcb.com/tl.crl0",
+                "http://tl.symcb.com/tl.crt0",
+                "http://tl.symcd.com0",
+                "http://www.digicert.com/CPS0",
+                "https://www.advancedinstaller.com",
+                "https://www.digicert.com/CPS0",
+                "https://www.thawte.com/cps0/",
+                "https://www.thawte.com/repository0W"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 10,
+          "score": 0,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Base64 in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "BASE64 TEXT SIZE: 68\nBASE64 SAMPLE TEXT: ADMINExecuteActionExitDialogFatalErrorPrepareDlgUs[........]\nDECODED SHA256: a8016c88d8ed73cfcaafae5507bc9d85078b3f2c5584a8d67f0028ca33bfb17f",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 3,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Result a8016c88d8ed73cfcaafae5507bc9d85078b3f2c5584a8d67f0028ca33bfb17f",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "34L^r^bq1jZ ZJzx9`Rj+n",
+        "body_config": {},
+        "body_format": "MEMORY_DUMP",
+        "classification": "TLP:C",
+        "depth": 4,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "DECODED ASCII DUMP:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'LoadLibrary' string found in stream \u430b\u4131\u4735\u413e\u45ac\u42e6\u41e8\u43f8\u4568\u4782\u43e7\u482f, indicating use of suspicious system function",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 25,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'This program cannot be run in DOS mode' string found in stream \u430b\u4131\u4735\u413e\u45ac\u42e6\u41e8\u43f8\u4568\u4782\u43e7\u482f, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x18\\x01\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\xf1\\x86\\x02A\\x90\\xe8QA\\x90\\xe8QA\\x90\\xe8Q\\x92\\xe2\\xebPK\\x90\\xe8Q\\x92\\xe2\\xedP\u0450\\xe8Q\\x13\\xe5\\xecPP\\x90\\xe8Q\\x13\\xe5\\xebPR\\x90\\xe8Q\\x92\\xe2\\xecPW\\x90\\xe8Q\\x13\\xe5\\xedPu\\x90\\xe8Q\\x92\\xe2\\xeeP@\\x90\\xe8Q\\x92\\xe2\\xe9PP\\x90\\xe8QA\\x90\\xe9Q\\x90\\x90\\xe8Q\\xfa\\xe5\\xe1PY\\x90\\xe8Q\\xfa\\xe5\\xe8P@\\x90\\xe8Q\\xfa\\xe5\\x17Q@\\x90\\xe8QA\\x90\\x7fQ@\\x90\\xe8Q\\xfa\\xe5\\xeaP@\\x90\\xe8QRichA\\x90\\xe8Q\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u413e\u45ac\u42e6\u41e8\u43f8\u4568\u4782\u43e7\u482f, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'LoadLibrary' string found in stream \u430b\u4131\u4735\u3f3e\u4272\u46b7\u4564\u3b68\u45e8\u41a8\u44b7\u47b5\u43e7\u482f, indicating use of suspicious system function",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 25,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'This program cannot be run in DOS mode' string found in stream \u430b\u4131\u4735\u3f3e\u4272\u46b7\u4564\u3b68\u45e8\u41a8\u44b7\u47b5\u43e7\u482f, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x18\\x01\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\u0322O\\x00\\x88\\xc3!S\\x88\\xc3!S\\x88\\xc3!S[\\xb1\"R\\x85\\xc3!S[\\xb1$R=\\xc3!S\u06b6%R\\x99\\xc3!S\u06b6\"R\\x9f\\xc3!S\u06b6$R\\xda\\xc3!S[\\xb1%R\\x91\\xc3!S[\\xb1 R\\x97\\xc3!S\\x88\\xc3 S\\xa7\\xc2!S3\\xb6(R\\xb9\\xc3!S3\\xb6!R\\x89\\xc3!S3\\xb6\\xdeS\\x89\\xc3!S\\x88\u00f6S\\x89\\xc3!S3\\xb6#R\\x89\\xc3!SRich\\x88\\xc3!S\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u3f3e\u4272\u46b7\u4564\u3b68\u45e8\u41a8\u44b7\u47b5\u43e7\u482f, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'ShellExecute' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating use of suspicious system function",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 25,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'This program cannot be run in DOS mode' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00 \\x01\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xb9\\xb3\\x820\\xfd\\xd2\\xecc\\xfd\\xd2\\xecc\\xfd\\xd2\\xecc.\\xa0\\xefb\\xf0\\xd2\\xecc.\\xa0\\xe9bZ\\xd2\\xecc\\xaf\\xa7\\xe8b\\xed\\xd2\\xecc\\xaf\\xa7\\xefb\\xea\\xd2\\xecc\\xaf\\xa7\\xe9b\\xb5\\xd2\\xecc.\\xa0\\xe8b\\xe4\\xd2\\xecc.\\xa0\\xeab\\xfc\\xd2\\xecc.\\xa0\\xedb\\xe0\\xd2\\xecc\\xfd\\xd2\\xedc\\xae\\xd3\\xeccF\\xa7\\xe5b\\xa8\\xd2\\xeccF\\xa7\\xecb\\xfc\\xd2\\xeccF\\xa7\\x13c\\xfc\\xd2\\xecc\\xfd\\xd2{c\\xfc\\xd2\\xeccF\\xa7\\xeeb\\xfc\\xd2\\xeccRich\\xfd\\xd2\\xecc\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'GetProcAddr' string found in stream \u430b\u4131\u4735\u467e\u422c\u423a\u47b5\u46e8\u4828, indicating use of suspicious system function",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 25,
+          "score": 50,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'This program cannot be run in DOS mode' string found in stream \u430b\u4131\u4735\u467e\u422c\u423a\u47b5\u46e8\u4828, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x01\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xdd\\xcd\\xe0\u01d9\\xac\\x8e\\x94\\x99\\xac\\x8e\\x94\\x99\\xac\\x8e\\x94J\u078d\\x95\\x94\\xac\\x8e\\x94J\u078b\\x955\\xac\\x8e\\x94\\xcb\u064a\\x95\\x8b\\xac\\x8e\\x94\\xcb\u064d\\x95\\x8e\\xac\\x8e\\x94\\xcb\u064b\\x95\u05ac\\x8e\\x94J\u078a\\x95\\x8e\\xac\\x8e\\x94J\u0788\\x95\\x98\\xac\\x8e\\x94J\u078f\\x95\\x88\\xac\\x8e\\x94\\x99\\xac\\x8f\\x94Y\\xac\\x8e\\x94\"\u0647\\x95\\x8c\\xac\\x8e\\x94\"\\xd9q\\x94\\x98\\xac\\x8e\\x94\\x99\\xac\\x19\\x94\\x98\\xac\\x8e\\x94\"\u064c\\x95\\x98\\xac\\x8e\\x94Rich\\x99\\xac\\x8e\\x94\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u467e\u422c\u423a\u47b5\u46e8\u4828, indicating embedded executable",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "0086bc01.ole_stream",
+        "sha256": "0086bc01150989f553a0a4ae0e14926c6e247cedda312e1f946ae35d575742ab"
+      },
+      {
+        "name": "1c8e464b.ole_stream",
+        "sha256": "1c8e464bdc7201432cbd3f3e59810444c596e80785aad794375e116597583c08"
+      },
+      {
+        "name": "1e0e63b4.ole_stream",
+        "sha256": "1e0e63b446eecf6c9781c7d1cae1f46a3bb31654a70612f71f31538fb4f4729a"
+      },
+      {
+        "name": "1fa56f16.ole_stream",
+        "sha256": "1fa56f16eb5506d9c68de061cd9c4a589c326bd694a19e52d567a640bf796375"
+      },
+      {
+        "name": "20b239b0.ole_stream",
+        "sha256": "20b239b05bf2f5ee64bb8bc88260567b77fba0bc97a85a9ae0b95a35b0a160a9"
+      },
+      {
+        "name": "426e6cf1.ole_stream",
+        "sha256": "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd"
+      },
+      {
+        "name": "438cbefe.ole_stream",
+        "sha256": "438cbefe97ede84b14b22d40f024e18d850bd4266b8b2e1858b95d9d32a4e43d"
+      },
+      {
+        "name": "4f92e804.ole_stream",
+        "sha256": "4f92e804a11453382ebff7fb0958879bae88fe3366306911dec9d811cd306eed"
+      },
+      {
+        "name": "519f7ac7.ole_stream",
+        "sha256": "519f7ac72beba9d5d7dcf71fcac15546f5cfd3bcfc37a5129e63b4e0be91a783"
+      },
+      {
+        "name": "573e3260.ole_stream",
+        "sha256": "573e3260eed63604f24f6f10ce5294e25e22fda9e5bfd9010134de6e684bab98"
+      },
+      {
+        "name": "5c6b3e1e.ole_stream",
+        "sha256": "5c6b3e1e6dd4fa9c516aee96befbc4339b64f84406c0a6534ee201080ad9f205"
+      },
+      {
+        "name": "5e22ed25.ole_stream",
+        "sha256": "5e22ed253e2f2acd1132ff43a2c5c52143fe1e7891ee5177f0f6c24c9bc0b79b"
+      },
+      {
+        "name": "6b264117.ole_stream",
+        "sha256": "6b264117bbc3cd7dbad68978dca3fc1060fb02c981f33c28c44ef3e7cb6f7ef1"
+      },
+      {
+        "name": "6be34f9c.ole_stream",
+        "sha256": "6be34f9c6ba62ecfc515603962d0d1c34013c2f56625d78539f2a6927a9a7610"
+      },
+      {
+        "name": "775037d6.ole_stream",
+        "sha256": "775037d6d7de214796f2f5850440257ae7f04952b73538da2b55db45f3b26e93"
+      },
+      {
+        "name": "7f012132.ole_stream",
+        "sha256": "7f0121322785c107bfdfe343e49f06c604c719baff849d07b6e099675d173961"
+      },
+      {
+        "name": "93052f34.ole_stream",
+        "sha256": "93052f342345d162a3246a0e6b5abb30a40f6dae4e6ddb8717e418cfff840ad5"
+      },
+      {
+        "name": "990eab9f.ole_stream",
+        "sha256": "990eab9faaae9f78201ef00a72f7b59773eed2b2fc9ec72250c67f376ee0500f"
+      },
+      {
+        "name": "9ae4a96b.ole_stream",
+        "sha256": "9ae4a96bf2a349667e844acc1e2ac4f89361a6182268438f4d063df3a6fc47bc"
+      },
+      {
+        "name": "cfa7123b.ole_stream",
+        "sha256": "cfa7123b84720afecf3c970ffacf7e11525f03aa2e6234224c8616b6dad8ae3c"
+      },
+      {
+        "name": "e330fa80.ole_stream",
+        "sha256": "e330fa8030aa0465b02880133addba0a8c6011b511f6968b413bf45516f7275e"
+      },
+      {
+        "name": "f473910d.ole_stream",
+        "sha256": "f473910d3d289a33589e0de9e95857c6ff8c47fc127b59ce7b6eb2721b488dd9"
+      },
+      {
+        "name": "f587867e.ole_stream",
+        "sha256": "f587867eed0bec33ef150f3a8525bde9b6746c705543874e56653aa80ea53225"
+      },
+      {
+        "name": "f831bfc0.ole_stream",
+        "sha256": "f831bfc02dbede4b2618d1ad06ad4b794e04938566173f57af32bf9547968dff"
+      },
+      {
+        "name": "f9cf66e8_b64.txt",
+        "sha256": "f9cf66e8e7a15389703428a2e840107efb384e7e632891e00f74a8e4002c0198"
+      },
+      {
+        "name": "ffe2980d.ole_stream",
+        "sha256": "ffe2980d90152ef603555a735b7cba1917c99bb67061b44d6ac6f12e6384bdd9"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 10,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ADVAPI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AI_CustAct.log"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CABINET.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "COMDLG32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EXE and MSI file signature mismatch.SetProgressProgressSelectionDescriptionIgnoreChangeSelectionNoItemsEnabledEXCLUS~1.BAT"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Freeing RICHED20.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GDI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "IPHLPAPI.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "KERNEL32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LuaJIT.exe"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NETAPI32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OLEAUT32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "PSAPI.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Resource too large.Specified path is empty.Could not find required file IMAGEHLP.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHELL32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHLWAPI.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Secur32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SoftwareDetector.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "USER32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "VERSION.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WS2_32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "aicustact.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "aischeduler2.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "and has been truncated.Loading RICHED20.DLL"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "exclusion.bat"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "msi.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ole32.dll"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "000C1084-0000-0000-C000-000000000046"
+        }
+      ],
+      "file.ole.summary.author": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Cheat Space Inc."
+        }
+      ],
+      "file.ole.summary.codepage": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": 1252
+        }
+      ],
+      "file.ole.summary.comment": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "This installer database contains the logic and data required to install Cheat Space."
+        }
+      ],
+      "file.ole.summary.create_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2009-12-11 11:47:44.850000"
+        }
+      ],
+      "file.ole.summary.last_printed": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2009-12-11 11:47:44.850000"
+        }
+      ],
+      "file.ole.summary.last_saved_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2020-09-18 14:06:51.913000"
+        }
+      ],
+      "file.ole.summary.subject": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Cheat Space"
+        }
+      ],
+      "file.ole.summary.title": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "Installation Database"
+        }
+      ],
+      "file.pe.pdb_filename": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "JobRelease\\win\\Release\\custact\\x86\\AICustAct.pdb"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "JobRelease\\win\\Release\\custact\\x86\\SoftwareDetector.pdb"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "JobRelease\\win\\Release\\custact\\x86\\aischeduler2.pdb"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "JobRelease\\win\\Release\\custact\\x86\\viewer.pdb"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AddAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AdjustTokenPrivileges"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AllocateAndInitializeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AllowSetForegroundWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "BindImage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CLSIDFromString"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ChangeServiceConfig"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ChangeServiceConfig2"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CloseHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CloseServiceHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoCreateInstance"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoInitialize"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoInitializeEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoInitializeSecurity"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoSetProxyBlanket"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CoUninitialize"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ControlService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ConvertSecurityDescriptorToStringSecurityDescriptor"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ConvertSidToStringSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ConvertStringSidToSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CopyFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateDirectory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateEvent"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateThread"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CreateToolhelp32Snapshot"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptAcquireContext"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptCreateHash"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptDecrypt"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptDeriveKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptDestroyHash"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptDestroyKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptHashData"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CryptReleaseContext"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DecodePointer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteCriticalSection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DeleteService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DllGetVersion"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DriveType"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "DuplicateHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EncodePointer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnterCriticalSection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumChildWindows"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumServicesStatus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "EnumWindows"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ExitProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Extract"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindClose"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindFirstFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindFirstFileEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindNextFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindResource"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FindResourceEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FlushFileBuffers"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FreeEnvironmentStrings"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FreeLibrary"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FreeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCommandLine"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCurrentProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCurrentProcessId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCurrentThread"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetCurrentThreadId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDesktopWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDiskFreeSpace"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDriveType"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetEnvironmentStrings"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetEnvironmentVariable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetExitCodeProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetFileType"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetFileVersionInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetFileVersionInfoSize"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetForegroundWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetLastError"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetLocaleInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetLogicalDriveStrings"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetModuleFileName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetModuleFileNameEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetModuleHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetModuleHandleEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetOEMCP"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcAddress"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcessHeap"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcessId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetProcessTimes"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSecurityDescriptorDacl"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidIdentifierAuthority"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidLengthRequired"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidSubAuthority"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSidSubAuthorityCount"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetStartupInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetStdHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSystemDirectory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSystemFirmwareTable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetSystemInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTcpTable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTempFileName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTempPath"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTickCount"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTimeZoneInformation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetTokenInformation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetUserName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetUserNameEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetVersion"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetWindowThreadProcessId"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetWindowsDirectory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GlobalAddAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GlobalDeleteAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GlobalFindAtom"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GlobalMemoryStatus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GlobalMemoryStatusEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InitializeCriticalSection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InitializeSecurityDescriptor"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InitializeSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "InterlockedPushEntrySList"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "IsDebuggerPresent"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "IsProcessorFeaturePresent"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LCMapString"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LeaveCriticalSection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LoadLibrary"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LoadLibraryEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LoadResource"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LocalAlloc"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LocalFree"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LockFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LockResource"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LockServiceDatabase"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LogonUser"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupAccountName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupAccountSid"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LookupPrivilegeValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaAddAccountRights"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaClose"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "LsaOpenPolicy"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "MessageBox"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "MoveFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "MultiByteToWideChar"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetGetDCName"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetGroupGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetLocalGroupGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetLocalGroupGetMembers"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetQueryDisplayInformation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetUserGetInfo"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetUserGetLocalGroups"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NetUserModalsGet"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NtQueryInformationProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NtWow64QueryInformationProcess64"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "NtWow64ReadVirtualMemory64"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenMutex"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenProcessToken"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenSCManager"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OutputDebugString"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "PostMessage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Process32First"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Process32Next"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryPerformanceCounter"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryServiceObjectSecurity"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryServiceStatus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "QueryServiceStatusEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RaiseException"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ReadConsole"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ReadFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ReadProcessMemory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCloseKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCreateKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegCreateKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegDeleteKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegDeleteValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegEnumKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegEnumKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegOpenKey"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegOpenKeyEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegQueryValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegQueryValueEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegSetValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegSetValueEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RegisterTypeLib"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RemoveDirectory"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ResetEvent"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "RtlUnwind"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetFolderPath"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetMalloc"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetSpecialFolderLocation"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SHGetSpecialFolderPath"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SQLFetch"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SendMessage"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetEndOfFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetEntriesInAcl"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetEnvironmentVariable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetEvent"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetFilePointer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetFilePointerEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetForegroundWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetLastError"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetSecurityDescriptorDacl"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetServiceObjectSecurity"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetStdHandle"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SetUnhandledExceptionFilter"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ShellExecute"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ShellExecuteEx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "SizeofResource"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "StartService"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TerminateProcess"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TlsGetValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TlsSetValue"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "UnhandledExceptionFilter"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "UnlockFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "UnlockServiceDatabase"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "VirtualProtect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "VirtualQuery"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WideCharToMultiByte"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WinVerifyTrust"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Wow64DisableWow64FsRedirection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WriteConsole"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "WriteFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "connect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcat"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpy"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpyn"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrcpynW"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "lstrlen"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "msi.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ole32.dll"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "sprintf"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "strcmpi"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "wsprintf"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Administrator"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "CompareString"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Connect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Connecting"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Console"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Destroy"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Download"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Downloading"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Extracting"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "FileType"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "GetDomain"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "HideWindow"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Install"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Manufacturer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Privilege"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Protect"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Redirection"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Server 2008"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Shutdown"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Symantec"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TokenPrivilege"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TokenPrivileges"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Transaction"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "TypeLib"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 10"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 2000"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 7"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 8"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows 8.1"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows NT"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows NT 4.0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows Vista"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Windows XP"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "account"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "anonymous"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "antivirus"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "attempt"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "broken pipe"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "command"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "completed"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "connection aborted"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "connection already in progress"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "connection refused"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "extract"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "file not found"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "host unreachable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "logFile"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "network down"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "network reset"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "network unreachable"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "owner dead"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "password"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "permission denied"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "protocol error"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "virtual"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "wrong protocol type"
+        }
+      ],
+      "network.static.domain": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "cacerts.digicert.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "crl3.digicert.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "crl4.digicert.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "iesBadActionData.AI"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "ocsp.digicert.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "t1.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "t2.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "tl.symcb.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "tl.symcd.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "validation.AI"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "www.advancedinstaller.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "www.digicert.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "www.thawte.com"
+        }
+      ],
+      "network.static.uri": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://cacerts.digicert.com/DigiCertAssuredIDRootCA.crt0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://cacerts.digicert.com/DigiCertSHA2AssuredIDTimestampingCA.crt0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl0P"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://crl3.digicert.com/sha2-assured-ts.crl02"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://crl4.digicert.com/DigiCertAssuredIDRootCA.crl0:"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://crl4.digicert.com/sha2-assured-ts.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ocsp.digicert.com0C"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://ocsp.digicert.com0O"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://t1.symcb.com/ThawtePCA.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://t2.symcb.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcb.com/tl.crl0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcb.com/tl.crt0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://tl.symcd.com0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "http://www.digicert.com/CPS0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.advancedinstaller.com"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.digicert.com/CPS0"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.thawte.com/cps0/"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "https://www.thawte.com/repository0W"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}
