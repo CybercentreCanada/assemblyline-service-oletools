@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import re
+import socket
 import struct
 import subprocess
 import tempfile
@@ -22,9 +23,10 @@ import zipfile
 import zlib
 from collections import defaultdict
 from datetime import datetime
+from ipaddress import AddressValueError, IPv4Address
 from itertools import chain, groupby
 from typing import IO, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlsplit
 
 import magic
 import olefile
@@ -253,7 +255,8 @@ class Oletools(ServiceBase):
         ),
         # Inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
         (rb"(unescape\(|document\.write)", b"embedded javascript"),
-        # Malicious RTF codes, inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
+        # Malicious RTF codes
+        # Inspired by https://github.com/CYB3RMX/Qu1cksc0pe/blob/master/Systems/Multiple/malicious_rtf_codes.json
         (
             rb"(%28%22%45%6E%61%62%6C%65%20%65%64%69%74%69%6E%67%22%29|Enable editing|\\objhtml|\\objdata|\\bin"
             rb"|\\objautlink|No\: 20724414|%4E%6F%3A%20%32%30%37%32%34%34%31%34|passwordhash)",
@@ -2134,7 +2137,7 @@ class Oletools(ServiceBase):
         except UnicodeDecodeError:
             return "", "", ""
         try:
-            url = urlparse(decoded)
+            url = urlsplit(decoded)
         except ValueError as e:
             # Implies we're given an invalid link to parse
             if str(e) == "Invalid IPv6 URL":
@@ -2155,11 +2158,15 @@ class Oletools(ServiceBase):
             url_text = url.scheme + "://" + url.netloc + url.path.split(":", 1)[0]
         else:
             url_text = url.geturl()
-        if is_valid_ip(url.hostname):
-            if not is_ip_reserved(url.hostname):
-                return url_text, "network.static.ip", url.hostname
-        elif is_valid_domain(url.hostname):
+        if is_valid_domain(url.hostname):
             return url_text, "network.static.domain", url.hostname
+        try:
+            parsed_ip = IPv4Address(socket.inet_aton(url.hostname)).compressed
+            if is_valid_ip(parsed_ip) and not is_ip_reserved(parsed_ip):
+                return url_text, "network.static.ip", url.hostname
+        except (OSError, AddressValueError, UnicodeDecodeError):
+            pass
+
         return url_text, "", ""
 
     def _process_link(self, link_type: str, link: Union[str, bytes]) -> Tuple[Heuristic, Tags]:
@@ -2229,7 +2236,7 @@ class Oletools(ServiceBase):
             heuristic.add_attack_id("T1221")
         if hostname_type == "network.static.ip" and link_type.lower() != "hyperlink":
             heuristic.add_signature_id("external_link_ip")
-        filename = os.path.basename(urlparse(url).path)
+        filename = os.path.basename(urlsplit(url).path)
         path_extension = os.path.splitext(filename)[1].encode().lower()
         if (
             path_extension != b".com"
