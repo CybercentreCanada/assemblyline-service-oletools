@@ -97,7 +97,7 @@ heuristics:
     name: IOC in XML
     score: 1
     max_score: 100
-    filetype: document/office
+    filetype: document/office/.*|document/odt/.*
     description: IOC content discovered in compressed XML.
 
   - heur_id: 8
@@ -265,7 +265,7 @@ heuristics:
   - heur_id: 34
     name: OleID Indicator Found
     score: 10
-    filetype: document/(office|installer/windows)
+    filetype: document/(office|installer/windows)|document/odt/.*
     description: OleID indicator object found
 
   - heur_id: 40
