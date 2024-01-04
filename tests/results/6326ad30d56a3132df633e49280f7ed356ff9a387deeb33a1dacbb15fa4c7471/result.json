@@ -1,0 +1,316 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 37,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic Zip Archive\nContainer format: Zip, Container type",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Found the URI string http://10.8.0.83/run.txt in:\nBasic/Standard/Module1.xml\n\nFound the URI string http://openoffice.org/2000/script in:\nBasic/Standard/Module1.xml\n\nFound the URI string http://openoffice.org/2000/library in:\nBasic/Standard/script-lb.xml\nBasic/script-lc.xml\n\nFound the URI string http://openoffice.org/2004/office in:\nmeta.xml\ncontent.xml\nsettings.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2004/calc in:\ncontent.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2004/writer in:\ncontent.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2005/report in:\ncontent.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2009/office in:\ncontent.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2009/table in:\ncontent.xml\nstyles.xml\n\nFound the URI string http://openoffice.org/2010/draw in:\ncontent.xml\nstyles.xml\n\nFound the DOMAIN string openoffice.org in:\nBasic/Standard/Module1.xml\nBasic/Standard/script-lb.xml\nBasic/script-lc.xml\nmeta.xml\ncontent.xml\nsettings.xml\nstyles.xml\n\nFound the EXTRACTED string cmd.exe in:\nBasic/Standard/Module1.xml\n\nFound the EXTRACTED string powershell.exe in:\nBasic/Standard/Module1.xml\n\nFound the EXTRACTED string run.txt in:\nBasic/Standard/Module1.xml\n\nFound the EXTRACTED string thumbnail.png in:\nMETA-INF/manifest.xml\n\nFound the BLACKLISTED string Download in:\nBasic/Standard/Module1.xml\n\nFound the BLACKLISTED string powershell in:\nBasic/Standard/Module1.xml\n\nFound the BLACKLISTED string password in:\nBasic/Standard/script-lb.xml\n\nFound the BLACKLISTED string xmlns:xlink in:\nBasic/script-lc.xml\nmeta.xml\ncontent.xml\nsettings.xml\nstyles.xml\n\nFound the BLACKLISTED string Connect in:\nsettings.xml\n\nFound the BLACKLISTED string OnClose in:\nsettings.xml\n\nFound the BLACKLISTED string Protect in:\nsettings.xml\n\nFound the BLACKLISTED string Protection in:\nsettings.xml\n\nFound the API string GetFile in:\nBasic/Standard/Module1.xml\n\nFound the API string cmd.exe in:\nBasic/Standard/Module1.xml\n\nFound the CMDLET string New-Object in:\nBasic/Standard/Module1.xml\n\nFound the IP string 7.5.5.2 in:\nmeta.xml\n",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 27,
+          "heur_id": 7,
+          "score": 27,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "cmd.exe",
+                "powershell.exe",
+                "run.txt",
+                "thumbnail.png"
+              ]
+            },
+            "powershell": {
+              "cmdlet": [
+                "New-Object"
+              ]
+            },
+            "string": {
+              "api": [
+                "GetFile",
+                "cmd.exe"
+              ],
+              "blacklisted": [
+                "Download",
+                "powershell",
+                "password",
+                "xmlns:xlink",
+                "Connect",
+                "OnClose",
+                "Protect",
+                "Protection"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "domain": [
+                "openoffice.org"
+              ],
+              "ip": [
+                "7.5.5.2"
+              ],
+              "uri": [
+                "http://10.8.0.83/run.txt",
+                "http://openoffice.org/2000/script",
+                "http://openoffice.org/2000/library",
+                "http://openoffice.org/2004/office",
+                "http://openoffice.org/2004/calc",
+                "http://openoffice.org/2004/writer",
+                "http://openoffice.org/2005/report",
+                "http://openoffice.org/2009/office",
+                "http://openoffice.org/2009/table",
+                "http://openoffice.org/2010/draw"
+              ]
+            }
+          }
+        },
+        "title_text": "IOCs content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "The file contains an indicator (extracted file name in container) that could be related to a macro",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "ODF file may contain macro",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "239c93b4.xml",
+        "sha256": "239c93b410ae6012803688ac539bfbfac675813de6aac81d2506d9089e4f95c9"
+      },
+      {
+        "name": "563d83fe.xml",
+        "sha256": "563d83fe304c3b4db0fea2faec6aead4514fc87f5dfda221f457064c18660ab1"
+      },
+      {
+        "name": "63016b2c.xml",
+        "sha256": "63016b2c02dc64e30fed25e78570c5b1973d73e2a0dda71dab28be018996fab2"
+      },
+      {
+        "name": "a8e67ea1.xml",
+        "sha256": "a8e67ea1bd9c0ba9514cb3a9324069e46565274cfd7e62ec27bd4baf28554757"
+      },
+      {
+        "name": "df77dc40.xml",
+        "sha256": "df77dc407ed8ccf4e0341260aebe24410a27466b506cdd8f4f22a696df99141e"
+      },
+      {
+        "name": "e6e7db6a.xml",
+        "sha256": "e6e7db6ad9702c962f017f8824bf0ca741ac92e0d50ede533a461cbb755b6bac"
+      },
+      {
+        "name": "f7c24c1b.xml",
+        "sha256": "f7c24c1bf8a2ab6179bf25628e053192ea03e226fe784dd762e7ab3b9e2c7fc6"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 7,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "cmd.exe"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "powershell.exe"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "run.txt"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "thumbnail.png"
+        }
+      ],
+      "file.powershell.cmdlet": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "New-Object"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "GetFile"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "cmd.exe"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Connect"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Download"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "OnClose"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Protect"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Protection"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "password"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "powershell"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "xmlns:xlink"
+        }
+      ],
+      "network.static.domain": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "openoffice.org"
+        }
+      ],
+      "network.static.ip": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "7.5.5.2"
+        }
+      ],
+      "network.static.uri": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://10.8.0.83/run.txt"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2000/library"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2000/script"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/calc"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/office"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/writer"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2005/report"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2009/office"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2009/table"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2010/draw"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}
