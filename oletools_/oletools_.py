@@ -450,6 +450,7 @@ class Oletools(ServiceBase):
             _add_section(result, self._check_for_macros(path, request.sha256))
             _add_section(result, self._create_macro_sections(request.sha256))
             self._check_xml_strings(path, result, request.deep_scan)
+            self._odf_with_macros(request)
         except Exception:
             self.log.error(
                 f"We have encountered a critical error for sample {self.sha}: {traceback.format_exc(limit=2)}"
@@ -1031,6 +1032,34 @@ class Oletools(ServiceBase):
             streams_section.add_subsection(sus_sec)
 
         return True
+
+    def _odf_with_macros(self, request: ServiceRequest) -> None:
+        """Detects OpenDocument Format files containing macros.
+        Inspired by https://github.com/pandora-analysis/pandora/blob/main/pandora/workers/odf.py
+
+        Args:
+            request: AL request object.
+
+        Returns:
+            None.
+        """
+        if request.file_type.startswith("document/odt"):
+            for description in self._extracted_files.values():
+                if (
+                    "Basic/"
+                    in description
+                    # Have yet to find a sample that hits on these
+                    # or "Script/" in description
+                    # or "Object/" in description
+                    # or "bin" in description
+                ):
+                    odf_res = ResultSection("ODF file may contain macro")
+                    odf_res.add_line(
+                        "The file contains an indicator (extracted file name in container) "
+                        "that could be related to a macro"
+                    )
+                    request.result.add_section(odf_res)
+                    break
 
     def _process_powerpoint_stream(self, data: bytes, streams_section: ResultSection) -> bool:
         """Parses powerpoint stream data and reports on suspicious characteristics.

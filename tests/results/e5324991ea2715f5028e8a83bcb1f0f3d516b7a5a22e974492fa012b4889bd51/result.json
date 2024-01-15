@@ -1,0 +1,276 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 32,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic Zip Archive\nContainer format: Zip, Container type",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Found the IP string 7.2.1.2 in:\nmeta.xml\n\nFound the URI string http://openoffice.org/2004/office in:\nmeta.xml\nsettings.xml\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2000/script in:\nBasic/Standard/lovestar.xml\n\nFound the URI string http://openoffice.org/2000/library in:\nBasic/Standard/script-lb.xml\nBasic/script-lc.xml\n\nFound the URI string http://openoffice.org/2004/calc in:\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2004/writer in:\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2005/report in:\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2009/office in:\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2009/table in:\nstyles.xml\ncontent.xml\n\nFound the URI string http://openoffice.org/2010/draw in:\nstyles.xml\ncontent.xml\n\nFound the DOMAIN string openoffice.org in:\nmeta.xml\nBasic/Standard/lovestar.xml\nBasic/Standard/script-lb.xml\nBasic/script-lc.xml\nsettings.xml\nstyles.xml\ncontent.xml\n\nFound the BLACKLISTED string xmlns:xlink in:\nmeta.xml\nBasic/script-lc.xml\nsettings.xml\nstyles.xml\ncontent.xml\n\nFound the BLACKLISTED string EXECUTE in:\nBasic/Standard/lovestar.xml\n\nFound the BLACKLISTED string Install in:\nBasic/Standard/lovestar.xml\n\nFound the BLACKLISTED string payload in:\nBasic/Standard/lovestar.xml\n\nFound the BLACKLISTED string password in:\nBasic/Standard/script-lb.xml\n\nFound the BLACKLISTED string OnClose in:\nsettings.xml\n\nFound the BLACKLISTED string Protect in:\nsettings.xml\n\nFound the BLACKLISTED string Protection in:\nsettings.xml\n\nFound the EXTRACTED string c:\\dbpay.BAT in:\nBasic/Standard/lovestar.xml\n\nFound the EXTRACTED string c:\\dropme.vbs in:\nBasic/Standard/lovestar.xml\n\nFound the EXTRACTED string thumbnail.png in:\nMETA-INF/manifest.xml\n",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 22,
+          "heur_id": 7,
+          "score": 22,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "c:\\dbpay.BAT",
+                "c:\\dropme.vbs",
+                "thumbnail.png"
+              ]
+            },
+            "string": {
+              "blacklisted": [
+                "xmlns:xlink",
+                "EXECUTE",
+                "Install",
+                "payload",
+                "password",
+                "OnClose",
+                "Protect",
+                "Protection"
+              ]
+            }
+          },
+          "network": {
+            "static": {
+              "domain": [
+                "openoffice.org"
+              ],
+              "ip": [
+                "7.2.1.2"
+              ],
+              "uri": [
+                "http://openoffice.org/2004/office",
+                "http://openoffice.org/2000/script",
+                "http://openoffice.org/2000/library",
+                "http://openoffice.org/2004/calc",
+                "http://openoffice.org/2004/writer",
+                "http://openoffice.org/2005/report",
+                "http://openoffice.org/2009/office",
+                "http://openoffice.org/2009/table",
+                "http://openoffice.org/2010/draw"
+              ]
+            }
+          }
+        },
+        "title_text": "IOCs content:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "The file contains an indicator (extracted file name in container) that could be related to a macro",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "ODF file may contain macro",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "49f8d9bc.xml",
+        "sha256": "49f8d9bcf6c0514fb89f5fc17ee581bde01ad961c3f531cafd2dcda3e1a5ef11"
+      },
+      {
+        "name": "83c17e1e.xml",
+        "sha256": "83c17e1ec646d08e2f830696f900a5c2785d6d89a382e2f2782a72cc366fcb20"
+      },
+      {
+        "name": "a8e67ea1.xml",
+        "sha256": "a8e67ea1bd9c0ba9514cb3a9324069e46565274cfd7e62ec27bd4baf28554757"
+      },
+      {
+        "name": "ceed9f1f.xml",
+        "sha256": "ceed9f1f290cbcee9f0fc9a4c059f069244cc0b7431c415017db8307feb39bf9"
+      },
+      {
+        "name": "dd57412c.xml",
+        "sha256": "dd57412c949cbb362e1f5b8514a5eb7e744789ff68d21c2a755c7a548cddb474"
+      },
+      {
+        "name": "e0657e04.xml",
+        "sha256": "e0657e0441e59b74e2f038145ab324b9bcd0c034c9711b00d98e0fcccb88b262"
+      },
+      {
+        "name": "ef390796.xml",
+        "sha256": "ef39079633b29c5e77efe4df796968ec8f6ccf9d87ffef4d84bf9c99c48ec981"
+      }
+    ],
+    "supplementary": []
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 7,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": []
+      }
+    ],
+    "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "c:\\dbpay.BAT"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "c:\\dropme.vbs"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "thumbnail.png"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "EXECUTE"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Install"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "OnClose"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Protect"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "Protection"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "password"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "payload"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "xmlns:xlink"
+        }
+      ],
+      "network.static.domain": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "openoffice.org"
+        }
+      ],
+      "network.static.ip": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "7.2.1.2"
+        }
+      ],
+      "network.static.uri": [
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2000/library"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2000/script"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/calc"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/office"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2004/writer"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2005/report"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2009/office"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2009/table"
+        },
+        {
+          "heur_id": 7,
+          "signatures": [],
+          "value": "http://openoffice.org/2010/draw"
+        }
+      ]
+    },
+    "temp_submission_data": {
+      "passwords": []
+    }
+  }
+}
