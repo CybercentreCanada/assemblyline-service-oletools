@@ -34,8 +34,9 @@ jobs:
           python.version: "3.9"
         Python3_11:
           python.version: "3.11"
-        Python3_12:
-          python.version: "3.12"
+        # oletools.thirdparty.xxxswf uses imp which is depricated for importlib
+        #Python3_12:
+        #  python.version: "3.12"
 
     timeoutInMinutes: 10
 
