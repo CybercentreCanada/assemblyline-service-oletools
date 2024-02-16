@@ -18,6 +18,7 @@ disable_cache: false
 enabled: true
 is_external: false
 licence_count: 0
+privileged: true
 
 uses_temp_submission_data: true
 
@@ -370,4 +371,4 @@ heuristics:
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1
-  ram_mb: 1024
+  ram_mb: 4096
