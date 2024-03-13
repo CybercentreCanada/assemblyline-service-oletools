@@ -49,6 +49,7 @@
           "company": "",
           "create_time": "2023-11-01 09:39:00",
           "creating_application": "Microsoft Office Word",
+          "heading_pairs": "[b'Title', 1]",
           "hlinks_changed": "False",
           "keywords": "",
           "last_saved_by": "Admin",
@@ -66,6 +67,7 @@
           "subject": "",
           "template": "Normal.dotm",
           "title": "",
+          "titles_of_parts": "[b'']",
           "total_edit_time": "60",
           "version": "1048576"
         },
@@ -142,7 +144,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in ThisDocument:\n    Found the following IP string(s):\n    89.23.98.22\n    Found the following EXTRACTED string(s):\n    89.23.98.22\\LN\\Konstantin.exe  |  G.exe  |  powershell.exe\n    Found the following BLACKLISTED string(s):\n    WScript  |  WScript.Shell  |  powershell\n    Found the following CMDLET string(s):\n    Stop-Process\nIOCs in \\x01CompObj:\n    Found the following BLACKLISTED string(s):\n    Word.Document.8",
+        "body": "IOCs in \\x01CompObj:\n    Found the following BLACKLISTED string(s):\n    Word.Document.8\nIOCs in Macros/VBA/ThisDocument:\n    Found the following IP string(s):\n    89.23.98.22\n    Found the following EXTRACTED string(s):\n    89.23.98.22\\LN\\Konstantin.exe  |  G.exe  |  powershell.exe\n    Found the following BLACKLISTED string(s):\n    WScript  |  WScript.Shell  |  powershell\n    Found the following CMDLET string(s):\n    Stop-Process",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -172,10 +174,10 @@
             },
             "string": {
               "blacklisted": [
+                "Word.Document.8",
                 "WScript",
                 "WScript.Shell",
-                "powershell",
-                "Word.Document.8"
+                "powershell"
               ]
             }
           },
