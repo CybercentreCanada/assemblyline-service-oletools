@@ -122,7 +122,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    resource.At  |  wizard.You\n    Found the following EXTRACTED string(s):\n    CABINET.DLL  |  Could not find required file IMAGEHLP.DLL  |  Freeing RICHED20.DLL  |  and has been truncated.Loading RICHED20.DLL\n    Found the following BLACKLISTED string(s):\n    ActiveX  |  Administrator  |  AppData  |  Connect  |  Connecting  |  Install  |  Manufacturer  |  Protect  |  Server 2008  |  Shutdown  |  Transaction  |  TypeLib  |  WScript  |  WScript.Shell  |  Windows 2000  |  Windows NT  |  Windows NT 4.0  |  Windows Vista  |  account  |  attempt  |  command  |  completed  |  extract  |  file not found  |  logFile  |  virtual\n    Found the following API string(s):\n    BindImage  |  DeleteService  |  GetLastError  |  MoveFile  |  RegisterTypeLib  |  SQLFetch  |  StartService  |  WinVerifyTrust  |  connect\n    Found the following CMDLET string(s):\n    AppData\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://crl.thawte.com/ThawteTimestampingCA.crl0  |  http://ocsp.thawte.com0  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://ts-aia.ws.symantec.com/tss-ca-g2.cer0  |  http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(  |  http://ts-ocsp.ws.symantec.com07  |  http://www.advancedinstaller.com0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0\n    Found the following DOMAIN string(s):\n    crl.thawte.com  |  ocsp.thawte.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  ts-aia.ws.symantec.com  |  ts-crl.ws.symantec.com  |  ts-ocsp.ws.symantec.com  |  www.advancedinstaller.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    Branch\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  COMDLG32.dll  |  GDI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  WININET.dll  |  WS2_32.dll  |  aicustact.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    Connect  |  Connection  |  Install  |  Privilege  |  Symantec  |  TokenPrivilege  |  TokenPrivileges\n    Found the following API string(s):\n    AdjustTokenPrivileges  |  AllocateAndInitializeSid  |  ChangeServiceConfig  |  ChangeServiceConfig2  |  CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ControlService  |  ConvertSidToStringSid  |  ConvertStringSidToSid  |  CreateProcess  |  CreateToolhelp32Snapshot  |  DeleteFile  |  DuplicateHandle  |  EnumChildWindows  |  EnumServicesStatus  |  EnumWindows  |  Extract  |  FindClose  |  FindFirstFile  |  FindNextFile  |  FreeLibrary  |  FreeSid  |  GetCurrentProcess  |  GetDesktopWindow  |  GetDiskFreeSpace  |  GetExitCodeProcess  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleHandle  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetSidIdentifierAuthority  |  GetSidLengthRequired  |  GetSidSubAuthority  |  GetSidSubAuthorityCount  |  GetStdHandle  |  GetTempFileName  |  GetTempPath  |  GetTickCount  |  GetWindowThreadProcessId  |  InitializeSid  |  InternetCheckConnection  |  InternetConnect  |  LoadLibrary  |  LocalAlloc  |  LocalFree  |  LogonUser  |  LookupAccountName  |  LookupAccountSid  |  LookupPrivilegeValue  |  LsaAddAccountRights  |  LsaClose  |  LsaOpenPolicy  |  MessageBox  |  NetGroupGetInfo  |  NetLocalGroupGetInfo  |  NetQueryDisplayInformation  |  NetUserGetInfo  |  NetUserModalsGet  |  OpenFile  |  OpenMutex  |  OpenProcess  |  OpenProcessToken  |  OpenSCManager  |  OpenService  |  PostMessage  |  Process32First  |  Process32Next  |  QueryServiceStatus  |  QueryServiceStatusEx  |  RaiseException  |  ReadFile  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegEnumKey  |  RegEnumKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  RemoveDirectory  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SHGetSpecialFolderPath  |  SendMessage  |  SetEndOfFile  |  SetFilePointer  |  SetLastError  |  ShellExecute  |  ShellExecuteEx  |  TerminateProcess  |  WideCharToMultiByte  |  WriteFile  |  lstrcat  |  lstrcpy  |  lstrcpyn  |  lstrcpynW  |  lstrlen  |  msi.dll  |  ole32.dll  |  sprintf  |  strcmpi  |  wsprintf",
+        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://crl.thawte.com/ThawteTimestampingCA.crl0  |  http://ocsp.thawte.com0  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://ts-aia.ws.symantec.com/tss-ca-g2.cer0  |  http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(  |  http://ts-ocsp.ws.symantec.com07  |  http://www.advancedinstaller.com0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0\n    Found the following DOMAIN string(s):\n    crl.thawte.com  |  ocsp.thawte.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  ts-aia.ws.symantec.com  |  ts-crl.ws.symantec.com  |  ts-ocsp.ws.symantec.com  |  www.advancedinstaller.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    Branch\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  COMDLG32.dll  |  GDI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  WININET.dll  |  WS2_32.dll  |  aicustact.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    Connect  |  Connection  |  Install  |  Privilege  |  Symantec  |  TokenPrivilege  |  TokenPrivileges\n    Found the following API string(s):\n    AdjustTokenPrivileges  |  AllocateAndInitializeSid  |  ChangeServiceConfig  |  ChangeServiceConfig2  |  CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ControlService  |  ConvertSidToStringSid  |  ConvertStringSidToSid  |  CreateProcess  |  CreateToolhelp32Snapshot  |  DeleteFile  |  DuplicateHandle  |  EnumChildWindows  |  EnumServicesStatus  |  EnumWindows  |  Extract  |  FindClose  |  FindFirstFile  |  FindNextFile  |  FreeLibrary  |  FreeSid  |  GetCurrentProcess  |  GetDesktopWindow  |  GetDiskFreeSpace  |  GetExitCodeProcess  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleHandle  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetSidIdentifierAuthority  |  GetSidLengthRequired  |  GetSidSubAuthority  |  GetSidSubAuthorityCount  |  GetStdHandle  |  GetTempFileName  |  GetTempPath  |  GetTickCount  |  GetWindowThreadProcessId  |  InitializeSid  |  InternetCheckConnection  |  InternetConnect  |  LoadLibrary  |  LocalAlloc  |  LocalFree  |  LogonUser  |  LookupAccountName  |  LookupAccountSid  |  LookupPrivilegeValue  |  LsaAddAccountRights  |  LsaClose  |  LsaOpenPolicy  |  MessageBox  |  NetGroupGetInfo  |  NetLocalGroupGetInfo  |  NetQueryDisplayInformation  |  NetUserGetInfo  |  NetUserModalsGet  |  OpenFile  |  OpenMutex  |  OpenProcess  |  OpenProcessToken  |  OpenSCManager  |  OpenService  |  PostMessage  |  Process32First  |  Process32Next  |  QueryServiceStatus  |  QueryServiceStatusEx  |  RaiseException  |  ReadFile  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegEnumKey  |  RegEnumKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  RemoveDirectory  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SHGetSpecialFolderPath  |  SendMessage  |  SetEndOfFile  |  SetFilePointer  |  SetLastError  |  ShellExecute  |  ShellExecuteEx  |  TerminateProcess  |  WideCharToMultiByte  |  WriteFile  |  lstrcat  |  lstrcpy  |  lstrcpyn  |  lstrcpynW  |  lstrlen  |  msi.dll  |  ole32.dll  |  sprintf  |  strcmpi  |  wsprintf\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    resource.At  |  wizard.You\n    Found the following EXTRACTED string(s):\n    CABINET.DLL  |  Could not find required file IMAGEHLP.DLL  |  Freeing RICHED20.DLL  |  and has been truncated.Loading RICHED20.DLL\n    Found the following BLACKLISTED string(s):\n    ActiveX  |  Administrator  |  AppData  |  Connect  |  Connecting  |  Install  |  Manufacturer  |  Protect  |  Server 2008  |  Shutdown  |  Transaction  |  TypeLib  |  WScript  |  WScript.Shell  |  Windows 2000  |  Windows NT  |  Windows NT 4.0  |  Windows Vista  |  account  |  attempt  |  command  |  completed  |  extract  |  file not found  |  logFile  |  virtual\n    Found the following API string(s):\n    BindImage  |  DeleteService  |  GetLastError  |  MoveFile  |  RegisterTypeLib  |  SQLFetch  |  StartService  |  WinVerifyTrust  |  connect\n    Found the following CMDLET string(s):\n    AppData",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -140,10 +140,6 @@
           "file": {
             "name": {
               "extracted": [
-                "CABINET.DLL",
-                "Could not find required file IMAGEHLP.DLL",
-                "Freeing RICHED20.DLL",
-                "and has been truncated.Loading RICHED20.DLL",
                 "ADVAPI32.dll",
                 "COMDLG32.dll",
                 "GDI32.dll",
@@ -156,7 +152,11 @@
                 "WS2_32.dll",
                 "aicustact.dll",
                 "msi.dll",
-                "ole32.dll"
+                "ole32.dll",
+                "CABINET.DLL",
+                "Could not find required file IMAGEHLP.DLL",
+                "Freeing RICHED20.DLL",
+                "and has been truncated.Loading RICHED20.DLL"
               ]
             },
             "pe": {
@@ -171,15 +171,6 @@
             },
             "string": {
               "api": [
-                "BindImage",
-                "DeleteService",
-                "GetLastError",
-                "MoveFile",
-                "RegisterTypeLib",
-                "SQLFetch",
-                "StartService",
-                "WinVerifyTrust",
-                "connect",
                 "AdjustTokenPrivileges",
                 "AllocateAndInitializeSid",
                 "ChangeServiceConfig",
@@ -210,6 +201,7 @@
                 "GetDiskFreeSpace",
                 "GetExitCodeProcess",
                 "GetForegroundWindow",
+                "GetLastError",
                 "GetLocaleInfo",
                 "GetModuleHandle",
                 "GetProcAddress",
@@ -289,14 +281,27 @@
                 "ole32.dll",
                 "sprintf",
                 "strcmpi",
-                "wsprintf"
+                "wsprintf",
+                "BindImage",
+                "DeleteService",
+                "MoveFile",
+                "RegisterTypeLib",
+                "SQLFetch",
+                "StartService",
+                "WinVerifyTrust",
+                "connect"
               ],
               "blacklisted": [
                 "Install",
+                "Connect",
+                "Connection",
+                "Privilege",
+                "Symantec",
+                "TokenPrivilege",
+                "TokenPrivileges",
                 "ActiveX",
                 "Administrator",
                 "AppData",
-                "Connect",
                 "Connecting",
                 "Manufacturer",
                 "Protect",
@@ -317,20 +322,13 @@
                 "extract",
                 "file not found",
                 "logFile",
-                "virtual",
-                "Connection",
-                "Privilege",
-                "Symantec",
-                "TokenPrivilege",
-                "TokenPrivileges"
+                "virtual"
               ]
             }
           },
           "network": {
             "static": {
               "domain": [
-                "resource.At",
-                "wizard.You",
                 "crl.thawte.com",
                 "ocsp.thawte.com",
                 "t1.symcb.com",
@@ -341,7 +339,9 @@
                 "ts-crl.ws.symantec.com",
                 "ts-ocsp.ws.symantec.com",
                 "www.advancedinstaller.com",
-                "www.thawte.com"
+                "www.thawte.com",
+                "resource.At",
+                "wizard.You"
               ],
               "uri": [
                 "http://crl.thawte.com/ThawteTimestampingCA.crl0",
@@ -362,26 +362,6 @@
           }
         },
         "title_text": "Suspicious stream content:",
-        "zeroize_on_tag_safe": false
-      },
-      {
-        "auto_collapse": false,
-        "body": "'new ActiveXObject(' string found in stream \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824, indicating embedded javascript",
-        "body_config": {},
-        "body_format": "TEXT",
-        "classification": "TLP:C",
-        "depth": 2,
-        "heuristic": {
-          "attack_ids": [],
-          "frequency": 1,
-          "heur_id": 23,
-          "score": 250,
-          "score_map": {},
-          "signatures": {}
-        },
-        "promote_to": null,
-        "tags": {},
-        "title_text": "Suspicious string found: 'javascript'",
         "zeroize_on_tag_safe": false
       },
       {
@@ -419,7 +399,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xe8\\x00\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\\x0d\\x0d\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x08\\x02\\x98\\x8fLc\\xf6\\xdcLc\\xf6\\xdcLc\\xf6\\xdcR1r\\xdcOc\\xf6\\xdcE\\x1bu\\xdcMc\\xf6\\xdcE\\x1be\\xdcCc\\xf6\\xdcLc\\xf7\\xdc\\xf5c\\xf6\\xdcE\\x1b|\\xdcpc\\xf6\\xdcE\\x1bd\\xdcMc\\xf6\\xdcR1b\\xdcMc\\xf6\\xdcE\\x1bg\\xdcMc\\xf6\\xdcRichLc\\xf6\\xdc\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
+        "body": "'MZ\\x90\\x00\\x03\\x00\\x00\\x00\\x04\\x00\\x00\\x00\\xff\\xff\\x00\\x00\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x00@\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xe8\\x00\\x00\\x00\\x0e\\x1f\\xba\\x0e\\x00\\xb4\t\\xcd!\\xb8\\x01L\\xcd!This program cannot be run in DOS mode.\r\r\n$\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x08\\x02\\x98\\x8fLc\\xf6\\xdcLc\\xf6\\xdcLc\\xf6\\xdcR1r\\xdcOc\\xf6\\xdcE\\x1bu\\xdcMc\\xf6\\xdcE\\x1be\\xdcCc\\xf6\\xdcLc\\xf7\\xdc\\xf5c\\xf6\\xdcE\\x1b|\\xdcpc\\xf6\\xdcE\\x1bd\\xdcMc\\xf6\\xdcR1b\\xdcMc\\xf6\\xdcE\\x1bg\\xdcMc\\xf6\\xdcRichLc\\xf6\\xdc\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00PE\\x00\\x00' string found in stream \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef, indicating embedded executable",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -428,6 +408,26 @@
         "promote_to": null,
         "tags": {},
         "title_text": "Suspicious string found: 'executable'",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "'new ActiveXObject(' string found in stream \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824, indicating embedded javascript",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 23,
+          "score": 250,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Suspicious string found: 'javascript'",
         "zeroize_on_tag_safe": false
       }
     ]
