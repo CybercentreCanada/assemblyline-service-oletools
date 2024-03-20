@@ -2195,7 +2195,7 @@ class Oletools(ServiceBase):
         try:
             parsed_ip = IPv4Address(socket.inet_aton(url.hostname)).compressed
             if is_valid_ip(parsed_ip) and not is_ip_reserved(parsed_ip):
-                return url_text, "network.static.ip", url.hostname
+                return url_text, "network.static.ip", parsed_ip
         except (OSError, AddressValueError, UnicodeDecodeError):
             pass
 
