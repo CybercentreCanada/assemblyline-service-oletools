@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
-
-from oletools_.oletools_ import Oletools
+from oletools_.oletools_ import Oletools, Tags
 
 
 def test_get_oletools_version():
@@ -61,6 +62,32 @@ def test_parse_uri(uri, output):
 
 
 @pytest.mark.parametrize(
+    ("link_type", "link", "heuristic", "tags"),
+    [
+        (
+            "hyperlink",
+            R"file:///\\8.8.8.8\share\scan.vbs",
+            Heuristic(
+                1,
+                signatures={"unc_path": 1, "hyperlink": 1, "link_to_executable": 1},
+            ),
+            {
+                "file.name.extracted": ["scan.vbs"],
+                "network.static.ip": ["8.8.8.8"],
+                "network.static.uri": ["file://8.8.8.8/share/scan.vbs"],
+            },
+        ),
+    ],
+)
+def test_process_link(link_type: str, link: str | bytes, heuristic: Heuristic, tags: Tags):
+    ole = Oletools()
+    heur, _tags = ole._process_link(link_type, link)
+    assert heur.signatures == heuristic.signatures
+    assert heur.attack_ids == heuristic.attack_ids
+    assert tags == _tags
+
+
+@pytest.mark.parametrize(
     "link",
     [
         b"https://example.com",
@@ -97,7 +124,7 @@ def test_process_link_com_false_positive(link):
             R"cmd%20$z;",
             Heuristic(1, attack_id="T1216", signatures={"embedded_powershell": 1, "hyperlink": 1}),
             "cdccc3c4.ps1",
-        )
+        ),
     ],
 )
 def test_process_link_SyncAppvPublishingServer(link: str, heuristic: Heuristic, filename: str):

@@ -40,6 +40,7 @@ heuristics:
       mhtml_link: 100
       mshta: 500
       msdt_exploit: 500
+      unc_path: 0
       # relationship types
       attachedtemplate: 500
       externallink: 500
