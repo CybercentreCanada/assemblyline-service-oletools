@@ -2160,11 +2160,12 @@ class Oletools(ServiceBase):
         If any of the return values aren't parsed they are left empty.
         """
         # Url must be at start and can't contain whitespace
-        truncated = check_uri.split(maxsplit=1)[0]
-        if not truncated:
+        split = check_uri.split(maxsplit=1)
+        if not split:
             return "", "", ""
         try:
             # Url can't contain non-ascii characters
+            truncated = split[0]
             decoded = truncated.decode("ascii") if isinstance(truncated, bytes) else truncated
         except UnicodeDecodeError:
             return "", "", ""
