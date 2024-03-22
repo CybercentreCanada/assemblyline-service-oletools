@@ -25,6 +25,7 @@ from collections import defaultdict
 from datetime import datetime
 from ipaddress import AddressValueError, IPv4Address
 from itertools import chain, groupby
+from pathlib import PureWindowsPath
 from typing import IO, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlsplit
 
@@ -2164,7 +2165,8 @@ class Oletools(ServiceBase):
             return "", "", ""
         try:
             # Url can't contain non-ascii characters
-            decoded = split[0].decode("ascii") if isinstance(split[0], bytes) else split[0]
+            truncated = split[0]
+            decoded = truncated.decode("ascii") if isinstance(truncated, bytes) else truncated
         except UnicodeDecodeError:
             return "", "", ""
         try:
@@ -2175,7 +2177,7 @@ class Oletools(ServiceBase):
                 return "", "", ""
             else:
                 raise e
-        if not url.scheme or not url.hostname or url.scheme == "file" or not re.match("(?i)[a-z0-9.-]+", url.hostname):
+        if not url.scheme or not url.hostname or not re.match("(?i)[a-z0-9.-]+", url.hostname):
             return "", "", ""
 
         if (
@@ -2194,7 +2196,7 @@ class Oletools(ServiceBase):
         try:
             parsed_ip = IPv4Address(socket.inet_aton(url.hostname)).compressed
             if is_valid_ip(parsed_ip) and not is_ip_reserved(parsed_ip):
-                return url_text, "network.static.ip", url.hostname
+                return url_text, "network.static.ip", parsed_ip
         except (OSError, AddressValueError, UnicodeDecodeError):
             pass
 
@@ -2248,6 +2250,11 @@ class Oletools(ServiceBase):
             safe_link = safe_link.rsplit("!x-usc:")[-1]
             # Strip the mhtml path
             safe_link = safe_link.rsplit("!", 1)[0]
+        if unescaped.startswith(R"file:///\\"):
+            # UNC file path
+            heuristic.add_signature_id("unc_path")
+            # Convert to normal file uri
+            safe_link = PureWindowsPath(unescaped[8:].split()[0]).as_uri()
         url, hostname_type, hostname = self.parse_uri(safe_link)
         if not hostname:
             # Not a valid link
