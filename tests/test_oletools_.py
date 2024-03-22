@@ -3,7 +3,6 @@ from __future__ import annotations
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
-
 from oletools_.oletools_ import Oletools, Tags
 
 
@@ -48,7 +47,10 @@ def test_flag_macro():
     ("uri", "output"),
     [
         (b"", ("", "", "")),
-        (b"file://www.google.com", ("", "", "")),
+        # file without authority
+        (b"file:///www.google.com", ("", "", "")),
+        # file with authority
+        (b"file://www.google.com", ("file://www.google.com", "network.static.domain", "www.google.com")),
         (b"http://www.microsoft.com", ("", "", "")),  # test safelist
         (b"http://google.com", ("http://google.com", "network.static.domain", "google.com")),
         (b"https://8.8.8.8", ("https://8.8.8.8", "network.static.ip", "8.8.8.8")),
