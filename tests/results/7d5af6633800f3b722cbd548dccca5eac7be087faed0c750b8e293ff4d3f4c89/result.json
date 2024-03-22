@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 464,
+    "score": 466,
     "sections": [
       {
         "auto_collapse": false,
@@ -46,6 +46,7 @@
           "codepage_doc": "1252",
           "create_time": "2018-12-06 20:43:11",
           "creating_application": "Microsoft Excel",
+          "heading_pairs": "[b'Worksheets', 3]",
           "hlinks_changed": "False",
           "last_saved_by": "oplup",
           "last_saved_time": "2023-11-27 07:59:37",
@@ -53,6 +54,7 @@
           "scale_crop": "False",
           "security": "0",
           "shared_doc": "False",
+          "titles_of_parts": "[b'Sheet1', b'Sheet2', b'Sheet3']",
           "version": "917504"
         },
         "body_config": {},
@@ -112,28 +114,34 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in ThisWorkbook:\n    Found the following BLACKLISTED string(s):\n    Shell.Application  |  WScript  |  WScript.Shell\nIOCs in _VBA_PROJECT:\n    Found the following BLACKLISTED string(s):\n    SaveToFile",
+        "body": "IOCs in _VBA_PROJECT_CUR/VBA/ThisWorkbook:\n    Found the following BLACKLISTED string(s):\n    Shell.Application  |  WScript  |  WScript.Shell\nIOCs in _VBA_PROJECT_CUR/VBA/_VBA_PROJECT:\n    Found the following BLACKLISTED string(s):\n    SaveToFile\nIOCs in _VBA_PROJECT_CUR/VBA/__SRP_0:\n    Found the following EXTRACTED string(s):\n    Microsoft Office\\Office14\\EXCEL.EXE\n    Found the following BLACKLISTED string(s):\n    Program Files (x86)",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
         "depth": 1,
         "heuristic": {
           "attack_ids": [],
-          "frequency": 4,
+          "frequency": 6,
           "heur_id": 9,
-          "score": 4,
+          "score": 6,
           "score_map": {},
           "signatures": {}
         },
         "promote_to": null,
         "tags": {
           "file": {
+            "name": {
+              "extracted": [
+                "Microsoft Office\\Office14\\EXCEL.EXE"
+              ]
+            },
             "string": {
               "blacklisted": [
                 "Shell.Application",
                 "WScript",
                 "WScript.Shell",
-                "SaveToFile"
+                "SaveToFile",
+                "Program Files (x86)"
               ]
             }
           }
@@ -349,6 +357,13 @@
       }
     ],
     "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Microsoft Office\\Office14\\EXCEL.EXE"
+        }
+      ],
       "file.ole.clsid": [
         {
           "heur_id": null,
@@ -414,6 +429,11 @@
         }
       ],
       "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Program Files (x86)"
+        },
         {
           "heur_id": 9,
           "signatures": [],
