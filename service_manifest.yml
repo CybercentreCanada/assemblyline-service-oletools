@@ -6,7 +6,7 @@ description: >-
   Lagadec - http://www.decalage.info.
 
 accepts: document/office/.*|document/odt/.*|document/installer/windows
-rejects: empty|metadata/.*|document/office/email
+rejects: empty|metadata/.*|document/office/email|document/office/onenote
 
 stage: CORE
 category: Static Analysis

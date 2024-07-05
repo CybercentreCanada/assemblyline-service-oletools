@@ -5,7 +5,7 @@
     "sections": [
       {
         "auto_collapse": false,
-        "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 000C1084-0000-0000-C000-000000000046 - None\nContainer format: OLE, Container type\nApplication name: b'Advanced Installer 12.3 build 64631', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Copyright \\xa9 2023', Author declared in properties",
+        "body": "File format: Windows Installer Package (.msi)\nContainer format: OLE, Container type\nApplication name: b'Advanced Installer 12.3 build 64631', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Copyright \\xa9 2023', Author declared in properties",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
@@ -100,7 +100,7 @@
       {
         "auto_collapse": false,
         "body": {
-          "000C1084-0000-0000-C000-000000000046": "unknown CLSID"
+          "000C1084-0000-0000-C000-000000000046": "MSI Windows Installer Package (msi)"
         },
         "body_config": {},
         "body_format": "KEY_VALUE",
