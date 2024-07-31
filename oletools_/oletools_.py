@@ -206,19 +206,19 @@ class Oletools(ServiceBase):
         b".wsh",
     }
     # Safelists
-    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com"]
+    TAG_SAFELIST = ["management", "manager", "microsoft.com"]
     # substrings of URIs to ignore
     URI_SAFELIST = [
-        b"http://purl.org/",
-        b"http://xml.org/",
-        b".openxmlformats.org",
-        b".oasis-open.org",
-        b".xmlsoap.org",
-        b".microsoft.com",
-        b".w3.org",
-        b".gc.ca",
-        b".mil.ca",
-        b"dublincore.org",
+        "http://purl.org/",
+        "http://xml.org/",
+        ".openxmlformats.org",
+        ".oasis-open.org",
+        ".xmlsoap.org",
+        ".microsoft.com",
+        ".w3.org",
+        ".gc.ca",
+        ".mil.ca",
+        "dublincore.org",
     ]
     # substrings at end of IoC to ignore (tuple to be compatible with .endswith())
     PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL", b"VBE7.DLL")
@@ -293,14 +293,10 @@ class Oletools(ServiceBase):
         self.macro_score_max_size: Optional[int] = self.config.get("macro_score_max_file_size", None)
         self.macro_score_min_alert = self.config.get("macro_score_min_alert", 0.6)
         self.metadata_size_to_extract = self.config.get("metadata_size_to_extract", 500)
-        self.ioc_pattern_safelist = [
-            string.encode("utf-8", errors="ignore") for string in self.config.get("ioc_pattern_safelist", [])
-        ]
-        self.ioc_exact_safelist = [
-            string.encode("utf-8", errors="ignore") for string in self.config.get("ioc_exact_safelist", [])
-        ]
-        self.pat_safelist: List[bytes] = self.URI_SAFELIST
-        self.tag_safelist: List[bytes] = self.TAG_SAFELIST
+        self.ioc_pattern_safelist: list[str] = self.config.get("ioc_pattern_safelist", [])
+        self.ioc_exact_safelist: list[str] = self.config.get("ioc_exact_safelist", [])
+        self.pat_safelist = self.URI_SAFELIST
+        self.tag_safelist = self.TAG_SAFELIST
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -390,10 +386,9 @@ class Oletools(ServiceBase):
         self.regex_safelist = safelist.get("regex", {})
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
-        encoded = tag.encode("utf-8")
         return (
-            any(string in encoded for string in self.pat_safelist)
-            or encoded.lower() in self.tag_safelist
+            any(string in tag for string in self.pat_safelist)
+            or tag.lower() in self.tag_safelist
             or is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
         )
 
