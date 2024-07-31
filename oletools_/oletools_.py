@@ -390,7 +390,12 @@ class Oletools(ServiceBase):
         self.regex_safelist = safelist.get("regex", {})
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
-        return is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
+        encoded = tag.encode("utf-8")
+        return (
+            any(string in encoded for string in self.pat_safelist)
+            or encoded.lower() in self.tag_safelist
+            or is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
+        )
 
     def get_tool_version(self) -> str:
         """Returns the version of oletools used by the service."""
@@ -2023,13 +2028,7 @@ class Oletools(ServiceBase):
         patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
         for tag_type, iocs in patterns_found.items():
             for ioc in iocs:
-                if (
-                    any(string in ioc for string in self.pat_safelist)
-                    or ioc.endswith(self.PAT_ENDS)
-                    or ioc.lower() in self.tag_safelist
-                ):
-                    continue
-                if self.is_safelisted(tag_type, safe_str(ioc)):
+                if ioc.endswith(self.PAT_ENDS) or self.is_safelisted(tag_type, safe_str(ioc)):
                     continue
                 # Skip .bin files that are common in normal excel files
                 if not include_fpos and tag_type == "file.name.extracted" and re.match(self.EXCEL_BIN_RE, ioc):
@@ -2178,11 +2177,7 @@ class Oletools(ServiceBase):
         if not url.scheme or not url.hostname or not re.match("(?i)[a-z0-9.-]+", url.hostname):
             return "", "", ""
 
-        if (
-            any(pattern in decoded.encode() for pattern in self.pat_safelist)
-            or decoded.encode() in self.tag_safelist
-            or self.is_safelisted("network.static.uri", decoded)
-        ):
+        if self.is_safelisted("network.static.uri", decoded):
             return "", "", ""
 
         if ":" in url.path:
@@ -2277,7 +2272,6 @@ class Oletools(ServiceBase):
         if (
             path_extension != b".com"
             and path_extension in self.EXECUTABLE_EXTENSIONS
-            and filename.encode() not in self.tag_safelist
             and not self.is_safelisted("file.name.extracted", filename)
         ):
             heuristic.add_signature_id("link_to_executable")
