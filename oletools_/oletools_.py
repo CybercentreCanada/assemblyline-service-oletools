@@ -226,13 +226,11 @@ class Oletools(ServiceBase):
     BLACKLIST_IGNORE = {b"connect", b"protect", b"background", b"enterprise", b"account", b"waiting", b"request"}
 
     # Bytes Regex's
-    DOMAIN_RE = rb"^(?:(?:[a-zA-Z0-9-]+)\.)+[a-zA-Z]{2,5}"
     IP_RE = rb"^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))"
     EXTERNAL_LINK_RE = (
         rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}'
         rb'[Tt]argetMode="External"'
     )
-    BASE64_RE = b"([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})"
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb"(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin"
     VBS_HEX_RE = rb"(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}"
