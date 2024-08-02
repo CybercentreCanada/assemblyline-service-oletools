@@ -2205,6 +2205,7 @@ class Oletools(ServiceBase):
         """
         heuristic = Heuristic(1)
         safe_link: str = safe_str(link)
+        link_type = link_type.lower()
         unescaped = unquote(safe_link).strip()
         if unescaped.startswith("mshta"):
             heuristic.add_attack_id("T1218.005")
@@ -2227,7 +2228,7 @@ class Oletools(ServiceBase):
         if "SyncAppvPublishingServer.vbs" in unescaped:
             heuristic.add_attack_id("T1216")
             heuristic.add_signature_id("embedded_powershell")
-            heuristic.add_signature_id(link_type.lower())
+            heuristic.add_signature_id(link_type)
             powershell = unescaped.split("SyncAppvPublishingServer.vbs", 1)[-1].encode()
             self._extract_file(powershell, ".ps1", "powershell hidden in hyperlink external relationship")
             return heuristic, {}
@@ -2247,20 +2248,23 @@ class Oletools(ServiceBase):
         if not hostname:
             # Not a valid link
             return heuristic, {}
-        if link_type.lower() == "oleobject" and ".sharepoint." in hostname:
-            heuristic.add_signature_id("oleobject", score=0)  # Don't score oleobject links to sharepoint servers
-        else:
-            heuristic.add_signature_id(link_type.lower())
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
-        if url.endswith("!") and link_type.lower() == "oleobject":
+        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
+        if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
+            # Don't score oleobject links to sharepoint servers
+            # or links with a safelisted url, domain, or ip.
+            heuristic.add_signature_id(link_type, score=0)
+        else:
+            heuristic.add_signature_id(link_type)
+        if url.endswith("!") and link_type == "oleobject":
             tags["network.static.uri"].append(url[:-1])
             tags["attribution.exploit"] = ["CVE-2022-30190"]
             heuristic.add_signature_id("msdt_exploit")
         if "../" in url:
             heuristic.add_signature_id("relative_path")
-        if link_type.lower() == "attachedtemplate":
+        if link_type == "attachedtemplate":
             heuristic.add_attack_id("T1221")
-        if hostname_type == "network.static.ip" and link_type.lower() != "hyperlink":
+        if hostname_type == "network.static.ip" and link_type != "hyperlink":
             heuristic.add_signature_id("external_link_ip")
         filename = os.path.basename(urlsplit(url).path)
         path_extension = os.path.splitext(filename)[1].encode().lower()
