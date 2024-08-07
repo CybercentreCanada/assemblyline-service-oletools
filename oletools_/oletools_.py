@@ -206,19 +206,19 @@ class Oletools(ServiceBase):
         b".wsh",
     }
     # Safelists
-    TAG_SAFELIST = [b"management", b"manager", b"microsoft.com"]
+    TAG_SAFELIST = ["management", "manager", "microsoft.com"]
     # substrings of URIs to ignore
     URI_SAFELIST = [
-        b"http://purl.org/",
-        b"http://xml.org/",
-        b".openxmlformats.org",
-        b".oasis-open.org",
-        b".xmlsoap.org",
-        b".microsoft.com",
-        b".w3.org",
-        b".gc.ca",
-        b".mil.ca",
-        b"dublincore.org",
+        "http://purl.org/",
+        "http://xml.org/",
+        ".openxmlformats.org",
+        ".oasis-open.org",
+        ".xmlsoap.org",
+        ".microsoft.com",
+        ".w3.org",
+        ".gc.ca",
+        ".mil.ca",
+        "dublincore.org",
     ]
     # substrings at end of IoC to ignore (tuple to be compatible with .endswith())
     PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL", b"VBE7.DLL")
@@ -226,13 +226,11 @@ class Oletools(ServiceBase):
     BLACKLIST_IGNORE = {b"connect", b"protect", b"background", b"enterprise", b"account", b"waiting", b"request"}
 
     # Bytes Regex's
-    DOMAIN_RE = rb"^(?:(?:[a-zA-Z0-9-]+)\.)+[a-zA-Z]{2,5}"
     IP_RE = rb"^((?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9]))"
     EXTERNAL_LINK_RE = (
         rb'(?s)[Tt]ype="[^"]{1,512}/([^"/]+)"[^>]{1,512}[Tt]arget="((?!file)[^"]+)"[^>]{1,512}'
         rb'[Tt]argetMode="External"'
     )
-    BASE64_RE = b"([\x20]{0,2}(?:[A-Za-z0-9+/]{10,}={0,2}[\r]?[\n]?){2,})"
     JAVASCRIPT_RE = rb'(?s)script.{1,512}("JScript"|javascript)'
     EXCEL_BIN_RE = rb"(sheet|printerSettings|queryTable|binaryIndex|table)\d{1,12}\.bin"
     VBS_HEX_RE = rb"(?:&H[A-Fa-f0-9]{2}&H[A-Fa-f0-9]{2}){32,}"
@@ -295,14 +293,10 @@ class Oletools(ServiceBase):
         self.macro_score_max_size: Optional[int] = self.config.get("macro_score_max_file_size", None)
         self.macro_score_min_alert = self.config.get("macro_score_min_alert", 0.6)
         self.metadata_size_to_extract = self.config.get("metadata_size_to_extract", 500)
-        self.ioc_pattern_safelist = [
-            string.encode("utf-8", errors="ignore") for string in self.config.get("ioc_pattern_safelist", [])
-        ]
-        self.ioc_exact_safelist = [
-            string.encode("utf-8", errors="ignore") for string in self.config.get("ioc_exact_safelist", [])
-        ]
-        self.pat_safelist: List[bytes] = self.URI_SAFELIST
-        self.tag_safelist: List[bytes] = self.TAG_SAFELIST
+        self.ioc_pattern_safelist: list[str] = self.config.get("ioc_pattern_safelist", [])
+        self.ioc_exact_safelist: list[str] = [string.lower() for string in self.config.get("ioc_exact_safelist", [])]
+        self.pat_safelist = self.URI_SAFELIST
+        self.tag_safelist = self.TAG_SAFELIST
 
         self.patterns = PatternMatch()
         self.macros: List[str] = []
@@ -392,7 +386,11 @@ class Oletools(ServiceBase):
         self.regex_safelist = safelist.get("regex", {})
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
-        return is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
+        return (
+            any(string in tag for string in self.pat_safelist)
+            or tag.lower() in self.tag_safelist
+            or is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
+        )
 
     def get_tool_version(self) -> str:
         """Returns the version of oletools used by the service."""
@@ -2025,13 +2023,7 @@ class Oletools(ServiceBase):
         patterns_found = self.patterns.ioc_match(data, bogon_ip=True)
         for tag_type, iocs in patterns_found.items():
             for ioc in iocs:
-                if (
-                    any(string in ioc for string in self.pat_safelist)
-                    or ioc.endswith(self.PAT_ENDS)
-                    or ioc.lower() in self.tag_safelist
-                ):
-                    continue
-                if self.is_safelisted(tag_type, safe_str(ioc)):
+                if ioc.endswith(self.PAT_ENDS) or self.is_safelisted(tag_type, safe_str(ioc)):
                     continue
                 # Skip .bin files that are common in normal excel files
                 if not include_fpos and tag_type == "file.name.extracted" and re.match(self.EXCEL_BIN_RE, ioc):
@@ -2180,11 +2172,7 @@ class Oletools(ServiceBase):
         if not url.scheme or not url.hostname or not re.match("(?i)[a-z0-9.-]+", url.hostname):
             return "", "", ""
 
-        if (
-            any(pattern in decoded.encode() for pattern in self.pat_safelist)
-            or decoded.encode() in self.tag_safelist
-            or self.is_safelisted("network.static.uri", decoded)
-        ):
+        if self.is_safelisted("network.static.uri", decoded):
             return "", "", ""
 
         if ":" in url.path:
@@ -2217,6 +2205,7 @@ class Oletools(ServiceBase):
         """
         heuristic = Heuristic(1)
         safe_link: str = safe_str(link)
+        link_type = link_type.lower()
         unescaped = unquote(safe_link).strip()
         if unescaped.startswith("mshta"):
             heuristic.add_attack_id("T1218.005")
@@ -2239,7 +2228,7 @@ class Oletools(ServiceBase):
         if "SyncAppvPublishingServer.vbs" in unescaped:
             heuristic.add_attack_id("T1216")
             heuristic.add_signature_id("embedded_powershell")
-            heuristic.add_signature_id(link_type.lower())
+            heuristic.add_signature_id(link_type)
             powershell = unescaped.split("SyncAppvPublishingServer.vbs", 1)[-1].encode()
             self._extract_file(powershell, ".ps1", "powershell hidden in hyperlink external relationship")
             return heuristic, {}
@@ -2259,27 +2248,29 @@ class Oletools(ServiceBase):
         if not hostname:
             # Not a valid link
             return heuristic, {}
-        if link_type.lower() == "oleobject" and ".sharepoint." in hostname:
-            heuristic.add_signature_id("oleobject", score=0)  # Don't score oleobject links to sharepoint servers
-        else:
-            heuristic.add_signature_id(link_type.lower())
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
-        if url.endswith("!") and link_type.lower() == "oleobject":
+        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
+        if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
+            # Don't score oleobject links to sharepoint servers
+            # or links with a safelisted url, domain, or ip.
+            heuristic.add_signature_id(link_type, score=0)
+        else:
+            heuristic.add_signature_id(link_type)
+        if url.endswith("!") and link_type == "oleobject":
             tags["network.static.uri"].append(url[:-1])
             tags["attribution.exploit"] = ["CVE-2022-30190"]
             heuristic.add_signature_id("msdt_exploit")
         if "../" in url:
             heuristic.add_signature_id("relative_path")
-        if link_type.lower() == "attachedtemplate":
+        if link_type == "attachedtemplate":
             heuristic.add_attack_id("T1221")
-        if hostname_type == "network.static.ip" and link_type.lower() != "hyperlink":
+        if hostname_type == "network.static.ip" and link_type != "hyperlink":
             heuristic.add_signature_id("external_link_ip")
         filename = os.path.basename(urlsplit(url).path)
         path_extension = os.path.splitext(filename)[1].encode().lower()
         if (
             path_extension != b".com"
             and path_extension in self.EXECUTABLE_EXTENSIONS
-            and filename.encode() not in self.tag_safelist
             and not self.is_safelisted("file.name.extracted", filename)
         ):
             heuristic.add_signature_id("link_to_executable")
