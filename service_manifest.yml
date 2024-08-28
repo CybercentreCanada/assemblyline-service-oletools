@@ -236,7 +236,7 @@ heuristics:
   - heur_id: 30
     name: Suspicious strings or functions
     score: 50
-    max_score: 300
+    max_score: 100
     signature_score_map:
       base64_strings: 0
       call: 0
