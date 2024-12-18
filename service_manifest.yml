@@ -369,6 +369,14 @@ heuristics:
     filetype: ".*"
     description: CLSID that has been flagged as malicious
 
+  - heur_id: 53
+    name: Prepended ZIP Content
+    score: 250
+    filetype: ".*"
+    description: File data before the start of the document's .ZIP archive.
+    signature_score_map:
+      zip_concatenation: 500
+
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1
