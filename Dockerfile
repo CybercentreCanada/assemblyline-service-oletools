@@ -1,29 +1,36 @@
 ARG branch=latest
 FROM cccs/assemblyline-v4-service-base:$branch
 
+# Python path to the service class from your service directory
 ENV SERVICE_PATH oletools_.oletools_.Oletools
 
+# Install apt dependencies
 USER root
-
-# Get required apt packages
-RUN apt-get update && apt-get install -y default-libmysqlclient-dev wget && rm -rf /var/lib/apt/lists/*
+COPY pkglist.txt /tmp/setup/
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    $(grep -vE "^\s*(#|$)" /tmp/setup/pkglist.txt | tr "\n" " ") && \
+    rm -rf /tmp/setup/pkglist.txt /var/lib/apt/lists/*
 
 # (Beta) Temporary until integrated into official oletools lib
 RUN wget -O /opt/al_service/onedump.py https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
 
-# Switch to assemblyline user
-USER assemblyline
-
 # Install python dependencies
+USER assemblyline
 COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --user --requirement requirements.txt && rm -rf ~/.cache/pip
+RUN pip install \
+    --no-cache-dir \
+    --user \
+    --requirement requirements.txt && \
+    rm -rf ~/.cache/pip
 
-# Copy Oletools service code
+# Copy service code
 WORKDIR /opt/al_service
 COPY . .
 
 # Patch version in manifest
-ARG version=4.0.0.dev1
+ARG version=1.0.0.dev1
 USER root
 RUN sed -i -e "s/\$SERVICE_TAG/$version/g" service_manifest.yml
 
