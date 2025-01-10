@@ -110,9 +110,7 @@ Ce service Assemblyline extrait des métadonnées et des informations sur le ré
 
 - MACRO_SCORE_MAX_FILE_SIZE : Une section de macros ne sera pas signalée dans les résultats si sa taille est supérieure à cette valeur.
 (Valeur par défaut : 5 * 1024**2)
-- MACRO_SCORE_MIN_ALERT : Chains.json contient des trigraphes anglais courants. Nous évaluons les macros en fonction de la fréquence d'apparition de ces trigraphes dans le code.
-dans le code, en ignorant certains mots-clés courants. Un score inférieur à cette valeur de configuration indique un texte plus aléatoire,
-et les noms de variables/fonctions aléatoires sont fréquents dans les macros malveillantes. (Valeur par défaut : 0.6)
+- MACRO_SCORE_MIN_ALERT : Chains.json contient des trigraphes anglais courants. Nous évaluons les macros en fonction de la fréquence d'apparition de ces trigraphes dans le code, en ignorant certains mots-clés courants. Un score inférieur à cette valeur indique un texte plus aléatoire, et les noms de variables/fonctions aléatoires sont fréquents dans les macros malveillantes. (Valeur par défaut : 0.6)
 - METADATA_SIZE_TO_EXTRACT : Si les métadonnées OLE dépassent cette taille (en octets), le service extrait le contenu des métadonnées dans un nouveau fichier (valeur par défaut : 500).
 - IOC_PATTERN_SAFELIST : Si un IOC contient l'une des chaînes de la liste, Oletools l'ignorera à moins d'être en mode d'analyse approfondie. (Valeur par défaut : [])
 - IOC_EXACT_SAFELIST : Si un IOC est l'une des chaînes de la liste, Oletools l'ignorera à moins qu'il ne soit en mode d'analyse approfondie. (Valeur par défaut : [])
@@ -153,7 +151,6 @@ Le service Oletools signale les informations suivantes pour chaque fichier lorsq
 4. Liens DDE MSO (AL TAG : file.ole.dde_link)
 
 5. Possibilité d'utilisation de VBA. Déterminé lorsqu'il existe une différence de contenu suspect entre le dump macro et le dump pcode.
-macro et le dump pcode.
 
 6. Le service extrait :
     * Tout le contenu des macros.
