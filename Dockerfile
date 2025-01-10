@@ -13,9 +13,6 @@ RUN apt-get update && \
     $(grep -vE "^\s*(#|$)" /tmp/setup/pkglist.txt | tr "\n" " ") && \
     rm -rf /tmp/setup/pkglist.txt /var/lib/apt/lists/*
 
-# (Beta) Temporary until integrated into official oletools lib
-RUN wget -O /opt/al_service/onedump.py https://raw.githubusercontent.com/DidierStevens/Beta/963ba003c7326a83130ee070796866deab55d882/onedump.py
-
 # Install python dependencies
 USER assemblyline
 COPY requirements.txt requirements.txt
