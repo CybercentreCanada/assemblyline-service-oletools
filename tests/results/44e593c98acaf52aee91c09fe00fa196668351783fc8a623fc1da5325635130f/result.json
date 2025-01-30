@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 369,
+    "score": 519,
     "sections": [
       {
         "auto_collapse": false,
@@ -278,7 +278,7 @@
           "attack_ids": [],
           "frequency": 0,
           "heur_id": 30,
-          "score": 200,
+          "score": 100,
           "score_map": {},
           "signatures": {
             "createobject": 1,
@@ -292,11 +292,35 @@
         "tags": {},
         "title_text": "Suspicious strings or functions",
         "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "14806 bytes of data before the start of the .ZIP archive, see extracted file [c7bd599a_prepended_content].\n22504 bytes of data appended after the .ZIP archive, see extracted file [3c0e0a63_appended_content].",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 53,
+          "score": 250,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Document's .ZIP archive is malformed",
+        "zeroize_on_tag_safe": false
       }
     ]
   },
   "files": {
     "extracted": [
+      {
+        "name": "3c0e0a63_appended_content",
+        "sha256": "3c0e0a63492d1b4914596d9d57f5853637a00e817b655efa72c4af6ab63c8c08"
+      },
       {
         "name": "87c77696_all_vba.data",
         "sha256": "87c77696e24355acd2e78f0903fbd128f020da3565bcc985c7334bf72615d671"
@@ -304,6 +328,10 @@
       {
         "name": "c2862d36_all_pcode.data",
         "sha256": "c2862d36adb2e069e5322df2daf02558b87ad91fbbe53b4bef280bdc16d65dff"
+      },
+      {
+        "name": "c7bd599a_prepended_content",
+        "sha256": "c7bd599ac1acc2ce1866d2cfa34755234b5abfbb6970a9d3d9351289c4c9a211"
       },
       {
         "name": "db2824b1.ole_stream",
@@ -351,6 +379,11 @@
         "signatures": [
           "VBA Macros"
         ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 53,
+        "signatures": []
       }
     ],
     "tags": {

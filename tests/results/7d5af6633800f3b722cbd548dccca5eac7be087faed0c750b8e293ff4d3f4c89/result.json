@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 466,
+    "score": 266,
     "sections": [
       {
         "auto_collapse": false,
@@ -221,7 +221,7 @@
           "attack_ids": [],
           "frequency": 0,
           "heur_id": 30,
-          "score": 300,
+          "score": 100,
           "score_map": {},
           "signatures": {
             "adodb.stream": 1,

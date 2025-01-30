@@ -1,4 +1,6 @@
-assemblyline-service-utilities
+assemblyline
+assemblyline-v4-service
+assemblyline-service-utilities >=4.5.1, <4.6
 hachoir
 lxml
 pcodedmp

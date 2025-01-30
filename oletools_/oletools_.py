@@ -38,15 +38,16 @@ from assemblyline.common.str_utils import safe_str
 from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatch
 from assemblyline_service_utilities.common.extractor.base64 import find_base64
 from assemblyline_service_utilities.common.extractor.pe_file import find_pe_files
+from assemblyline_service_utilities.common.malformed_zip import zip_span
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
+
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
-
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
@@ -421,23 +422,6 @@ class Oletools(ServiceBase):
         result = request.result
         is_installer = request.task.file_type == "document/installer/windows"
 
-        if request.file_type == "document/office/onenote":
-            num_files = 0
-            with tempfile.NamedTemporaryFile() as output:
-                subprocess.run(["python", "onedump.py", "-o", output.name, request.file_path])
-                output.flush()
-                num_files = len(output.readlines())
-
-            for file_no in range(1, num_files):
-                with tempfile.NamedTemporaryFile(delete=False) as ext_file:
-                    subprocess.run(
-                        ["python", "onedump.py", "-s", str(file_no), "-d", "-o", ext_file.name, request.file_path]
-                    )
-                    ext_file.flush()
-                    request.add_extracted(
-                        ext_file.name, f"{request.file_name}_embedded_content_{file_no}", "Embedded OneNote file"
-                    )
-
         try:
             _add_section(result, self._check_for_indicators(path))
             _add_section(result, self._check_for_dde_links(path))
@@ -448,7 +432,9 @@ class Oletools(ServiceBase):
                 _add_section(result, self._extract_rtf(file_contents))
             _add_section(result, self._check_for_macros(path, request.sha256))
             _add_section(result, self._create_macro_sections(request.sha256))
-            self._check_xml_strings(path, result, request.deep_scan)
+            if zipfile.is_zipfile(path):
+                _add_section(result, self._check_zip(path))
+                self._check_xml_strings(path, result, request.deep_scan)
             self._odf_with_macros(request)
         except Exception:
             self.log.error(
@@ -1211,6 +1197,16 @@ class Oletools(ServiceBase):
         if rtf_template_res:
             _add_subsection(streams_res, rtf_template_res)
 
+        if b"\\objupdate" in file_contents:
+            streams_res.add_subsection(
+                ResultSection(
+                    "RTF Object Update",
+                    "RTF Object uses \\objectupdate to update before being displayed."
+                    " This can be used maliciously to load an object without user interaction.",
+                    heuristic=Heuristic(54),
+                )
+            )
+
         sep = "-----------------------------------------"
         embedded = []
         linked = []
@@ -1840,8 +1836,6 @@ class Oletools(ServiceBase):
         # noinspection PyBroadException
         try:
             xml_extracted = set()
-            if not zipfile.is_zipfile(path):
-                return  # Not an Open XML format file
             with zipfile.ZipFile(path) as z:
                 _add_section(result, self._process_ooxml_properties(z))
                 for f in z.namelist():
@@ -1979,9 +1973,64 @@ class Oletools(ServiceBase):
             and relationship.attrib["TargetMode"] == "External"
         ]
 
+    def _check_zip(self, file_path: str) -> ResultSection | None:
+        malformed_section = ResultSection("Document's .ZIP archive is malformed")
+        with open(file_path, "rb") as zipf:
+            span = zip_span(zipf)
+            if span is None:
+                return None
+            start, end = span
+            if start > 0:
+                heuristic = Heuristic(53)
+                try:
+                    zipf.seek(0)
+                    start_data = zipf.read(start)
+                except OSError as e:
+                    self.log.error(f"Error reading prepended zip content: {e}")
+                else:
+                    extracted_path = self._extract_file(
+                        start_data, "_prepended_content", "Data prepended to the .ZIP archive"
+                    )
+                    if extracted_path:
+                        malformed_section.add_line(
+                            f"{start} bytes of data before the start of the .ZIP archive, "
+                            f"see extracted file [{os.path.basename(extracted_path)}]."
+                        )
+                        if zipfile.is_zipfile(extracted_path):
+                            heuristic.add_signature_id("zip_contatenation")
+                    else:
+                        malformed_section.add_line(f"{start} bytes of data before the start of the .ZIP archive.")
+                    malformed_section.set_heuristic(heuristic)
+            elif start < 0:
+                malformed_section.add_line(
+                    f".ZIP archive missing data: {-start} bytes missing from the start of the archive."
+                )
+            file_end = zipf.seek(0, 2)
+            if end < file_end:
+                try:
+                    zipf.seek(end)
+                    end_data = zipf.read()
+                except OSError as e:
+                    self.log.error(f"Error reading appended zip content: {e}")
+                else:
+                    append_name = "_appended_content"
+                    extracted_path = self._extract_file(end_data, append_name, "Data appended after the .ZIP archive")
+                    if extracted_path:
+                        malformed_section.add_line(
+                            f"{file_end - end} bytes of data appended after the .ZIP archive, "
+                            f"see extracted file [{os.path.basename(extracted_path)}]."
+                        )
+                    else:
+                        malformed_section.add_line(f"{file_end - end} bytes of data appended after the .ZIP archive.")
+            elif end > file_end:
+                malformed_section.add_line(
+                    f".ZIP archive is truncated: {end - file_end} bytes missing from the end of the archive."
+                )
+        return malformed_section if malformed_section.body else None
+
     # -- Helper methods --
 
-    def _extract_file(self, data: bytes, file_name: str, description: str) -> None:
+    def _extract_file(self, data: bytes, file_name: str, description: str) -> str | None:
         """Adds data as an extracted file.
 
         Checks that there the service hasn't hit the extraction limit before extracting.
@@ -2003,8 +2052,10 @@ class Oletools(ServiceBase):
                 self.log.debug(f"Skipping extracting {file_name} because it's type is unknown")
             else:
                 self._extracted_files[file_name] = description
+                return file_path
         except Exception:
             self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
+        return None
 
     def _check_for_patterns(self, data: bytes, include_fpos: bool = False) -> Tuple[Mapping[str, Set[bytes]], bool]:
         """Use FrankenStrings module to find strings of interest.
