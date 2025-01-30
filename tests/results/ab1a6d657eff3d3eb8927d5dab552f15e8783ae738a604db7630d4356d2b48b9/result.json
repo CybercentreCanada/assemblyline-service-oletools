@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 1010,
+    "score": 1510,
     "sections": [
       {
         "auto_collapse": false,
@@ -45,6 +45,26 @@
       },
       {
         "auto_collapse": false,
+        "body": "RTF Object uses \\objectupdate to update before being displayed. This can be used maliciously to load an object without user interaction.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 54,
+          "score": 500,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "RTF Object Update",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
         "body": "0x8b is not a well-formed OLE object\nMalicious Properties found: Data of malformed OLE object over 5000 bytes",
         "body_config": {},
         "body_format": "MEMORY_DUMP",
@@ -84,6 +104,11 @@
       {
         "attack_ids": [],
         "heur_id": 34,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 54,
         "signatures": []
       }
     ],
