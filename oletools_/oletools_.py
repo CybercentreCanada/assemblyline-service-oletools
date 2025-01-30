@@ -44,10 +44,10 @@ from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
-from oletools.common import clsid
-from oletools.thirdparty.xxxswf import xxxswf
 
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
+from oletools.common import clsid
+from oletools.thirdparty.xxxswf import xxxswf
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
@@ -1196,6 +1196,16 @@ class Oletools(ServiceBase):
         streams_res = ResultSection("RTF objects")
         if rtf_template_res:
             _add_subsection(streams_res, rtf_template_res)
+
+        if b"\\objupdate" in file_contents:
+            streams_res.add_subsection(
+                ResultSection(
+                    "RTF Object Update",
+                    "RTF Object uses \\objectupdate to update before being displayed."
+                    " This can be used maliciously to load an object without user interaction.",
+                    heuristic=Heuristic(54),
+                )
+            )
 
         sep = "-----------------------------------------"
         embedded = []
