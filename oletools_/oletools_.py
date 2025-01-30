@@ -1201,7 +1201,7 @@ class Oletools(ServiceBase):
             streams_res.add_subsection(
                 ResultSection(
                     "RTF Object Update",
-                    "RTF Object uses \\objectupdate to update before being displayed."
+                    "RTF Object uses \\objupdate to update before being displayed."
                     " This can be used maliciously to load an object without user interaction.",
                     heuristic=Heuristic(54),
                 )

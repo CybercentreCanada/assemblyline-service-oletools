@@ -383,7 +383,7 @@ heuristics:
     # TODO: Evaluate fpos rate
     score: 500
     filetype: "document/office/rtf"
-    description: "RTF Object uses \\objectupdate to load without user interaction."
+    description: "RTF Object uses \\objupdate to load without user interaction."
 
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
