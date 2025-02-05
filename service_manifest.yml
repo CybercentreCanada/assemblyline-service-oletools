@@ -366,7 +366,7 @@ heuristics:
 
   - heur_id: 52
     name: Known malicious CLSID
-    score: 500
+    score: 250
     filetype: ".*"
     description: CLSID that has been flagged as malicious
 

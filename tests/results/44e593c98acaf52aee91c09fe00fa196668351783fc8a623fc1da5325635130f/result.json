@@ -194,26 +194,6 @@
       },
       {
         "auto_collapse": false,
-        "body": null,
-        "body_config": {},
-        "body_format": "TEXT",
-        "classification": "TLP:C",
-        "depth": 0,
-        "heuristic": {
-          "attack_ids": [],
-          "frequency": 1,
-          "heur_id": 2,
-          "score": 0,
-          "score_map": {},
-          "signatures": {}
-        },
-        "promote_to": null,
-        "tags": {},
-        "title_text": "Embedded OLE files",
-        "zeroize_on_tag_safe": false
-      },
-      {
-        "auto_collapse": false,
         "body": "Macro may be packed or obfuscated.",
         "body_config": {},
         "body_format": "TEXT",
@@ -342,11 +322,6 @@
   },
   "results": {
     "heuristics": [
-      {
-        "attack_ids": [],
-        "heur_id": 2,
-        "signatures": []
-      },
       {
         "attack_ids": [],
         "heur_id": 9,

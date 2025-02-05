@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 517,
+    "score": 267,
     "sections": [
       {
         "auto_collapse": false,
@@ -86,7 +86,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 52,
-          "score": 500,
+          "score": 250,
           "score_map": {},
           "signatures": {}
         },
@@ -221,6 +221,10 @@
   },
   "files": {
     "extracted": [
+      {
+        "name": "f0df4a7b.Uwo2WUa",
+        "sha256": "f0df4a7be1537174c64a7701d63de965f663dd0df70a4351499d3202ecf9b49d"
+      },
       {
         "name": "f0df4a7b.xml",
         "sha256": "f0df4a7be1537174c64a7701d63de965f663dd0df70a4351499d3202ecf9b49d"
