@@ -642,14 +642,18 @@ class Oletools(ServiceBase):
 
             # Streams in ole files embedded in submitted ODF file
             subdoc_res = ResultSection("Embedded OLE files")
-            if ole_res is not None:  # File is both OLE and ODF
-                subdoc_res.set_heuristic(2)
             with zipfile.ZipFile(file_name) as z:
                 for f_name in z.namelist():
                     with z.open(f_name) as f:
-                        _add_subsection(subdoc_res, self._process_ole_file(f_name, f, extract_all, is_installer))
+                        subdoc_section = self._process_ole_file(f_name, f, extract_all, is_installer)
+                        if subdoc_section:
+                            subdoc_res.add_subsection(subdoc_section)
+                            f.seek(0)
+                            self._extract_file(f.read(), os.path.splitext(f_name)[1], f"Embedded OLE File {f_name}")
 
-            if subdoc_res.heuristic or subdoc_res.subsections:
+            if subdoc_res.subsections:
+                if ole_res is not None:  # OLE subdocuments in theme data zip
+                    subdoc_res.set_heuristic(2)
                 result.add_section(subdoc_res)
         except Exception:
             self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")

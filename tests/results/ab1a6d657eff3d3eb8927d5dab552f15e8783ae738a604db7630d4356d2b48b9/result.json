@@ -45,7 +45,7 @@
       },
       {
         "auto_collapse": false,
-        "body": "RTF Object uses \\objectupdate to update before being displayed. This can be used maliciously to load an object without user interaction.",
+        "body": "RTF Object uses \\objupdate to update before being displayed. This can be used maliciously to load an object without user interaction.",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
