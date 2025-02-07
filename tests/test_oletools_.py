@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
+
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools_.oletools_ import Oletools, Tags
 
@@ -129,6 +130,16 @@ def test_parse_uri(uri, output):
                     "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO"
                     "0000000000LLLLL00000000000OOOLLLLLLL@134744072/x......xx.......doc"
                 ],
+            },
+        ),
+        # Percent encoded UNC path
+        (
+            "externalLinkPath",
+            R"file:///\\domain.com\path\percent%20encoded%20file.xlsx",
+            Heuristic(1, signatures={"externallinkpath": 1, "unc_path": 1}),
+            {
+                "network.static.domain": ["domain.com"],
+                "network.static.uri": ["file://domain.com/path/percent%20encoded%20file.xlsx"],
             },
         ),
     ],
