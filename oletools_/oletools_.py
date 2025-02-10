@@ -2305,12 +2305,11 @@ class Oletools(ServiceBase):
             return heuristic, {}
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
         safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
+        heuristic.add_signature_id(link_type)
         if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
             # Don't score oleobject links to sharepoint servers
             # or links with a safelisted url, domain, or ip.
-            heuristic.add_signature_id(link_type, score=0)
-        else:
-            heuristic.add_signature_id(link_type)
+            heuristic.score_map.update({link_type: 0, "unc_path": 0, "external_link_ip": 0})
         if url.endswith("!") and link_type == "oleobject":
             tags["network.static.uri"].append(url[:-1])
             tags["attribution.exploit"] = ["CVE-2022-30190"]
