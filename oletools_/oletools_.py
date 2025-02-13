@@ -2294,11 +2294,11 @@ class Oletools(ServiceBase):
             safe_link = safe_link.rsplit("!x-usc:")[-1]
             # Strip the mhtml path
             safe_link = safe_link.rsplit("!", 1)[0]
-        if unescaped.startswith(R"file:///\\"):
+        if safe_link.startswith(R"file:///\\"):
             # UNC file path
             heuristic.add_signature_id("unc_path")
             # Convert to normal file uri
-            safe_link = PureWindowsPath(unescaped[8:].split()[0]).as_uri()
+            safe_link = PureWindowsPath(unquote(safe_link[8:].split()[0])).as_uri()
         url, hostname_type, hostname = self.parse_uri(safe_link)
         if not hostname:
             # Not a valid link
