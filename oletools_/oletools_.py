@@ -1773,14 +1773,16 @@ class Oletools(ServiceBase):
                     uri, tag_type, tag = self.parse_uri(description)
                     if uri:
                         network.add(f"{keyword}: {uri}")
-                        network_section.heuristic.increment_frequency()
+                        if not self.is_safelisted("network.static.uri", uri) and not self.is_safelisted(tag_type, tag):
+                            network_section.heuristic.increment_frequency()
                         network_section.add_tag("network.static.uri", uri)
                         if tag and tag_type:
                             network_section.add_tag(tag_type, tag)
                     elif desc_ip:
                         ip_str = safe_str(desc_ip.group(1))
                         if not is_ip_reserved(ip_str):
-                            network_section.heuristic.increment_frequency()
+                            if not self.is_safelisted("network.static.ip", ip_str):
+                                network_section.heuristic.increment_frequency()
                             network_section.add_tag("network.static.ip", ip_str)
                     else:
                         network.add(f"{keyword}: {safe_str(description)}")
@@ -2229,9 +2231,6 @@ class Oletools(ServiceBase):
             else:
                 raise e
         if not url.scheme or not url.hostname or not re.match("(?i)[a-z0-9.-]+", url.hostname):
-            return "", "", ""
-
-        if self.is_safelisted("network.static.uri", decoded):
             return "", "", ""
 
         if ":" in url.path:
