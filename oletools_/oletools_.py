@@ -16,8 +16,6 @@ import os
 import re
 import socket
 import struct
-import subprocess
-import tempfile
 import traceback
 import zipfile
 import zlib
@@ -31,7 +29,7 @@ from urllib.parse import unquote, urlsplit
 
 import magic
 import olefile
-from assemblyline.common.forge import get_identify
+from assemblyline.common.forge import get_identify, get_tag_safelist_data
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.net import is_valid_domain, is_valid_ip
 from assemblyline.common.str_utils import safe_str
@@ -39,6 +37,7 @@ from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatc
 from assemblyline_service_utilities.common.extractor.base64 import find_base64
 from assemblyline_service_utilities.common.extractor.pe_file import find_pe_files
 from assemblyline_service_utilities.common.malformed_zip import zip_span
+from assemblyline_v4_service.common.api import ServiceAPIError
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
@@ -373,8 +372,10 @@ class Oletools(ServiceBase):
             "loop",
         }
 
-        self.match_safelist: dict[str, list[str]] = {}
-        self.regex_safelist: dict[str, list[str]] = {}
+        # Use default safelist for testing and backup
+        safelist = get_tag_safelist_data()
+        self.match_safelist: dict[str, list[str]] = safelist.get("match", {})
+        self.regex_safelist: dict[str, list[str]] = safelist.get("regex", {})
 
     def start(self) -> None:
         """Initializes the service."""
@@ -382,9 +383,12 @@ class Oletools(ServiceBase):
         with gzip.open(chain_path) as f:
             self.word_chains = {k: set(v) for k, v in json.load(f).items()}
 
-        safelist = self.get_api_interface().get_safelist()
-        self.match_safelist = safelist.get("match", {})
-        self.regex_safelist = safelist.get("regex", {})
+        try:
+            safelist = self.get_api_interface().get_safelist()
+            self.match_safelist = safelist.get("match", {})
+            self.regex_safelist = safelist.get("regex", {})
+        except ServiceAPIError as e:
+            self.log.warning(f"Couldn't retrieve safelist from service: {e}. Continuing without it..")
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
         return (
