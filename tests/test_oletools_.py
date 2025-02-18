@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from assemblyline_v4_service.common.result import Heuristic
+
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools_.oletools_ import Oletools, Tags
 
@@ -51,7 +52,10 @@ def test_flag_macro():
         (b"file:///www.google.com", ("", "", "")),
         # file with authority
         (b"file://www.google.com", ("file://www.google.com", "network.static.domain", "www.google.com")),
-        (b"http://www.microsoft.com", ("", "", "")),  # test safelist
+        (
+            b"http://www.microsoft.com",
+            ("http://www.microsoft.com", "network.static.domain", "www.microsoft.com"),
+        ),  # we no longer safelist in parse_uri
         (b"http://google.com", ("http://google.com", "network.static.domain", "google.com")),
         (b"https://8.8.8.8", ("https://8.8.8.8", "network.static.ip", "8.8.8.8")),
     ],
@@ -131,6 +135,41 @@ def test_parse_uri(uri, output):
                 ],
             },
         ),
+        # Percent encoded UNC path
+        (
+            "externalLinkPath",
+            R"file:///\\domain.com\path\percent%20encoded%20file.xlsx",
+            Heuristic(1, signatures={"externallinkpath": 1, "unc_path": 1}),
+            {
+                "network.static.domain": ["domain.com"],
+                "network.static.uri": ["file://domain.com/path/percent%20encoded%20file.xlsx"],
+            },
+        ),
+        # whitelisted unc path
+        (
+            "externalLinkPath",
+            R"file:///\\10.0.0.1\path\file.xlsx",
+            Heuristic(
+                1,
+                signatures={"externallinkpath": 1, "unc_path": 1, "external_link_ip": 1},
+                score_map={"externallinkpath": 0, "unc_path": 0, "external_link_ip": 0},
+            ),
+            {"network.static.ip": ["10.0.0.1"], "network.static.uri": ["file://10.0.0.1/path/file.xlsx"]},
+        ),
+        # whitelisted hyperlink
+        (
+            "hyperlink",
+            "https://gcdocs.ps-sp.gc.ca/path/some_file",
+            Heuristic(
+                1,
+                signatures={"hyperlink": 1},
+                score_map={"hyperlink": 0, "unc_path": 0, "external_link_ip": 0},
+            ),
+            {
+                "network.static.domain": ["gcdocs.ps-sp.gc.ca"],
+                "network.static.uri": ["https://gcdocs.ps-sp.gc.ca/path/some_file"],
+            },
+        ),
     ],
 )
 def test_process_link(link_type: str, link: str | bytes, heuristic: Heuristic, tags: Tags):
@@ -138,6 +177,7 @@ def test_process_link(link_type: str, link: str | bytes, heuristic: Heuristic, t
     heur, _tags = ole._process_link(link_type, link)
     assert heur.signatures == heuristic.signatures
     assert heur.attack_ids == heuristic.attack_ids
+    assert heur.score_map == heuristic.score_map
     assert tags == _tags
 
 
