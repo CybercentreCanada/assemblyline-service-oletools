@@ -16,8 +16,6 @@ import os
 import re
 import socket
 import struct
-import subprocess
-import tempfile
 import traceback
 import zipfile
 import zlib
@@ -31,7 +29,7 @@ from urllib.parse import unquote, urlsplit
 
 import magic
 import olefile
-from assemblyline.common.forge import get_identify
+from assemblyline.common.forge import get_identify, get_tag_safelist_data
 from assemblyline.common.iprange import is_ip_reserved
 from assemblyline.common.net import is_valid_domain, is_valid_ip
 from assemblyline.common.str_utils import safe_str
@@ -39,6 +37,7 @@ from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatc
 from assemblyline_service_utilities.common.extractor.base64 import find_base64
 from assemblyline_service_utilities.common.extractor.pe_file import find_pe_files
 from assemblyline_service_utilities.common.malformed_zip import zip_span
+from assemblyline_v4_service.common.api import ServiceAPIError
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
@@ -373,8 +372,10 @@ class Oletools(ServiceBase):
             "loop",
         }
 
-        self.match_safelist: dict[str, list[str]] = {}
-        self.regex_safelist: dict[str, list[str]] = {}
+        # Use default safelist for testing and backup
+        safelist = get_tag_safelist_data()
+        self.match_safelist: dict[str, list[str]] = safelist.get("match", {})
+        self.regex_safelist: dict[str, list[str]] = safelist.get("regex", {})
 
     def start(self) -> None:
         """Initializes the service."""
@@ -382,9 +383,12 @@ class Oletools(ServiceBase):
         with gzip.open(chain_path) as f:
             self.word_chains = {k: set(v) for k, v in json.load(f).items()}
 
-        safelist = self.get_api_interface().get_safelist()
-        self.match_safelist = safelist.get("match", {})
-        self.regex_safelist = safelist.get("regex", {})
+        try:
+            safelist = self.get_api_interface().get_safelist()
+            self.match_safelist = safelist.get("match", {})
+            self.regex_safelist = safelist.get("regex", {})
+        except ServiceAPIError as e:
+            self.log.warning(f"Couldn't retrieve safelist from service: {e}. Continuing without it..")
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
         return (
@@ -1769,14 +1773,16 @@ class Oletools(ServiceBase):
                     uri, tag_type, tag = self.parse_uri(description)
                     if uri:
                         network.add(f"{keyword}: {uri}")
-                        network_section.heuristic.increment_frequency()
+                        if not self.is_safelisted("network.static.uri", uri) and not self.is_safelisted(tag_type, tag):
+                            network_section.heuristic.increment_frequency()
                         network_section.add_tag("network.static.uri", uri)
                         if tag and tag_type:
                             network_section.add_tag(tag_type, tag)
                     elif desc_ip:
                         ip_str = safe_str(desc_ip.group(1))
                         if not is_ip_reserved(ip_str):
-                            network_section.heuristic.increment_frequency()
+                            if not self.is_safelisted("network.static.ip", ip_str):
+                                network_section.heuristic.increment_frequency()
                             network_section.add_tag("network.static.ip", ip_str)
                     else:
                         network.add(f"{keyword}: {safe_str(description)}")
@@ -2227,9 +2233,6 @@ class Oletools(ServiceBase):
         if not url.scheme or not url.hostname or not re.match("(?i)[a-z0-9.-]+", url.hostname):
             return "", "", ""
 
-        if self.is_safelisted("network.static.uri", decoded):
-            return "", "", ""
-
         if ":" in url.path:
             url_text = url.scheme + "://" + url.netloc + url.path.split(":", 1)[0]
         else:
@@ -2305,12 +2308,11 @@ class Oletools(ServiceBase):
             return heuristic, {}
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
         safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
+        heuristic.add_signature_id(link_type)
         if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
             # Don't score oleobject links to sharepoint servers
             # or links with a safelisted url, domain, or ip.
-            heuristic.add_signature_id(link_type, score=0)
-        else:
-            heuristic.add_signature_id(link_type)
+            heuristic.score_map.update({link_type: 0, "unc_path": 0, "external_link_ip": 0})
         if url.endswith("!") and link_type == "oleobject":
             tags["network.static.uri"].append(url[:-1])
             tags["attribution.exploit"] = ["CVE-2022-30190"]
