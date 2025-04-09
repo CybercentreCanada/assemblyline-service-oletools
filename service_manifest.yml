@@ -372,7 +372,7 @@ heuristics:
 
   - heur_id: 53
     name: Prepended ZIP Content
-    score: 250
+    score: 0
     filetype: ".*"
     description: File data before the start of the document's .ZIP archive.
     signature_score_map:
