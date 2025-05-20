@@ -1,36 +1,31 @@
 name: tests
-
 variables:
-  - group: unittest-samples
-
-trigger: ["*"]
-pr: ["*"]
-
+- group: unittest-samples
+trigger:
+- '*'
+pr:
+- '*'
 pool:
-  vmImage: "ubuntu-20.04"
-
+  vmImage: ubuntu-latest
 resources:
   repositories:
-    - repository: PipelineTemplates
-      type: github
-      name: CybercentreCanada/assemblyline-pipeline-templates
-      ref: refs/heads/main
-      endpoint: github-repo-sa
-      trigger: none
-    - repository: unittest-samples
-      type: github
-      name: $(unittest_samples_repository)
-      ref: main
-      endpoint: github-repo-sa
-      trigger: none
-
+  - repository: PipelineTemplates
+    type: github
+    name: CybercentreCanada/assemblyline-pipeline-templates
+    ref: refs/heads/main
+    endpoint: github-repo-sa
+    trigger: none
+  - repository: unittest-samples
+    type: github
+    name: $(unittest_samples_repository)
+    ref: main
+    endpoint: github-repo-sa
+    trigger: none
 extends:
   template: stages/test-service.yaml@PipelineTemplates
   parameters:
     samples_repo: unittest-samples
-    test_container: "false"
+    test_container: 'false'
     python_versions:
-      - "3.9"
-      - "3.11"
-      # oletools.thirdparty.xxxswf uses imp which is depricated for importlib
-      #- "3.12"
+    - '3.9'
+    - '3.11'
