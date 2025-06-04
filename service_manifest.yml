@@ -385,6 +385,12 @@ heuristics:
     filetype: "document/office/rtf"
     description: "RTF Object uses \\objupdate to load without user interaction."
 
+  - heur_id: 55
+    name: Signed OLE Object
+    score: 0
+    filetype: ".*"
+    description: "The OLE object has a code-siging signature."
+
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
   cpu_cores: 1.0
