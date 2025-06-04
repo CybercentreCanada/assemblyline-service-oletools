@@ -709,13 +709,13 @@ class Oletools(ServiceBase):
         _add_subsection(streams_section, self._process_ole_alternate_metadata(ole_file))
         _add_subsection(streams_section, self._process_ole_clsid(ole))
 
-        # To be determined where the best place for this is
         if ole.exists("\x05DigitalSignature"):
             sig_section = ResultSection("Digital Signature")
             with ole.openstream("\x05DigitalSignature") as sig_stream:
                 signature = sig_stream.read()
                 _add_subsection(sig_section, self._process_authenticode(signature))
-
+        else:
+            sig_section = None
 
         decompress = ole.exists("\x05HwpSummaryInformation")
         decompress_macros: List[bytes] = []
