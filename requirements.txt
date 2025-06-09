@@ -6,3 +6,5 @@ lxml
 pcodedmp
 oletools
 signify @ https://github.com/Squiblydoo/signify/archive/master.tar.gz
+# https://github.com/wbond/oscrypto/issues/78
+oscrypto @ https://github.com/wbond/oscrypto/archive/master.tar.gz
