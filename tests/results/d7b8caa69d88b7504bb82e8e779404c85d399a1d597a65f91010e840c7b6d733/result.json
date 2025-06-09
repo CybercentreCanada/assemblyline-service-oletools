@@ -479,12 +479,20 @@
         "sha256": "88dd7ee9fa22ecdbdc6b3d47db83bc3d72360aeb43588e6a9a008b224389cb1c"
       },
       {
+        "name": "8da11ab6.ole_stream",
+        "sha256": "8da11ab6be046839fe9c8d544ba4a29b8a23163463dc6857d143f98d4f56850d"
+      },
+      {
         "name": "99d490c2.ole_stream",
         "sha256": "99d490c2bdef5115f306a595964663540370141f65a25c5052352155f2603f68"
       },
       {
         "name": "9ae4a96b.ole_stream",
         "sha256": "9ae4a96bf2a349667e844acc1e2ac4f89361a6182268438f4d063df3a6fc47bc"
+      },
+      {
+        "name": "bf4dfc88.ole_stream",
+        "sha256": "bf4dfc88616b6cad93fb7e48486caba7ef27fc6c3fa9d776afbc9c882e8bfa8d"
       },
       {
         "name": "e728f794.ole_stream",
