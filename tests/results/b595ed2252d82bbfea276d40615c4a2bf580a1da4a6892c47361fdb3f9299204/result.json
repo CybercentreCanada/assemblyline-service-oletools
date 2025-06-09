@@ -72,7 +72,16 @@
     ]
   },
   "files": {
-    "extracted": [],
+    "extracted": [
+      {
+        "name": "0d39b78d_object_0x26d0.raw",
+        "sha256": "0d39b78d6e96fb45a77bede6bb106fcec52b46e244e675331337d73b92da5993"
+      },
+      {
+        "name": "937f82be_object_0x3e56.raw",
+        "sha256": "937f82bed3da21d4e71541af749a5c63966910cc09c3260e0241b0f929cdf55d"
+      }
+    ],
     "supplementary": []
   },
   "results": {

@@ -771,6 +771,10 @@
         "sha256": "20b239b05bf2f5ee64bb8bc88260567b77fba0bc97a85a9ae0b95a35b0a160a9"
       },
       {
+        "name": "3364594e.ole_stream",
+        "sha256": "3364594ea8cad09e82b76d5dd609ebb2849150cc2b0a2844bc3f14b77e1b9316"
+      },
+      {
         "name": "426e6cf1.ole_stream",
         "sha256": "426e6cf199a8268e8a7763ec3a4dd7add982b28c51d89ebea90ca792cbae14dd"
       },
@@ -825,6 +829,10 @@
       {
         "name": "9ae4a96b.ole_stream",
         "sha256": "9ae4a96bf2a349667e844acc1e2ac4f89361a6182268438f4d063df3a6fc47bc"
+      },
+      {
+        "name": "baf4a62f.ole_stream",
+        "sha256": "baf4a62f7068a19c8eed62c971b486d2302de5b29ba11331e6db512b1a2ec31b"
       },
       {
         "name": "cfa7123b.ole_stream",
