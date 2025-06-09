@@ -5,3 +5,4 @@ hachoir
 lxml
 pcodedmp
 oletools
+signify @ https://github.com/Squiblydoo/signify/archive/master.tar.gz
