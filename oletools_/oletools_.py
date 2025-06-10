@@ -1033,7 +1033,7 @@ class Oletools(ServiceBase):
                 ) if signed_datas else None
 
         except Exception as e:
-            signed_datas = []
+            signed_datas = None
         return sig_section
 
     def _process_ole_metadata(self, meta: olefile.OleMetadata) -> Optional[ResultSection]:
