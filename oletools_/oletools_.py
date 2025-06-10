@@ -10,7 +10,6 @@ import binascii
 import email
 import gzip
 import hashlib
-from io import BytesIO
 import json
 import logging
 import os
@@ -22,10 +21,11 @@ import zipfile
 import zlib
 from collections import defaultdict
 from datetime import datetime
+from io import BytesIO
 from ipaddress import AddressValueError, IPv4Address
 from itertools import chain, groupby
 from pathlib import PureWindowsPath
-from typing import IO, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union, Any
+from typing import IO, Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlsplit
 
 import magic
@@ -44,23 +44,15 @@ from assemblyline_v4_service.common.request import ServiceRequest
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
+from signify.authenticode import AuthenticodeSignedData, AuthenticodeSignerInfo, RawCertificateFile, RFC3161SignedData
+from signify.pkcs7 import SignedData, SignerInfo
+from signify.x509 import Certificate
 
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
-
-from signify.authenticode import (
-    RawCertificateFile,
-    AuthenticodeSignedData,
-    AuthenticodeSignerInfo,
-    RFC3161SignedData,
-)
-from signify.pkcs7 import SignerInfo, SignedData
-from signify.x509 import Certificate
-
-
 
 AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
 
@@ -108,6 +100,7 @@ def is_safelisted(
         tag, safelist_regexes.get(tag_type, [])
     )
 
+
 def format_certificate(cert: Certificate) -> dict:
     return {
         "subject": cert.subject.dn,
@@ -116,7 +109,6 @@ def format_certificate(cert: Certificate) -> dict:
         "valid_from": str(cert.valid_from),
         "valid_to": str(cert.valid_to),
     }
-
 
 
 class Oletools(ServiceBase):
@@ -883,7 +875,7 @@ class Oletools(ServiceBase):
         return {name: [value.native for value in values]}
 
     def describe_signer_info(self, signer_info: SignerInfo) -> dict:
-        result = {
+        result: dict[str, Any] = {
             "issuer": signer_info.issuer.dn,
             "serial": str(signer_info.serial_number),
             "digest_algorithm": signer_info.digest_algorithm.__name__,
@@ -893,13 +885,11 @@ class Oletools(ServiceBase):
 
         if signer_info.authenticated_attributes:
             result["authenticated_attributes"] = [
-                self.describe_attribute(*attribute)
-                for attribute in signer_info.authenticated_attributes.items()
+                self.describe_attribute(*attribute) for attribute in signer_info.authenticated_attributes.items()
             ]
         if signer_info.unauthenticated_attributes:
             result["unauthenticated_attributes"] = [
-                self.describe_attribute(*attribute)
-                for attribute in signer_info.unauthenticated_attributes.items()
+                self.describe_attribute(*attribute) for attribute in signer_info.unauthenticated_attributes.items()
             ]
 
         if isinstance(signer_info, AuthenticodeSignerInfo):
@@ -910,17 +900,21 @@ class Oletools(ServiceBase):
             }
 
         if signer_info.countersigner:
-            if hasattr(signer_info.countersigner, "issuer"):
+            # SignerInfo.countersigner's type is a lie,
+            # Subclass AuthenticodeSignerInfo's countersigner can be RFC3161SignedData
+            # https://github.com/ralphje/signify/blob/42975a08d8738a9d107fda2b239288d0948f87e0/signify/authenticode/structures.py#L813
+            countersigner: SignerInfo | RFC3161SignedData = signer_info.countersigner
+            if isinstance(countersigner, SignerInfo):
                 result["countersigner"] = {
                     "signing_time": getattr(signer_info.countersigner, "signing_time", None),
                     "info": self.describe_signer_info(signer_info.countersigner),
                 }
-            if hasattr(signer_info.countersigner, "signer_info"):
+            if isinstance(signer_info.countersigner, RFC3161SignedData):
                 result["countersigner_nested_rfc3161"] = self.describe_signed_data(signer_info.countersigner)
 
         return result
 
-    def describe_signed_data(self, signed_data: SignedData) -> dict:
+    def describe_signed_data(self, signed_data: SignedData) -> dict[str, Any]:
         result = {
             "certificates": [format_certificate(cert) for cert in signed_data.certificates],
             "signer": self.describe_signer_info(signed_data.signer_info),
@@ -929,14 +923,14 @@ class Oletools(ServiceBase):
         }
 
         if isinstance(signed_data, AuthenticodeSignedData) and signed_data.indirect_data:
-            indirect = {
+            indirect: dict[str, Any] = {
                 "digest_algorithm": signed_data.indirect_data.digest_algorithm.__name__,
                 "digest": signed_data.indirect_data.digest.hex(),
                 "content_type": signed_data.indirect_data.content_type,
             }
-            if signed_data.indirect_data.content_type == "microsoft_spc_pe_image_data":
-                pe_image_data = signed_data.indirect_data.content
-                pe_data = {
+            pe_image_data = signed_data.indirect_data.content
+            if pe_image_data:
+                pe_data: dict[str, Any] = {
                     "flags": pe_image_data.flags,
                     "file_link_type": pe_image_data.file_link_type,
                 }
@@ -966,10 +960,10 @@ class Oletools(ServiceBase):
 
         return result
 
-    def _format_signer(self, signed_datas: List[dict]) -> str:
+    def _format_signer(self, signed_datas: List[dict]) -> tuple[dict[str, Any], dict[str, Any]]:
         # The following logic finds the signer certificate by comparing the certificate's issuer with the signeddata's signer info.
         if not signed_datas:
-            return ""
+            return {}, {}
 
         signer_cert = None
         issuer_cert = None
@@ -985,22 +979,19 @@ class Oletools(ServiceBase):
         cert_info = {}
         cert = signer_cert
         cert_info = {
-        "subject": [cert.get("subject", "")],
-        "issuer": [cert.get("issuer", "")],
-        "serial": [cert.get("serial", "")],
-        "valid": {
-            "start": [cert.get("valid_from", "")],
-            "end": [cert.get("valid_to", "")]
-        }
+            "subject": [cert.get("subject", "")],
+            "issuer": [cert.get("issuer", "")],
+            "serial": [cert.get("serial", "")],
+            "valid": {"start": [cert.get("valid_from", "")], "end": [cert.get("valid_to", "")]},
         }
         body_info = {
-        "subject": [cert.get("subject", "")],
-        "issuer": [cert.get("issuer", "")],
-        "serial": [cert.get("serial", "")],
-        "valid from": [cert.get("valid_from", "")],
-        "valid to": [cert.get("valid_to", "")]
+            "subject": [cert.get("subject", "")],
+            "issuer": [cert.get("issuer", "")],
+            "serial": [cert.get("serial", "")],
+            "valid from": [cert.get("valid_from", "")],
+            "valid to": [cert.get("valid_to", "")],
         }
-        #TO DO: calculate/extract the fingerprint/thumbprints
+        # TO DO: calculate/extract the fingerprint/thumbprints
         tags = {
             "cert": cert_info,
         }
@@ -1024,13 +1015,17 @@ class Oletools(ServiceBase):
             verify_result, verify_error = sig.explain_verify()
             tags, formatted_signature = self._format_signer(signed_datas)
 
-            sig_section = ResultSection(
-                "Authenticode Signature",
-                body=json.dumps(formatted_signature['body']),
-                body_format=BODY_FORMAT.KEY_VALUE,
-                heuristic=Heuristic(55),
-                tags=tags,
-                ) if signed_datas else None
+            sig_section = (
+                ResultSection(
+                    "Authenticode Signature",
+                    body=json.dumps(formatted_signature["body"]),
+                    body_format=BODY_FORMAT.KEY_VALUE,
+                    heuristic=Heuristic(55),
+                    tags=tags,
+                )
+                if signed_datas
+                else None
+            )
 
         except Exception as e:
             signed_datas = None
@@ -2172,7 +2167,7 @@ class Oletools(ServiceBase):
         return property_section if property_section.body else None
 
     @staticmethod
-    def _find_external_links(parsed: etree.ElementBase) -> List[Tuple[str, str]]:
+    def _find_external_links(parsed: etree._Element) -> List[Tuple[str, str]]:
         return [
             (relationship.attrib["Type"].rsplit("/", 1)[1], relationship.attrib["Target"])
             for relationship in parsed.findall(oleobj.OOXML_RELATIONSHIP_TAG, None)
