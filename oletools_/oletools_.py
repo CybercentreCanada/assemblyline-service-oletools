@@ -25,7 +25,7 @@ from io import BytesIO
 from ipaddress import AddressValueError, IPv4Address
 from itertools import chain, groupby
 from pathlib import PureWindowsPath
-from typing import IO, Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
+from typing import IO, TYPE_CHECKING, Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlsplit
 
 import magic
@@ -54,10 +54,13 @@ from oletools.thirdparty.xxxswf import xxxswf
 from oletools_.cleaver import OLEDeepParser
 from oletools_.stream_parser import PowerPointDoc
 
-AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
+if TYPE_CHECKING:
+    from asn1crypto.core import Asn1Value
 
 # Type definition for tags
 Tags = Dict[str, List[str]]
+
+AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
 
 
 def _add_section(result: Result, result_section: Optional[ResultSection]) -> None:
@@ -101,7 +104,7 @@ def is_safelisted(
     )
 
 
-def format_certificate(cert: Certificate) -> dict:
+def format_certificate(cert: Certificate) -> dict[str, str]:
     return {
         "subject": cert.subject.dn,
         "issuer": cert.issuer.dn,
@@ -305,8 +308,8 @@ class Oletools(ServiceBase):
         self.word_chains: Dict[str, Set[str]] = {}
 
         self.macro_score_max_size: Optional[int] = self.config.get("macro_score_max_file_size", None)
-        self.macro_score_min_alert = self.config.get("macro_score_min_alert", 0.6)
-        self.metadata_size_to_extract = self.config.get("metadata_size_to_extract", 500)
+        self.macro_score_min_alert: float = self.config.get("macro_score_min_alert", 0.6)
+        self.metadata_size_to_extract: int = self.config.get("metadata_size_to_extract", 500)
         self.ioc_pattern_safelist: list[str] = self.config.get("ioc_pattern_safelist", [])
         self.ioc_exact_safelist: list[str] = [string.lower() for string in self.config.get("ioc_exact_safelist", [])]
         self.pat_safelist = self.URI_SAFELIST
@@ -861,7 +864,7 @@ class Oletools(ServiceBase):
 
         return streams_section
 
-    def describe_attribute(self, name: str, values: list[Any]) -> Any:
+    def describe_attribute(self, name: str, values: list[Asn1Value]) -> dict[str, Any]:
         if name in (
             "microsoft_time_stamp_token",
             "microsoft_spc_sp_opus_info",
@@ -874,7 +877,7 @@ class Oletools(ServiceBase):
             return {name: values[0].native}
         return {name: [value.native for value in values]}
 
-    def describe_signer_info(self, signer_info: SignerInfo) -> dict:
+    def describe_signer_info(self, signer_info: SignerInfo) -> dict[str, Any]:
         result: dict[str, Any] = {
             "issuer": signer_info.issuer.dn,
             "serial": str(signer_info.serial_number),
@@ -960,7 +963,7 @@ class Oletools(ServiceBase):
 
         return result
 
-    def _format_signer(self, signed_datas: List[dict]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _format_signer(self, signed_datas: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
         # The following logic finds the signer certificate by comparing the certificate's issuer with the signeddata's signer info.
         if not signed_datas:
             return {}, {}
@@ -1335,7 +1338,7 @@ class Oletools(ServiceBase):
         size = struct.unpack("<i", f.read(4))[0]
         # Start of SWF
         f.seek(x)
-        if version > 40 or not isinstance(size, int) or header not in ["CWS", "FWS"]:
+        if version > 40 or not isinstance(size, int) or header not in [b"CWS", b"FWS"]:
             return None
 
         # noinspection PyBroadException
@@ -1570,7 +1573,7 @@ class Oletools(ServiceBase):
 
         re_rtf_escaped_str = re.compile(r"\\(?:(?P<uN>u-?[0-9]+[?]?)|(?P<other>.))")
 
-        def unicode_rtf_replace(matchobj: re.Match) -> str:
+        def unicode_rtf_replace(matchobj: re.Match[str]) -> str:
             """Handle Unicode RTF Control Words, only \\uN and escaped characters"""
             for match_name, match_str in matchobj.groupdict().items():
                 if match_str is None:
@@ -1794,7 +1797,7 @@ class Oletools(ServiceBase):
             # leading & trailing quotes in each local function are to facilitate the final re.sub in deobfuscator()
 
             # repeated chr(x + y) calls seen in wild, as per SANS ISC diary from May 8, 2015
-            def deobf_chrs_add(m):
+            def deobf_chrs_add(m: re.Match[str]) -> str:
                 if m.group(0):
                     i = int(m.group(1)) + int(m.group(2))
 
@@ -1804,7 +1807,7 @@ class Oletools(ServiceBase):
 
             deobf = re.sub(self.CHR_ADD_RE, deobf_chrs_add, deobf, flags=re.IGNORECASE)
 
-            def deobf_unichrs_add(m):
+            def deobf_unichrs_add(m: re.Match[str]) -> str:
                 result = ""
                 if m.group(0):
                     result = m.group(0)
@@ -1819,7 +1822,7 @@ class Oletools(ServiceBase):
             deobf = re.sub(self.CHRW_ADD_RE, deobf_unichrs_add, deobf, flags=re.IGNORECASE)
 
             # suspect we may see chr(x - y) samples as well
-            def deobf_chrs_sub(m):
+            def deobf_chrs_sub(m: re.Match[str]) -> str:
                 if m.group(0):
                     i = int(m.group(1)) - int(m.group(2))
 
@@ -1829,7 +1832,7 @@ class Oletools(ServiceBase):
 
             deobf = re.sub(self.CHR_SUB_RE, deobf_chrs_sub, deobf, flags=re.IGNORECASE)
 
-            def deobf_unichrs_sub(m):
+            def deobf_unichrs_sub(m: re.Match[str]) -> str:
                 if m.group(0):
                     i = int(m.group(1)) - int(m.group(2))
 
@@ -1840,7 +1843,7 @@ class Oletools(ServiceBase):
 
             deobf = re.sub(self.CHRW_SUB_RE, deobf_unichrs_sub, deobf, flags=re.IGNORECASE)
 
-            def deobf_chr(m):
+            def deobf_chr(m: re.Match[str]) -> str:
                 if m.group(1):
                     i = int(m.group(1))
 
@@ -1850,7 +1853,7 @@ class Oletools(ServiceBase):
 
             deobf = re.sub(self.CHR_RE, deobf_chr, deobf, flags=re.IGNORECASE)
 
-            def deobf_unichr(m):
+            def deobf_unichr(m: re.Match[str]) -> str:
                 if m.group(1):
                     i = int(m.group(1))
 
@@ -2093,7 +2096,7 @@ class Oletools(ServiceBase):
 
         if external_links:
 
-            def get_verdict(heuristic: Heuristic):
+            def get_verdict(heuristic: Heuristic) -> str:
                 if heuristic.score >= 1000:
                     return "Malicious"
                 elif heuristic.score >= 500:
