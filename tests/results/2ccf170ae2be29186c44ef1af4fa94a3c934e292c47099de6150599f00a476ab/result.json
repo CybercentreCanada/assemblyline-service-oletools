@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 267,
+    "score": 277,
     "sections": [
       {
         "auto_collapse": false,
@@ -107,6 +107,26 @@
           }
         },
         "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "Flash object detected in OLE stream \\x01OLE10nAtIVe",
+        "body_config": {},
+        "body_format": "MEMORY_DUMP",
+        "classification": "TLP:C",
+        "depth": 2,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 5,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Flash objects detected in OLE stream:",
         "zeroize_on_tag_safe": false
       },
       {
@@ -242,6 +262,11 @@
       {
         "attack_ids": [],
         "heur_id": 3,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 5,
         "signatures": []
       },
       {
