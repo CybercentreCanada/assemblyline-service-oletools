@@ -64,20 +64,6 @@ Tags = dict[str, list[str]]
 AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
 
 
-def _add_section(result: Result, result_section: ResultSection | None) -> None:
-    """Add an optional ResultSection to a Result."""
-    # If python 3.7 support is dropped this can be replaced
-    # by using := to get a one-liner instead
-    if result_section:
-        result.add_section(result_section)
-
-
-def _add_subsection(result_section: ResultSection, subsection: ResultSection | None) -> None:
-    """Add an optional ResultSection to a ResultSections."""
-    if subsection:
-        result_section.add_subsection(subsection)
-
-
 def collate_tags(tags_list: Iterable[Tags]) -> Tags:
     collated: defaultdict[str, set[str]] = defaultdict(set)
     for tags in tags_list:
@@ -453,17 +439,24 @@ class Oletools(ServiceBase):
         is_installer = request.task.file_type == "document/installer/windows"
 
         try:
-            _add_section(result, self._check_for_indicators(path))
-            _add_section(result, self._check_for_dde_links(path))
-            if request.task.file_type == "document/office/mhtml":
-                _add_section(result, self._rip_mhtml(file_contents))
+            if section := self._check_for_indicators(path):
+                result.add_section(section)
+            if section := self._check_for_indicators(path):
+                result.add_section(section)
+            if section := self._check_for_dde_links(path):
+                result.add_section(section)
+            if request.task.file_type == "document/office/mhtml" and (section := self._rip_mhtml(file_contents)):
+                result.add_section(section)
             self._extract_streams(path, result, request.deep_scan, is_installer)
-            if not is_installer:
-                _add_section(result, self._extract_rtf(file_contents))
-            _add_section(result, self._check_for_macros(path, request.sha256))
-            _add_section(result, self._create_macro_sections(request.sha256))
+            if not is_installer and (section := self._extract_rtf(file_contents)):
+                result.add_section(section)
+            if section := self._check_for_macros(path, request.sha256):
+                result.add_section(section)
+            if section := self._create_macro_sections(request.sha256):
+                result.add_section(section)
             if zipfile.is_zipfile(path):
-                _add_section(result, self._check_zip(path))
+                if section := self._check_zip(path):
+                    result.add_section(section)
                 self._check_xml_strings(path, result, request.deep_scan)
             self._odf_with_macros(request)
         except Exception:
@@ -710,15 +703,19 @@ class Oletools(ServiceBase):
             return None
 
         streams_section = ResultSection(f"OLE Document {name}")
-        _add_subsection(streams_section, self._process_ole_metadata(ole.get_metadata()))
-        _add_subsection(streams_section, self._process_ole_alternate_metadata(ole_file))
-        _add_subsection(streams_section, self._process_ole_clsid(ole))
+        if subsection := self._process_ole_metadata(ole.get_metadata()):
+            streams_section.add_subsection(subsection)
+        if subsection := self._process_ole_alternate_metadata(ole_file):
+            streams_section.add_subsection(subsection)
+        if subsection := self._process_ole_clsid(ole):
+            streams_section.add_subsection(subsection)
 
         if ole.exists("\x05DigitalSignature"):
             sig_section = ResultSection("Digital Signature")
             with ole.openstream("\x05DigitalSignature") as sig_stream:
                 signature = sig_stream.read()
-                _add_subsection(sig_section, self._process_authenticode(signature))
+                if subsection := self._process_authenticode(signature):
+                    sig_section.add_subsection(subsection)
         else:
             sig_section = None
 
@@ -1408,13 +1405,10 @@ class Oletools(ServiceBase):
         except Exception as e:
             self.log.debug(f"RtfObjParser failed to parse {self.sha}: {e}")
             return None  # Can't continue
-        rtf_template_res = self._process_rtf_alternate_metadata(file_contents)
-        if not rtfp.objects and not rtf_template_res:
-            return None
 
         streams_res = ResultSection("RTF objects")
-        if rtf_template_res:
-            _add_subsection(streams_res, rtf_template_res)
+        if rtf_template_res := self._process_rtf_alternate_metadata(file_contents):
+            streams_res.add_subsection(rtf_template_res)
 
         if b"\\objupdate" in file_contents:
             streams_res.add_subsection(
@@ -2047,7 +2041,8 @@ class Oletools(ServiceBase):
         try:
             xml_extracted = set()
             with zipfile.ZipFile(path) as z:
-                _add_section(result, self._process_ooxml_properties(z))
+                if section := self._process_ooxml_properties(z):
+                    result.add_section(section)
                 for f in z.namelist():
                     try:
                         contents = z.open(f).read()
