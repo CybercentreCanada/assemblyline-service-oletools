@@ -15,7 +15,6 @@ import os
 import re
 import socket
 import struct
-import traceback
 import zipfile
 import zlib
 from collections import defaultdict
@@ -42,11 +41,11 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
-from signify.authenticode import RawCertificateFile
-
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
+from signify.authenticode import RawCertificateFile
+
 from oletools_.cleaver import OLEDeepParser
 from oletools_.signatures import describe_signed_data
 from oletools_.stream_parser import PowerPointDoc
@@ -450,9 +449,7 @@ class Oletools(ServiceBase):
                 self._check_xml_strings(path, result, request.deep_scan)
             self._odf_with_macros(request)
         except Exception:
-            self.log.error(
-                f"We have encountered a critical error for sample {self.sha}: {traceback.format_exc(limit=2)}"
-            )
+            self.log.exception("We have encountered a critical error for sample %s", self.sha)
 
         if request.deep_scan:
             # Proceed with OLE Deep extraction
@@ -669,7 +666,7 @@ class Oletools(ServiceBase):
                     subdoc_res.set_heuristic(2)
                 result.add_section(subdoc_res)
         except Exception:
-            self.log.warning(f"Error extracting streams for sample {self.sha}: {traceback.format_exc(limit=2)}")
+            self.log.warning("Error extracting streams for sample %s:", self.sha, exc_info=True)
 
     def _process_ole_file(
         self, name: str, ole_file: IO[bytes], extract_all: bool = False, is_installer: bool = False
@@ -745,9 +742,10 @@ class Oletools(ServiceBase):
                     if b"FWS" in data or b"CWS" in data and self._extract_swf_objects(stream):
                         swf_sec.add_line(f"Flash object detected in OLE stream {stream_name}")
                 except Exception:
-                    self.log.error(
-                        f"Error extracting flash content from stream {stream_name} "
-                        f"for sample {self.sha}:\t{traceback.format_exc()}"
+                    self.log.exception(
+                        "Error extracting flash content from stream %s for sample %s:",
+                        stream_name,
+                        self.sha,
                     )
 
             # noinspection PyBroadException
@@ -826,7 +824,7 @@ class Oletools(ServiceBase):
 
             except Exception:
                 self.log.warning(
-                    f"Error adding extracted stream {stream_name} for sample {self.sha}:\t{traceback.format_exc()}"
+                    "Error adding extracted stream %s for sample %s:", stream_name, self.sha, exec_info=True
                 )
 
         if sig_section:
@@ -925,9 +923,7 @@ class Oletools(ServiceBase):
             )
 
         except Exception:
-            self.log.warning(
-                f"Failed to check process authenticode signature for sample {self.sha}: {traceback.format_exc()}"
-            )
+            self.log.warning("Failed to check process authenticode signature for sample %s:", self.sha, exc_info=True)
             signed_datas = None
         return sig_section
 
@@ -1401,7 +1397,7 @@ class Oletools(ServiceBase):
                     fname = f"_object_{hex(rtf_object.start)}.raw"
                     self._extract_file(rtf_object.rawdata, fname, f"Raw data in object #{i}:")
             except Exception:
-                self.log.warning(f"Failed to process an RTF object for sample {self.sha}: {traceback.format_exc()}")
+                self.log.warning("Failed to process an RTF object for sample %s:", self.sha, exc_info=True)
         if embedded:
             emb_sec = ResultSection(
                 "RTF Embedded Object Details",
@@ -1577,8 +1573,7 @@ class Oletools(ServiceBase):
                             self.macros.append(vba_code)
                     except Exception:
                         self.log.debug(
-                            f"OleVBA VBA_Parser.extract_macros failed for sample {self.sha}: "
-                            f"{traceback.format_exc()}"
+                            "OleVBA VBA_Parser.extract_macros failed for sample %s:", self.sha, exc_info=True
                         )
                         section = ResultSection("OleVBA : Error extracting macros")
                         section.add_tag("technique.macro", "Contains VBA Macro(s)")
@@ -1671,9 +1666,7 @@ class Oletools(ServiceBase):
                 macro_section.add_subsection(stomp_sec)
 
         except Exception as e:
-            self.log.debug(
-                f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {traceback.format_exc()}"
-            )
+            self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample %s:", self.sha, exc_info=True)
             section = ResultSection(f"OleVBA : Error parsing macros: {e}")
             macro_section.add_subsection(section)
         return macro_section if macro_section.subsections else None
@@ -1888,7 +1881,7 @@ class Oletools(ServiceBase):
             )
 
         except Exception:
-            self.log.warning(f"OleVBA VBA_Scanner constructor failed for sample {self.sha}: {traceback.format_exc()}")
+            self.log.warning("OleVBA VBA_Scanner constructor failed for sample %s:", self.sha, exc_info=True)
             return False
 
     def _mraptor_check(
@@ -1981,7 +1974,7 @@ class Oletools(ServiceBase):
                             self._extract_file(contents, ".xml", f"zipped file {f} contents")
                             xml_extracted.add(xml_sha256)
         except Exception:
-            self.log.warning(f"Failed to analyze zipped file for sample {self.sha}: {traceback.format_exc()}")
+            self.log.warning("Failed to analyze zipped file for sample %s:", self.sha, exc_info=True)
 
         if external_links:
 
@@ -2149,7 +2142,7 @@ class Oletools(ServiceBase):
                 self._extracted_files[file_name] = description
                 return file_path
         except Exception:
-            self.log.error(f"Error extracting {file_name} for sample {self.sha}: {traceback.format_exc(limit=2)}")
+            self.log.exception("Error extracting %s for sample %s:", file_name, self.sha)
         return None
 
     def _check_for_patterns(self, data: bytes, include_fpos: bool = False) -> tuple[Mapping[str, set[bytes]], bool]:
