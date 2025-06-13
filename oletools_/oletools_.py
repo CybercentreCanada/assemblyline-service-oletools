@@ -42,7 +42,7 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
-from signify.authenticode import AuthenticodeSignedData, RawCertificateFile
+from signify.authenticode import RawCertificateFile
 
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
@@ -203,6 +203,74 @@ class Oletools(ServiceBase):
             b".wsh",
         )
     )
+
+    # Don't reward use of common keywords
+    MACRO_SKIP_WORDS = frozenset(
+        (
+            "var",
+            "unescape",
+            "exec",
+            "for",
+            "while",
+            "array",
+            "object",
+            "length",
+            "len",
+            "substr",
+            "substring",
+            "new",
+            "unicode",
+            "name",
+            "base",
+            "dim",
+            "set",
+            "public",
+            "end",
+            "getobject",
+            "createobject",
+            "content",
+            "regexp",
+            "date",
+            "false",
+            "true",
+            "break",
+            "continue",
+            "ubound",
+            "none",
+            "undefined",
+            "activexobject",
+            "document",
+            "attribute",
+            "shell",
+            "thisdocument",
+            "rem",
+            "string",
+            "byte",
+            "integer",
+            "int",
+            "function",
+            "text",
+            "next",
+            "private",
+            "click",
+            "change",
+            "createtextfile",
+            "savetofile",
+            "responsebody",
+            "opentextfile",
+            "resume",
+            "open",
+            "environment",
+            "write",
+            "close",
+            "error",
+            "else",
+            "number",
+            "chr",
+            "sub",
+            "loop",
+        )
+    )
     # Safelists
     TAG_SAFELIST: ClassVar[list[str]] = ["management", "manager", "microsoft.com"]
     # substrings of URIs to ignore
@@ -305,72 +373,6 @@ class Oletools(ServiceBase):
         self.extracted_clsids: set[str] = set()
         self.vba_stomping = False
         self.identify = get_identify(use_cache=os.environ.get("PRIVILEGED", "false").lower() == "true")
-
-        # Don't reward use of common keywords
-        self.macro_skip_words = {
-            "var",
-            "unescape",
-            "exec",
-            "for",
-            "while",
-            "array",
-            "object",
-            "length",
-            "len",
-            "substr",
-            "substring",
-            "new",
-            "unicode",
-            "name",
-            "base",
-            "dim",
-            "set",
-            "public",
-            "end",
-            "getobject",
-            "createobject",
-            "content",
-            "regexp",
-            "date",
-            "false",
-            "true",
-            "break",
-            "continue",
-            "ubound",
-            "none",
-            "undefined",
-            "activexobject",
-            "document",
-            "attribute",
-            "shell",
-            "thisdocument",
-            "rem",
-            "string",
-            "byte",
-            "integer",
-            "int",
-            "function",
-            "text",
-            "next",
-            "private",
-            "click",
-            "change",
-            "createtextfile",
-            "savetofile",
-            "responsebody",
-            "opentextfile",
-            "resume",
-            "open",
-            "environment",
-            "write",
-            "close",
-            "error",
-            "else",
-            "number",
-            "chr",
-            "sub",
-            "loop",
-        }
 
         # Use default safelist for testing and backup
         safelist = get_tag_safelist_data()
@@ -1795,7 +1797,7 @@ class Oletools(ServiceBase):
             word = macro_word.group(0)
             word_count += 1
             byte_count += len(word)
-            if word in self.macro_skip_words:
+            if word in self.MACRO_SKIP_WORDS:
                 continue
             prefix = word[0]
             tri_count = 0
