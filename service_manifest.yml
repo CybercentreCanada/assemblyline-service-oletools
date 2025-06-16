@@ -87,7 +87,7 @@ heuristics:
   - heur_id: 5
     name: Flash content in OLE
     score: 10
-    filetype: document/office/ole
+    filetype: document/office
     description: Flash object detected in OLE stream.
 
   - heur_id: 6
@@ -384,6 +384,12 @@ heuristics:
     score: 500
     filetype: "document/office/rtf"
     description: "RTF Object uses \\objupdate to load without user interaction."
+
+  - heur_id: 55
+    name: Signed OLE Object
+    score: 0
+    filetype: ".*"
+    description: "The OLE object has a code-siging signature."
 
 docker_config:
   image: ${REGISTRY}cccs/assemblyline-service-oletools:$SERVICE_TAG
