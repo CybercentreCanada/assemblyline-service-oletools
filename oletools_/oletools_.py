@@ -41,11 +41,11 @@ from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import BODY_FORMAT, Heuristic, Result, ResultKeyValueSection, ResultSection
 from assemblyline_v4_service.common.task import MaxExtractedExceeded
 from lxml import etree
+from signify.authenticode import RawCertificateFile
+
 from oletools import mraptor, msodde, oleid, oleobj, olevba, rtfobj
 from oletools.common import clsid
 from oletools.thirdparty.xxxswf import xxxswf
-from signify.authenticode import RawCertificateFile
-
 from oletools_.cleaver import OLEDeepParser
 from oletools_.signatures import describe_signed_data
 from oletools_.stream_parser import PowerPointDoc
@@ -389,7 +389,7 @@ class Oletools(ServiceBase):
             self.match_safelist = safelist.get("match", {})
             self.regex_safelist = safelist.get("regex", {})
         except ServiceAPIError as e:
-            self.log.warning(f"Couldn't retrieve safelist from service: {e}. Continuing without it..")
+            self.log.warning("Couldn't retrieve safelist from service: %s. Continuing without it..", e)
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
         return (
@@ -458,7 +458,7 @@ class Oletools(ServiceBase):
             try:
                 parser.run()
             except Exception as e:
-                self.log.error(f"Error while deep parsing {path}: {e}")
+                self.log.exception("Error while deep parsing %s", path)
                 result.add_section(ResultSection(f"Error deep parsing: {e}"))
 
         try:
@@ -515,7 +515,7 @@ class Oletools(ServiceBase):
             if section.body:
                 return section
         except Exception:
-            self.log.debug(f"OleID analysis failed for sample {self.sha}")
+            self.log.debug("OleID analysis failed for sample %s", self.sha, exc_info=True)
         return None
 
     def _check_for_dde_links(self, filepath: str) -> ResultSection | None:
@@ -540,8 +540,8 @@ class Oletools(ServiceBase):
                 return self._process_dde_links(links_text)
 
         # Unicode and other errors common for msodde when parsing samples, do not log under warning
-        except Exception as e:
-            self.log.debug(f"msodde parsing for sample {self.sha} failed: {e}")
+        except Exception:
+            self.log.debug("msodde parsing for sample %s failed", self.sha, exc_info=True)
         return None
 
     def _process_dde_links(self, links_text: str) -> ResultSection | None:
@@ -622,7 +622,7 @@ class Oletools(ServiceBase):
                         self._extract_file(part_data, part_filename, "ActiveMime x-mso from multipart/related.")
                         mime_res.add_line(part_filename)
                     except Exception as e:
-                        self.log.debug(f"Could not decompress ActiveMime part for sample {self.sha}: {e}")
+                        self.log.debug("Could not decompress ActiveMime part for sample %s", self.sha, exc_info=True)
 
         return mime_res if mime_res.body else None
 
@@ -729,7 +729,7 @@ class Oletools(ServiceBase):
         for entry in ole.listdir():
             extract_stream = False
             stream_name = safe_str("/".join(entry))
-            self.log.debug(f"Extracting stream {stream_name} for sample {self.sha}")
+            self.log.debug("Extracting stream %s for sample %s", stream_name, self.sha)
             with ole.openstream(entry) as stream:
                 data = stream.getvalue()
                 stm_sha = hashlib.sha256(data).hexdigest()
@@ -1073,7 +1073,7 @@ class Oletools(ServiceBase):
         sus_sec = ResultSection("Suspicious streams content:")
         native = oleobj.OleNativeStream(data)
         if not native.data or not native.filename or not native.src_path or not native.temp_path:
-            self.log.warning(f"Failed to parse Ole10Native stream for sample {self.sha}")
+            self.log.warning("Failed to parse Ole10Native stream for sample %s", self.sha)
             return False
         self._extract_file(native.data, ".ole10native", f"Embedded OLE Stream {stream_name}")
         stream_desc = (
@@ -1177,9 +1177,9 @@ class Oletools(ServiceBase):
                         f"\tPowerPoint Embedded OLE Storage:\n\t\tSHA-256: {ole_hash}\n\t\t"
                         f"Length: {len(obj.raw)}\n\t\tCompressed: {obj.compressed}"
                     )
-                    self.log.debug(f"Added OLE stream within a PowerPoint Document Stream: {ole_hash[:8]}.pp_ole")
+                    self.log.debug("Added OLE stream within a PowerPoint Document Stream: %s.pp_ole", ole_hash[:8])
         except Exception as e:
-            self.log.warning(f"Failed to parse PowerPoint Document stream for sample {self.sha}: {e}")
+            self.log.warning("Failed to parse PowerPoint Document stream for sample %s", self.sha, exc_info=True)
             return False
         else:
             return True
@@ -1286,8 +1286,8 @@ class Oletools(ServiceBase):
         try:
             rtfp = rtfobj.RtfObjParser(file_contents)
             rtfp.parse()
-        except Exception as e:
-            self.log.debug(f"RtfObjParser failed to parse {self.sha}: {e}")
+        except Exception:
+            self.log.debug("RtfObjParser failed to parse %s", self.sha, exc_info=True)
             return None  # Can't continue
 
         streams_res = ResultSection("RTF objects")
@@ -1543,8 +1543,8 @@ class Oletools(ServiceBase):
                 pcode_l = pcode.split("\n", 2)
                 if len(pcode_l) == 3:
                     self.pcode.append(pcode_l[2])
-            except Exception as e:
-                self.log.debug(f"pcodedmp.py failed to analyze pcode for sample {self.sha}. Reason: {e}")
+            except Exception:
+                self.log.debug("pcodedmp.py failed to analyze pcode for sample %s", self.sha)
 
             # Get XLM Macros
             try:
@@ -1577,12 +1577,12 @@ class Oletools(ServiceBase):
                         return section
 
             except Exception as e:
-                self.log.debug(f"OleVBA VBA_Parser.detect_vba_macros failed for sample {self.sha}: {e}")
+                self.log.debug("OleVBA VBA_Parser.detect_vba_macros failed for sample %s", self.sha, exc_info=True)
                 return ResultSection(f"OleVBA : Error parsing macros: {e}")
 
         except Exception:
             self.log.debug(
-                f"OleVBA VBA_Parser constructor failed for sample {self.sha}, may not be a supported OLE document"
+                "OleVBA VBA_Parser constructor failed for sample %s, may not be a supported OLE document", self.sha
             )
         return None
 
@@ -1756,7 +1756,7 @@ class Oletools(ServiceBase):
             deobf = re.sub('" & "', "", deobf)
 
         except Exception:
-            self.log.debug(f"Deobfuscator regex failure for sample {self.sha}, reverting to original text")
+            self.log.debug("Deobfuscator regex failure for sample %s, reverting to original text", self.sha)
             deobf = text
 
         return deobf
@@ -2070,8 +2070,8 @@ class Oletools(ServiceBase):
                 try:
                     zipf.seek(0)
                     start_data = zipf.read(start)
-                except OSError as e:
-                    self.log.error(f"Error reading prepended zip content: {e}")
+                except OSError:
+                    self.log.exception("Error reading prepended zip content")
                 else:
                     extracted_path = self._extract_file(
                         start_data, "_prepended_content", "Data prepended to the .ZIP archive"
@@ -2095,8 +2095,8 @@ class Oletools(ServiceBase):
                 try:
                     zipf.seek(end)
                     end_data = zipf.read()
-                except OSError as e:
-                    self.log.error(f"Error reading appended zip content: {e}")
+                except OSError:
+                    self.log.exception("Error reading appended zip content")
                 else:
                     append_name = "_appended_content"
                     extracted_path = self._extract_file(end_data, append_name, "Data appended after the .ZIP archive")
@@ -2134,7 +2134,7 @@ class Oletools(ServiceBase):
             with open(file_path, "wb") as f:
                 f.write(data)
             if self.identify.fileinfo(file_path, generate_hashes=False)["type"] == "unknown":
-                self.log.debug(f"Skipping extracting {file_name} because it's type is unknown")
+                self.log.debug("Skipping extracting %s because it's type is unknown", file_name)
             else:
                 self._extracted_files[file_name] = description
                 return file_path
