@@ -87,7 +87,7 @@ heuristics:
   - heur_id: 5
     name: Flash content in OLE
     score: 10
-    filetype: document/office/ole
+    filetype: document/office
     description: Flash object detected in OLE stream.
 
   - heur_id: 6
