@@ -824,7 +824,7 @@ class Oletools(ServiceBase):
 
             except Exception:
                 self.log.warning(
-                    "Error adding extracted stream %s for sample %s:", stream_name, self.sha, exec_info=True
+                    "Error adding extracted stream %s for sample %s:", stream_name, self.sha, exc_info=True
                 )
 
         if sig_section:
@@ -861,12 +861,10 @@ class Oletools(ServiceBase):
             return {}, {}
 
         signer_cert = None
-        issuer_cert = None
         certs = signed_datas[0].get("certificates", [])
         signer = signed_datas[0].get("signer", {})
         signer_issuer = signer.get("issuer", "")
         for cert in certs:
-            cert_subject = cert.get("subject", "")
             cert_issuer = cert.get("issuer", "")
             if cert_issuer == signer_issuer:
                 signer_cert = cert
@@ -907,7 +905,6 @@ class Oletools(ServiceBase):
         try:
             sig = RawCertificateFile(BytesIO(signature))
             signed_datas = [describe_signed_data(signed_data) for signed_data in sig.signed_datas]
-            verify_result, verify_error = sig.explain_verify()
             tags, formatted_signature = self._format_signer(signed_datas)
 
             sig_section = (
