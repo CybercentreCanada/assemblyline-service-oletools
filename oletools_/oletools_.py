@@ -921,7 +921,7 @@ class Oletools(ServiceBase):
 
         except Exception:
             self.log.warning("Failed to check process authenticode signature for sample %s:", self.sha, exc_info=True)
-            signed_datas = None
+            sig_section = None
         return sig_section
 
     def _process_ole_metadata(self, meta: olefile.OleMetadata) -> ResultSection | None:
