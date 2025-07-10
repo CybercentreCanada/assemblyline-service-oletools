@@ -60,6 +60,27 @@ Tags = dict[str, list[str]]
 
 AUTO_EXEC = set(chain(*(x for x in olevba.AUTOEXEC_KEYWORDS.values())))
 
+# Scores for External Relationship relationship type signatures.
+# Listed here rather than service_manifest.yaml because the scores are changed dynamicially based on tag safelisting.
+# Scores in the service_manifest signature_score_map take priority over the dynamic score map.
+LINK_TYPE_SCORE = {
+    "attachedtemplate": 500,
+    "externallink": 500,
+    "externallinkpath": 0,
+    "externalreference": 500,
+    "frame": 500,
+    "hyperlink": 0,
+    "officedocument": 500,
+    "oleobject": 500,
+    "package": 500,
+    "slideupdateurl": 500,
+    "slidemaster": 500,
+    "slide": 500,
+    "slideupdateinfo": 500,
+    "subdocument": 500,
+    "worksheet": 500,
+}
+
 
 def collate_tags(tags_list: Iterable[Tags]) -> Tags:
     collated: defaultdict[str, set[str]] = defaultdict(set)
@@ -2330,7 +2351,7 @@ class Oletools(ServiceBase):
         unescaped = unquote(safe_link).strip()
         if unescaped.startswith("mshta"):
             heuristic.add_attack_id("T1218.005")
-            heuristic.add_signature_id("mshta")
+            heuristic.add_signature_id("mshta", 500)
             _, command = unescaped.split(maxsplit=1)
             if command.startswith('"'):
                 command = command[1:-1] if command.endswith('"') else command[1:]
@@ -2345,21 +2366,21 @@ class Oletools(ServiceBase):
                 safe_link = command
         if "SyncAppvPublishingServer.vbs" in unescaped:
             heuristic.add_attack_id("T1216")
-            heuristic.add_signature_id("embedded_powershell")
-            heuristic.add_signature_id(link_type)
+            heuristic.add_signature_id("embedded_powershell", 0)
+            heuristic.add_signature_id(link_type, LINK_TYPE_SCORE[link_type])
             powershell = unescaped.split("SyncAppvPublishingServer.vbs", 1)[-1].encode()
             self._extract_file(powershell, ".ps1", "powershell hidden in hyperlink external relationship")
             return heuristic, {}
         if safe_link.startswith("mhtml:"):
             safe_link = safe_link[6:]
-            heuristic.add_signature_id("mhtml_link")
+            heuristic.add_signature_id("mhtml_link", 100)
             # Get last url link
             safe_link = safe_link.rsplit("!x-usc:")[-1]
             # Strip the mhtml path
             safe_link = safe_link.rsplit("!", 1)[0]
         if safe_link.startswith(R"file:///\\"):
             # UNC file path
-            heuristic.add_signature_id("unc_path")
+            heuristic.add_signature_id("unc_path", 0)
             # Convert to normal file uri
             safe_link = PureWindowsPath(unquote(safe_link[8:].split()[0])).as_uri()
         url, hostname_type, hostname = self.parse_uri(safe_link)
@@ -2367,22 +2388,17 @@ class Oletools(ServiceBase):
             # Not a valid link
             return heuristic, {}
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
-        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
-        heuristic.add_signature_id(link_type)
-        if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
-            # Don't score oleobject links to sharepoint servers
-            # or links with a safelisted url, domain, or ip.
-            heuristic.score_map.update({link_type: 0, "unc_path": 0, "external_link_ip": 0})
+        heuristic.add_signature_id(link_type, LINK_TYPE_SCORE[link_type])
         if url.endswith("!") and link_type == "oleobject":
             tags["network.static.uri"].append(url[:-1])
             tags["attribution.exploit"] = ["CVE-2022-30190"]
-            heuristic.add_signature_id("msdt_exploit")
+            heuristic.add_signature_id("msdt_exploit", 500)
         if "../" in url:
-            heuristic.add_signature_id("relative_path")
+            heuristic.add_signature_id("relative_path", 0)
         if link_type == "attachedtemplate":
             heuristic.add_attack_id("T1221")
         if hostname_type == "network.static.ip" and link_type != "hyperlink":
-            heuristic.add_signature_id("external_link_ip")
+            heuristic.add_signature_id("external_link_ip", 500)
         filename = os.path.basename(urlsplit(url).path)
         path_extension = os.path.splitext(filename)[1].encode().lower()
         if (
@@ -2390,6 +2406,11 @@ class Oletools(ServiceBase):
             and path_extension in self.EXECUTABLE_EXTENSIONS
             and not self.is_safelisted("file.name.extracted", filename)
         ):
-            heuristic.add_signature_id("link_to_executable")
+            heuristic.add_signature_id("link_to_executable", 500)
             tags["file.name.extracted"] = [filename]
+        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
+        if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
+            # Don't score oleobject links to sharepoint servers
+            # or links with a safelisted url, domain, or ip.
+            heuristic.score_map.update({link_type: 0, "unc_path": 0, "external_link_ip": 0})
         return heuristic, tags

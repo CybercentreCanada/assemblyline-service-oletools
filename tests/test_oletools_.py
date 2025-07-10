@@ -69,13 +69,18 @@ def test_parse_uri(uri, output):
 
 
 @pytest.mark.parametrize(
-    ("link_type", "link", "heuristic", "tags"),
+    ("link_type", "link", "heuristic", "score", "tags"),
     [
         # UNC Path test
         (
             "hyperlink",
             R"file:///\\8.8.8.8\share\scan.vbs",
-            Heuristic(1, signatures={"unc_path": 1, "hyperlink": 1, "link_to_executable": 1}),
+            Heuristic(
+                1,
+                signatures={"unc_path": 1, "hyperlink": 1, "link_to_executable": 1},
+                score_map={"unc_path": 0, "hyperlink": 0, "link_to_executable": 500},
+            ),
+            500,
             {
                 "file.name.extracted": ["scan.vbs"],
                 "network.static.ip": ["8.8.8.8"],
@@ -86,7 +91,12 @@ def test_parse_uri(uri, output):
         (
             "oleObject",
             R"https://cdn.discordapp.com/attachments/986484515985825795/986821210044264468/index.htm!",
-            Heuristic(1, signatures={"oleobject": 1, "msdt_exploit": 1}),
+            Heuristic(
+                1,
+                signatures={"oleobject": 1, "msdt_exploit": 1},
+                score_map={"oleobject": 500, "msdt_exploit": 500},
+            ),
+            1000,
             {
                 "attribution.exploit": ["CVE-2022-30190"],
                 "network.static.domain": ["cdn.discordapp.com"],
@@ -100,7 +110,13 @@ def test_parse_uri(uri, output):
         (
             "hyperlink",
             R"mshta.exe http://link.to/malicious/page.hta",
-            Heuristic(1, attack_id="T1218.005", signatures={"hyperlink": 1, "mshta": 1, "link_to_executable": 1}),
+            Heuristic(
+                1,
+                attack_id="T1218.005",
+                signatures={"hyperlink": 1, "mshta": 1, "link_to_executable": 1},
+                score_map={"hyperlink": 0, "mshta": 500, "link_to_executable": 500},
+            ),
+            1000,
             {
                 "file.name.extracted": ["page.hta"],
                 "network.static.domain": ["link.to"],
@@ -111,14 +127,24 @@ def test_parse_uri(uri, output):
         (
             "oleObject",
             "mhtml:https://first.link.com/!x-usc:https://second.link.com",
-            Heuristic(1, signatures={"oleobject": 1, "mhtml_link": 1}),
+            Heuristic(
+                1,
+                signatures={"oleobject": 1, "mhtml_link": 1},
+                score_map={"oleobject": 500, "mhtml_link": 100},
+            ),
+            600,
             {"network.static.domain": ["second.link.com"], "network.static.uri": ["https://second.link.com"]},
         ),
         # mhtml exclamation mark link
         (
             "oleObject",
             "mhtml:https://first.link.com!https://second.link.com",
-            Heuristic(1, signatures={"oleobject": 1, "mhtml_link": 1}),
+            Heuristic(
+                1,
+                signatures={"oleobject": 1, "mhtml_link": 1},
+                score_map={"oleobject": 500, "mhtml_link": 100},
+            ),
+            600,
             {"network.static.domain": ["first.link.com"], "network.static.uri": ["https://first.link.com"]},
         ),
         # Obfuscated link
@@ -126,7 +152,12 @@ def test_parse_uri(uri, output):
             "frame",
             "http://037777777777OOOOOLLLLLLLL000000000000LLLLLLLOOOOO00000000000LLLLLLLOOOOO0000000000"
             "LLLLL00000000000OOOLLLLLLL@134744072/x......xx.......doc",
-            Heuristic(1, signatures={"frame": 1, "external_link_ip": 1}),
+            Heuristic(
+                1,
+                signatures={"frame": 1, "external_link_ip": 1},
+                score_map={"frame": 500, "external_link_ip": 500},
+            ),
+            1000,
             {
                 "network.static.ip": ["8.8.8.8"],
                 "network.static.uri": [
@@ -139,7 +170,12 @@ def test_parse_uri(uri, output):
         (
             "externalLinkPath",
             R"file:///\\domain.com\path\percent%20encoded%20file.xlsx",
-            Heuristic(1, signatures={"externallinkpath": 1, "unc_path": 1}),
+            Heuristic(
+                1,
+                signatures={"externallinkpath": 1, "unc_path": 1},
+                score_map={"externallinkpath": 0, "unc_path": 0},
+            ),
+            0,
             {
                 "network.static.domain": ["domain.com"],
                 "network.static.uri": ["file://domain.com/path/percent%20encoded%20file.xlsx"],
@@ -154,6 +190,7 @@ def test_parse_uri(uri, output):
                 signatures={"externallinkpath": 1, "unc_path": 1, "external_link_ip": 1},
                 score_map={"externallinkpath": 0, "unc_path": 0, "external_link_ip": 0},
             ),
+            0,
             {"network.static.ip": ["10.0.0.1"], "network.static.uri": ["file://10.0.0.1/path/file.xlsx"]},
         ),
         # whitelisted hyperlink
@@ -165,6 +202,7 @@ def test_parse_uri(uri, output):
                 signatures={"hyperlink": 1},
                 score_map={"hyperlink": 0, "unc_path": 0, "external_link_ip": 0},
             ),
+            0,
             {
                 "network.static.domain": ["gcdocs.ps-sp.gc.ca"],
                 "network.static.uri": ["https://gcdocs.ps-sp.gc.ca/path/some_file"],
@@ -172,12 +210,13 @@ def test_parse_uri(uri, output):
         ),
     ],
 )
-def test_process_link(link_type: str, link: str | bytes, heuristic: Heuristic, tags: Tags):
+def test_process_link(link_type: str, link: str | bytes, score: int, heuristic: Heuristic, tags: Tags):
     ole = Oletools()
     heur, _tags = ole._process_link(link_type, link)
     assert heur.signatures == heuristic.signatures
     assert heur.attack_ids == heuristic.attack_ids
     assert heur.score_map == heuristic.score_map
+    assert heur.score == score
     assert tags == _tags
 
 
