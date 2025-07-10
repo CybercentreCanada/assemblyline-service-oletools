@@ -2387,6 +2387,7 @@ class Oletools(ServiceBase):
         if not hostname:
             # Not a valid link
             return heuristic, {}
+        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
         tags = {"network.static.uri": [url], hostname_type: [hostname]}
         heuristic.add_signature_id(link_type, LINK_TYPE_SCORE[link_type])
         if url.endswith("!") and link_type == "oleobject":
@@ -2395,7 +2396,7 @@ class Oletools(ServiceBase):
             heuristic.add_signature_id("msdt_exploit", 500)
         if "../" in url:
             heuristic.add_signature_id("relative_path", 0)
-        if link_type == "attachedtemplate":
+        if link_type == "attachedtemplate" and not safelisted:
             heuristic.add_attack_id("T1221")
         if hostname_type == "network.static.ip" and link_type != "hyperlink":
             heuristic.add_signature_id("external_link_ip", 500)
@@ -2408,7 +2409,6 @@ class Oletools(ServiceBase):
         ):
             heuristic.add_signature_id("link_to_executable", 500)
             tags["file.name.extracted"] = [filename]
-        safelisted = self.is_safelisted("network.static.uri", url) or self.is_safelisted(hostname_type, hostname)
         if safelisted or link_type == "oleobject" and ".sharepoint." in hostname:
             # Don't score oleobject links to sharepoint servers
             # or links with a safelisted url, domain, or ip.

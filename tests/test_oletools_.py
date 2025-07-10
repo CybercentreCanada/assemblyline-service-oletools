@@ -193,14 +193,14 @@ def test_parse_uri(uri, output):
             0,
             {"network.static.ip": ["10.0.0.1"], "network.static.uri": ["file://10.0.0.1/path/file.xlsx"]},
         ),
-        # whitelisted hyperlink
+        # whitelisted template
         (
-            "hyperlink",
+            "attachedtemplate",
             "https://gcdocs.ps-sp.gc.ca/path/some_file",
             Heuristic(
                 1,
-                signatures={"hyperlink": 1},
-                score_map={"hyperlink": 0, "unc_path": 0, "external_link_ip": 0},
+                signatures={"attachedtemplate": 1},
+                score_map={"attachedtemplate": 0, "unc_path": 0, "external_link_ip": 0},
             ),
             0,
             {
