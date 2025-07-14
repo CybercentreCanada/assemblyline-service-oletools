@@ -35,29 +35,6 @@ heuristics:
     name: External Relationship
     score: 0
     max_score: 1000
-    signature_score_map:
-      external_relationship_ip: 500
-      link_to_executable: 500
-      mhtml_link: 100
-      mshta: 500
-      msdt_exploit: 500
-      unc_path: 0
-      # relationship types
-      attachedtemplate: 500
-      externallink: 500
-      externallinkpath: 0
-      externalreference: 500
-      frame: 500
-      hyperlink: 0
-      officedocument: 500
-      oleobject: 500
-      package: 500
-      slideupdateurl: 500
-      slidemaster: 500
-      slide: 500
-      slideupdateinfo: 500
-      subdocument: 500
-      worksheet: 500
     filetype: document/office
     description: >-
       XML relationship with external link as the target.
