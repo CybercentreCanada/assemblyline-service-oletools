@@ -1,8 +1,30 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 517,
+    "score": 527,
     "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Word 2007+ Document (.docx)\nContainer format: OpenXML, Container type\nExternal Relationships (1): External relationships found: attachedTemplate - use oleobj for details",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "External Relationships": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
       {
         "auto_collapse": false,
         "body": "File format: MS Word 2007+ Document (.docx)\nContainer format: OpenXML, Container type\nExternal Relationships (1): External relationships found: attachedTemplate - use oleobj for details",
@@ -73,7 +95,9 @@
           "frequency": 1,
           "heur_id": 1,
           "score": 500,
-          "score_map": {},
+          "score_map": {
+            "attachedtemplate": 500
+          },
           "signatures": {
             "attachedtemplate": 1
           }
@@ -170,6 +194,13 @@
         "attack_ids": [],
         "heur_id": 7,
         "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "External Relationships"
+        ]
       },
       {
         "attack_ids": [],

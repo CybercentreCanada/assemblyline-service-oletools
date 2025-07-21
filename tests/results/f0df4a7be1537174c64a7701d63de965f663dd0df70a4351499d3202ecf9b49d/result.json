@@ -1,8 +1,28 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 273,
+    "score": 283,
     "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 0002CE02-0000-0000-C000-000000000046 - Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: None, Code page used for properties\nAuthor: None, Author declared in properties",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
       {
         "auto_collapse": false,
         "body": "File format: Generic OLE file / Compound File (unknown format), Unrecognized OLE file. Root CLSID: 0002CE02-0000-0000-C000-000000000046 - Microsoft Equation 3.0 (Known Related to CVE-2017-11882 or CVE-2018-0802)\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: None, Code page used for properties\nAuthor: None, Author declared in properties",
@@ -167,6 +187,11 @@
       {
         "attack_ids": [],
         "heur_id": 9,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
         "signatures": []
       },
       {

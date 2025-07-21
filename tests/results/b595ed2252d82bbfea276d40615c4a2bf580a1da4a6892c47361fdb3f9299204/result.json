@@ -1,8 +1,28 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 20,
+    "score": 30,
     "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Rich Text Format\nContainer format: RTF, Container type",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
       {
         "auto_collapse": false,
         "body": "File format: Rich Text Format\nContainer format: RTF, Container type",
@@ -89,6 +109,11 @@
       {
         "attack_ids": [],
         "heur_id": 13,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
         "signatures": []
       },
       {

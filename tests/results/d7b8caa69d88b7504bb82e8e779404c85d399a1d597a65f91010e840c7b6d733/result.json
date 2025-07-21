@@ -1,8 +1,28 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 410,
+    "score": 420,
     "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: Windows Installer Package (.msi)\nContainer format: OLE, Container type\nApplication name: b'Advanced Installer 12.3 build 64631', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Copyright \\xa9 2023', Author declared in properties",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
       {
         "auto_collapse": false,
         "body": "File format: Windows Installer Package (.msi)\nContainer format: OLE, Container type\nApplication name: b'Advanced Installer 12.3 build 64631', Application name declared in properties\nProperties code page: 1252: ANSI Latin 1; Western European (Windows), Code page used for properties\nAuthor: b'Copyright \\xa9 2023', Author declared in properties",
@@ -122,14 +142,14 @@
       },
       {
         "auto_collapse": false,
-        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://crl.thawte.com/ThawteTimestampingCA.crl0  |  http://ocsp.thawte.com0  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://ts-aia.ws.symantec.com/tss-ca-g2.cer0  |  http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(  |  http://ts-ocsp.ws.symantec.com07  |  http://www.advancedinstaller.com0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0\n    Found the following DOMAIN string(s):\n    crl.thawte.com  |  ocsp.thawte.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  ts-aia.ws.symantec.com  |  ts-crl.ws.symantec.com  |  ts-ocsp.ws.symantec.com  |  www.advancedinstaller.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    Branch\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  COMDLG32.dll  |  GDI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  WININET.dll  |  WS2_32.dll  |  aicustact.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    Connect  |  Connection  |  Install  |  Privilege  |  Symantec  |  TokenPrivilege  |  TokenPrivileges\n    Found the following API string(s):\n    AdjustTokenPrivileges  |  AllocateAndInitializeSid  |  ChangeServiceConfig  |  ChangeServiceConfig2  |  CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ControlService  |  ConvertSidToStringSid  |  ConvertStringSidToSid  |  CreateProcess  |  CreateToolhelp32Snapshot  |  DeleteFile  |  DuplicateHandle  |  EnumChildWindows  |  EnumServicesStatus  |  EnumWindows  |  Extract  |  FindClose  |  FindFirstFile  |  FindNextFile  |  FreeLibrary  |  FreeSid  |  GetCurrentProcess  |  GetDesktopWindow  |  GetDiskFreeSpace  |  GetExitCodeProcess  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleHandle  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetSidIdentifierAuthority  |  GetSidLengthRequired  |  GetSidSubAuthority  |  GetSidSubAuthorityCount  |  GetStdHandle  |  GetTempFileName  |  GetTempPath  |  GetTickCount  |  GetWindowThreadProcessId  |  InitializeSid  |  InternetCheckConnection  |  InternetConnect  |  LoadLibrary  |  LocalAlloc  |  LocalFree  |  LogonUser  |  LookupAccountName  |  LookupAccountSid  |  LookupPrivilegeValue  |  LsaAddAccountRights  |  LsaClose  |  LsaOpenPolicy  |  MessageBox  |  NetGroupGetInfo  |  NetLocalGroupGetInfo  |  NetQueryDisplayInformation  |  NetUserGetInfo  |  NetUserModalsGet  |  OpenFile  |  OpenMutex  |  OpenProcess  |  OpenProcessToken  |  OpenSCManager  |  OpenService  |  PostMessage  |  Process32First  |  Process32Next  |  QueryServiceStatus  |  QueryServiceStatusEx  |  RaiseException  |  ReadFile  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegEnumKey  |  RegEnumKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  RemoveDirectory  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SHGetSpecialFolderPath  |  SendMessage  |  SetEndOfFile  |  SetFilePointer  |  SetLastError  |  ShellExecute  |  ShellExecuteEx  |  TerminateProcess  |  WideCharToMultiByte  |  WriteFile  |  lstrcat  |  lstrcpy  |  lstrcpyn  |  lstrcpynW  |  lstrlen  |  msi.dll  |  ole32.dll  |  sprintf  |  strcmpi  |  wsprintf\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    resource.At  |  wizard.You\n    Found the following EXTRACTED string(s):\n    CABINET.DLL  |  Could not find required file IMAGEHLP.DLL  |  Freeing RICHED20.DLL  |  and has been truncated.Loading RICHED20.DLL\n    Found the following BLACKLISTED string(s):\n    ActiveX  |  Administrator  |  AppData  |  Connect  |  Connecting  |  Install  |  Manufacturer  |  Protect  |  Server 2008  |  Shutdown  |  Transaction  |  TypeLib  |  WScript  |  WScript.Shell  |  Windows 2000  |  Windows NT  |  Windows NT 4.0  |  Windows Vista  |  account  |  attempt  |  command  |  completed  |  extract  |  file not found  |  logFile  |  virtual\n    Found the following API string(s):\n    BindImage  |  DeleteService  |  GetLastError  |  MoveFile  |  RegisterTypeLib  |  SQLFetch  |  StartService  |  WinVerifyTrust  |  connect\n    Found the following CMDLET string(s):\n    AppData",
+        "body": "IOCs in \\x05SummaryInformation:\n    Found the following BLACKLISTED string(s):\n    Install\nIOCs in \u430b\u4131\u4735\u413e\u41ac\u45b8\u4137\u45e6\u41fe\u43ef:\n    Found the following URI string(s):\n    http://crl.thawte.com/ThawteTimestampingCA.crl0  |  http://ocsp.thawte.com0  |  http://t1.symcb.com/ThawtePCA.crl0  |  http://t2.symcb.com0  |  http://tl.symcb.com/tl.crl0  |  http://tl.symcb.com/tl.crt0  |  http://tl.symcd.com0  |  http://ts-aia.ws.symantec.com/tss-ca-g2.cer0  |  http://ts-crl.ws.symantec.com/tss-ca-g2.crl0(  |  http://ts-ocsp.ws.symantec.com07  |  http://www.advancedinstaller.com0  |  https://www.thawte.com/cps0/  |  https://www.thawte.com/repository0\n    Found the following DOMAIN string(s):\n    crl.thawte.com  |  ocsp.thawte.com  |  t1.symcb.com  |  t2.symcb.com  |  tl.symcb.com  |  tl.symcd.com  |  ts-aia.ws.symantec.com  |  ts-crl.ws.symantec.com  |  ts-ocsp.ws.symantec.com  |  www.advancedinstaller.com  |  www.thawte.com\n    Found the following PDB_FILENAME string(s):\n    Branch\\win\\Release\\custact\\x86\\AICustAct.pdb\n    Found the following EXTRACTED string(s):\n    ADVAPI32.dll  |  COMDLG32.dll  |  GDI32.dll  |  KERNEL32.dll  |  NETAPI32.dll  |  SHELL32.dll  |  SHLWAPI.dll  |  USER32.dll  |  WININET.dll  |  WS2_32.dll  |  aicustact.dll  |  msi.dll  |  ole32.dll\n    Found the following BLACKLISTED string(s):\n    Connect  |  Connection  |  Install  |  Privilege  |  Symantec  |  TokenPrivilege  |  TokenPrivileges\n    Found the following API string(s):\n    AdjustTokenPrivileges  |  AllocateAndInitializeSid  |  ChangeServiceConfig  |  ChangeServiceConfig2  |  CloseHandle  |  CloseServiceHandle  |  CoCreateInstance  |  CoInitialize  |  CoUninitialize  |  ControlService  |  ConvertSidToStringSid  |  ConvertStringSidToSid  |  CreateProcess  |  CreateToolhelp32Snapshot  |  DeleteFile  |  DuplicateHandle  |  EnumChildWindows  |  EnumServicesStatus  |  EnumWindows  |  Extract  |  FindClose  |  FindFirstFile  |  FindNextFile  |  FreeLibrary  |  FreeSid  |  GetCurrentProcess  |  GetDesktopWindow  |  GetDiskFreeSpace  |  GetExitCodeProcess  |  GetForegroundWindow  |  GetLastError  |  GetLocaleInfo  |  GetModuleHandle  |  GetProcAddress  |  GetProcessHeap  |  GetProcessId  |  GetSidIdentifierAuthority  |  GetSidLengthRequired  |  GetSidSubAuthority  |  GetSidSubAuthorityCount  |  GetStdHandle  |  GetTempFileName  |  GetTempPath  |  GetTickCount  |  GetWindowThreadProcessId  |  InitializeSid  |  InternetCheckConnection  |  InternetConnect  |  LoadLibrary  |  LocalAlloc  |  LocalFree  |  LogonUser  |  LookupAccountName  |  LookupAccountSid  |  LookupPrivilegeValue  |  LsaAddAccountRights  |  LsaClose  |  LsaOpenPolicy  |  MessageBox  |  NetGroupGetInfo  |  NetLocalGroupGetInfo  |  NetQueryDisplayInformation  |  NetUserGetInfo  |  NetUserModalsGet  |  OpenFile  |  OpenMutex  |  OpenProcess  |  OpenProcessToken  |  OpenSCManager  |  OpenService  |  PostMessage  |  Process32First  |  Process32Next  |  QueryServiceStatus  |  QueryServiceStatusEx  |  RaiseException  |  ReadFile  |  RegCloseKey  |  RegCreateKey  |  RegCreateKeyEx  |  RegEnumKey  |  RegEnumKeyEx  |  RegOpenKey  |  RegOpenKeyEx  |  RegQueryValue  |  RegQueryValueEx  |  RegSetValue  |  RegSetValueEx  |  RemoveDirectory  |  SHGetMalloc  |  SHGetSpecialFolderLocation  |  SHGetSpecialFolderPath  |  SendMessage  |  SetEndOfFile  |  SetFilePointer  |  SetLastError  |  ShellExecute  |  ShellExecuteEx  |  TerminateProcess  |  WideCharToMultiByte  |  WriteFile  |  lstrcat  |  lstrcpy  |  lstrcpyn  |  lstrcpynW  |  lstrlen  |  msi.dll  |  ole32.dll  |  sprintf  |  strcmpi  |  wsprintf\nIOCs in \u4840\u3f3f\u4577\u446c\u3b6a\u45e4\u4824:\n    Found the following DOMAIN string(s):\n    installation.You\n    Found the following EXTRACTED string(s):\n    CABINET.DLL  |  Could not find required file IMAGEHLP.DLL  |  Freeing RICHED20.DLL  |  and has been truncated.Loading RICHED20.DLL\n    Found the following BLACKLISTED string(s):\n    ActiveX  |  Administrator  |  AppData  |  Connect  |  Connecting  |  Install  |  Manufacturer  |  Protect  |  Server 2008  |  Shutdown  |  Transaction  |  TypeLib  |  WScript  |  WScript.Shell  |  Windows 2000  |  Windows NT  |  Windows NT 4.0  |  Windows Vista  |  account  |  attempt  |  command  |  completed  |  extract  |  file not found  |  logFile  |  virtual\n    Found the following API string(s):\n    BindImage  |  DeleteService  |  GetLastError  |  MoveFile  |  RegisterTypeLib  |  SQLFetch  |  StartService  |  WinVerifyTrust  |  connect\n    Found the following CMDLET string(s):\n    AppData",
         "body_config": {},
         "body_format": "TEXT",
         "classification": "TLP:C",
         "depth": 1,
         "heuristic": {
           "attack_ids": [],
-          "frequency": 195,
+          "frequency": 194,
           "heur_id": 9,
           "score": 100,
           "score_map": {},
@@ -340,8 +360,7 @@
                 "ts-ocsp.ws.symantec.com",
                 "www.advancedinstaller.com",
                 "www.thawte.com",
-                "resource.At",
-                "wizard.You"
+                "installation.You"
               ],
               "uri": [
                 "http://crl.thawte.com/ThawteTimestampingCA.crl0",
@@ -520,6 +539,11 @@
       {
         "attack_ids": [],
         "heur_id": 25,
+        "signatures": []
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
         "signatures": []
       },
       {
@@ -1456,12 +1480,12 @@
         {
           "heur_id": 9,
           "signatures": [],
-          "value": "ocsp.thawte.com"
+          "value": "installation.You"
         },
         {
           "heur_id": 9,
           "signatures": [],
-          "value": "resource.At"
+          "value": "ocsp.thawte.com"
         },
         {
           "heur_id": 9,
@@ -1497,11 +1521,6 @@
           "heur_id": 9,
           "signatures": [],
           "value": "ts-ocsp.ws.symantec.com"
-        },
-        {
-          "heur_id": 9,
-          "signatures": [],
-          "value": "wizard.You"
         },
         {
           "heur_id": 9,
