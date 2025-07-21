@@ -1,8 +1,30 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 210,
+    "score": 220,
     "sections": [
+      {
+        "auto_collapse": false,
+        "body": "File format: MS Excel 5.0/95 Workbook, Template or Add-in\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: -535: Unknown code page, Code page used for properties\nAuthor: None, Author declared in properties\nVBA Macros (Yes): This file contains VBA macros. No suspicious keyword was found. Use olevba and mraptor for more info.",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 34,
+          "score": 10,
+          "score_map": {},
+          "signatures": {
+            "VBA Macros": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OleID indicators",
+        "zeroize_on_tag_safe": false
+      },
       {
         "auto_collapse": false,
         "body": "File format: MS Excel 5.0/95 Workbook, Template or Add-in\nContainer format: OLE, Container type\nApplication name: None, Application name declared in properties\nProperties code page: -535: Unknown code page, Code page used for properties\nAuthor: None, Author declared in properties\nVBA Macros (Yes): This file contains VBA macros. No suspicious keyword was found. Use olevba and mraptor for more info.",
@@ -153,6 +175,13 @@
           "base64_strings",
           "hex_strings",
           "sendkeys"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 34,
+        "signatures": [
+          "VBA Macros"
         ]
       },
       {
