@@ -28,18 +28,18 @@ config:
   macro_score_min_alert: 0.6
   metadata_size_to_extract: 500
   ioc_pattern_safelist: [
-      "http://purl.org/",
-      "http://xml.org/",
+      ".dublincore.org",
+      ".gc.ca",
+      ".microsoft.com",
+      ".mil.ca",
       ".openxmlformats.org",
       ".oasis-open.org",
-      ".xmlsoap.org",
-      ".microsoft.com",
       ".w3.org",
-      ".gc.ca",
-      ".mil.ca",
-      "dublincore.org"
+      ".xmlsoap.org",
+      "http://purl.org/",
+      "http://xml.org/",
     ]
-  ioc_exact_safelist: ["management", "manager", "microsoft.com"]
+  ioc_exact_safelist: ["dublincore.org", "llisapi.dll", "management", "manager", "microsoft.com"]
 
 heuristics:
   - heur_id: 1

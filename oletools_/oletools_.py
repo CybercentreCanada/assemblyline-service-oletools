@@ -368,7 +368,7 @@ class Oletools(ServiceBase):
         self.macro_score_min_alert: float = self.config.get("macro_score_min_alert", 0.6)
         self.metadata_size_to_extract: int = self.config.get("metadata_size_to_extract", 500)
         self.ioc_pattern_safelist: list[str] = self.config.get("ioc_pattern_safelist", [])
-        self.ioc_exact_safelist: list[str] = [string.lower() for string in self.config.get("ioc_exact_safelist", [])]
+        self.ioc_exact_safelist: set[str] = {string.lower() for string in self.config.get("ioc_exact_safelist", [])}
 
         self.patterns = PatternMatch()
         self.macros: list[str] = []
@@ -398,8 +398,8 @@ class Oletools(ServiceBase):
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
         return (
-            any(string in tag for string in self.ioc_pattern_safelist)
-            or tag.lower() in self.ioc_exact_safelist
+            tag.lower() in self.ioc_exact_safelist
+            or any(string in tag for string in self.ioc_pattern_safelist)
             or is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
         )
 
