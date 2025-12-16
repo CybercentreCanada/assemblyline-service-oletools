@@ -292,20 +292,6 @@ class Oletools(ServiceBase):
         )
     )
     # Safelists
-    TAG_SAFELIST: ClassVar[list[str]] = ["management", "manager", "microsoft.com"]
-    # substrings of URIs to ignore
-    URI_SAFELIST: ClassVar[list[str]] = [
-        "http://purl.org/",
-        "http://xml.org/",
-        ".openxmlformats.org",
-        ".oasis-open.org",
-        ".xmlsoap.org",
-        ".microsoft.com",
-        ".w3.org",
-        ".gc.ca",
-        ".mil.ca",
-        "dublincore.org",
-    ]
     # substrings at end of IoC to ignore
     PAT_ENDS = (b"themeManager.xml", b"MSO.DLL", b"stdole2.tlb", b"vbaProject.bin", b"VBE6.DLL", b"VBE7.DLL")
     # Common blacklist false positives
@@ -382,9 +368,7 @@ class Oletools(ServiceBase):
         self.macro_score_min_alert: float = self.config.get("macro_score_min_alert", 0.6)
         self.metadata_size_to_extract: int = self.config.get("metadata_size_to_extract", 500)
         self.ioc_pattern_safelist: list[str] = self.config.get("ioc_pattern_safelist", [])
-        self.ioc_exact_safelist: list[str] = [string.lower() for string in self.config.get("ioc_exact_safelist", [])]
-        self.pat_safelist = self.URI_SAFELIST
-        self.tag_safelist = self.TAG_SAFELIST
+        self.ioc_exact_safelist: set[str] = {string.lower() for string in self.config.get("ioc_exact_safelist", [])}
 
         self.patterns = PatternMatch()
         self.macros: list[str] = []
@@ -414,8 +398,8 @@ class Oletools(ServiceBase):
 
     def is_safelisted(self, tag_type: str, tag: str) -> bool:
         return (
-            any(string in tag for string in self.pat_safelist)
-            or tag.lower() in self.tag_safelist
+            tag.lower() in self.ioc_exact_safelist
+            or any(string in tag for string in self.ioc_pattern_safelist)
             or is_safelisted(tag_type, tag, self.match_safelist, self.regex_safelist)
         )
 
@@ -435,13 +419,6 @@ class Oletools(ServiceBase):
         self.xlm_macros = []
         self.pcode = []
         self.vba_stomping = False
-
-        if request.deep_scan:
-            self.pat_safelist = self.URI_SAFELIST
-            self.tag_safelist = self.TAG_SAFELIST
-        else:
-            self.pat_safelist = self.URI_SAFELIST + self.ioc_pattern_safelist
-            self.tag_safelist = self.TAG_SAFELIST + self.ioc_exact_safelist
 
         file_contents = request.file_contents
         path = request.file_path
