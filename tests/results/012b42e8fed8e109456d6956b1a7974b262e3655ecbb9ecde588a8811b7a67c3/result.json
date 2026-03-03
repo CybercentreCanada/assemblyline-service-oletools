@@ -150,6 +150,14 @@
         "sha256": "1c4c87a97547086ed12234ffe8255844abf296100c4be4e112b15a2bc9bdaf93"
       },
       {
+        "name": "a828bd31.ddelinks.original",
+        "sha256": "a828bd316812d34b21fac19e3245c0a9d6c19de7c575553021ee81bd727b0de0"
+      },
+      {
+        "name": "a828bd31.ddelinks",
+        "sha256": "a828bd316812d34b21fac19e3245c0a9d6c19de7c575553021ee81bd727b0de0"
+      },
+      {
         "name": "eeca6832_all_pcode.data",
         "sha256": "eeca683294ec59be9743af36de2976f526e5358a4e218300a64d0c2eac8ea7de"
       }
