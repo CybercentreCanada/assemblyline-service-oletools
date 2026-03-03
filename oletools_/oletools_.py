@@ -2120,6 +2120,11 @@ class Oletools(ServiceBase):
 
     # -- Helper methods --
 
+    def _is_unknown(self, file_info: dict) -> bool:
+        return (file_info["magic"] == "data" or file_info["mime"] == "application/octet-stream") and file_info[
+            "type"
+        ] == "unknown"
+
     def _extract_file(
         self, data: bytes, file_name: str, description: str, *, extract_unknown: object = False
     ) -> str | None:
@@ -2140,12 +2145,7 @@ class Oletools(ServiceBase):
             file_path = os.path.join(self.working_directory, file_name)
             with open(file_path, "wb") as f:
                 f.write(data)
-            filetype = self.identify.fileinfo(file_path, generate_hashes=False)
-            if (
-                extract_unknown
-                or (filetype["magic"] != "data" and filetype["mime"] != "application/octet-stream")
-                or filetype["type"] != "unknown"
-            ):
+            if extract_unknown or not self._is_unknown(self.identify.fileinfo(file_path, generate_hashes=False)):
                 self._extracted_files[file_name] = description
                 return file_path
             else:
