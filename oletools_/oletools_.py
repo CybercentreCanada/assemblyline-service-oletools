@@ -955,7 +955,7 @@ class Oletools(ServiceBase):
                 if isinstance(value, bytes):
                     try:
                         value = value.decode(codec)
-                    except ValueError:
+                    except (ValueError, LookupError):
                         self.log.warning("Failed to decode %r with %s", value, codec)
                 meta_sec.set_item(prop, safe_str(value, force_str=True))
                 # Add Tags
