@@ -21,4 +21,4 @@ docker run \
     -v $(pwd)/tests/:/opt/al_service/tests/ \
     $MOUNT_SAMPLES \
     ${PWD##*/}:pytest \
-    bash -c "pip install -U -r tests/requirements.txt; pytest -p no:cacheprovider --durations=10 -rsx -vv -x"
+    bash -c "pip install -r tests/requirements.txt; pytest -p no:cacheprovider --durations=10 -rsx -vv -x"
