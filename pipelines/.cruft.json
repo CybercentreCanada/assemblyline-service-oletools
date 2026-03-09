@@ -7,8 +7,8 @@
       "__directory_name": "pipelines",
       "classification": "UNCLASSIFIED",
       "is_public": true,
-      "test_in_container": false,
-      "test_versions": "3.11",
+      "test_in_container": true,
+      "test_versions": "default",
       "__setupscript": "setup.bash",
       "_extensions": [
         "local_extensions.extract_versions"
