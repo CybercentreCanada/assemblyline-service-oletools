@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 220,
+    "score": 233,
     "sections": [
       {
         "auto_collapse": false,
@@ -73,6 +73,138 @@
           }
         },
         "title_text": "MSO DDE Links:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": null,
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {},
+        "title_text": "OLE Document 012b42e8fed8e109456d6956b1a7974b262e3655ecbb9ecde588a8811b7a67c3",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "codepage": "-535",
+          "codepage_doc": "-535",
+          "create_time": "1601-01-01 00:00:00",
+          "last_printed": "1601-01-01 00:00:00",
+          "last_saved_time": "2023-11-22 21:56:09",
+          "revision_number": "1",
+          "total_edit_time": "2067101"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "summary": {
+                "codepage": [
+                  -535
+                ],
+                "create_time": [
+                  "1601-01-01 00:00:00"
+                ],
+                "last_printed": [
+                  "1601-01-01 00:00:00"
+                ],
+                "last_saved_time": [
+                  "2023-11-22 21:56:09"
+                ]
+              }
+            }
+          }
+        },
+        "title_text": "OLE Metadata:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": {
+          "00020810-0000-0000-C000-000000000046": "Microsoft Excel.Sheet.5"
+        },
+        "body_config": {},
+        "body_format": "KEY_VALUE",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": null,
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "ole": {
+              "clsid": [
+                "00020810-0000-0000-C000-000000000046"
+              ]
+            }
+          }
+        },
+        "title_text": "CLSID:",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "IOCs in Workbook:\n    Found the following ADDRESS string(s):\n    warranty@pmcav.com\n    Found the following EXTRACTED string(s):\n    Blank ATR Triage form US 10 24 19.xlsx\n    Found the following BLACKLISTED string(s):\n    Enable Content  |  Manufacturer  |  completed  |  compression\nIOCs in _VBA_PROJECT_CUR/VBA/EmbedPictures:\n    Found the following BLACKLISTED string(s):\n    compression\nIOCs in _VBA_PROJECT_CUR/VBA/_VBA_PROJECT:\n    Found the following API string(s):\n    OpenFile\nIOCs in _VBA_PROJECT_CUR/VBA/__SRP_0:\n    Found the following EXTRACTED string(s):\n    C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE  |  C:\\Users\\MATT~1.BOL\\AppData\\Local\\Temp\\VBE\\MSForms.exd  |  C:\\Windows\\system32\\FM20.DLL\n    Found the following BLACKLISTED string(s):\n    AppData  |  AppData\\Local\n    Found the following CMDLET string(s):\n    AppData",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 1,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 13,
+          "heur_id": 9,
+          "score": 13,
+          "score_map": {},
+          "signatures": {}
+        },
+        "promote_to": null,
+        "tags": {
+          "file": {
+            "name": {
+              "extracted": [
+                "Blank ATR Triage form US 10 24 19.xlsx",
+                "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+                "C:\\Users\\MATT~1.BOL\\AppData\\Local\\Temp\\VBE\\MSForms.exd",
+                "C:\\Windows\\system32\\FM20.DLL"
+              ]
+            },
+            "powershell": {
+              "cmdlet": [
+                "AppData"
+              ]
+            },
+            "string": {
+              "api": [
+                "OpenFile"
+              ],
+              "blacklisted": [
+                "Enable Content",
+                "Manufacturer",
+                "completed",
+                "compression",
+                "AppData",
+                "AppData\\Local"
+              ]
+            }
+          },
+          "network": {
+            "email": {
+              "address": [
+                "warranty@pmcav.com"
+              ]
+            }
+          }
+        },
+        "title_text": "Suspicious stream content:",
         "zeroize_on_tag_safe": false
       },
       {
@@ -150,14 +282,31 @@
         "sha256": "1c4c87a97547086ed12234ffe8255844abf296100c4be4e112b15a2bc9bdaf93"
       },
       {
+        "name": "a828bd31.ddelinks.original",
+        "sha256": "a828bd316812d34b21fac19e3245c0a9d6c19de7c575553021ee81bd727b0de0"
+      },
+      {
+        "name": "a828bd31.ddelinks",
+        "sha256": "a828bd316812d34b21fac19e3245c0a9d6c19de7c575553021ee81bd727b0de0"
+      },
+      {
         "name": "eeca6832_all_pcode.data",
         "sha256": "eeca683294ec59be9743af36de2976f526e5358a4e218300a64d0c2eac8ea7de"
+      },
+      {
+        "name": "f44b8175.ole_stream",
+        "sha256": "f44b817523ffca22317aee6df9e8c5152dd63befb3bd262a8fb93da6339dffad"
       }
     ],
     "supplementary": []
   },
   "results": {
     "heuristics": [
+      {
+        "attack_ids": [],
+        "heur_id": 9,
+        "signatures": []
+      },
       {
         "attack_ids": [],
         "heur_id": 15,
@@ -193,6 +342,35 @@
       }
     ],
     "tags": {
+      "file.name.extracted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Blank ATR Triage form US 10 24 19.xlsx"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "C:\\Users\\MATT~1.BOL\\AppData\\Local\\Temp\\VBE\\MSForms.exd"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "C:\\Windows\\system32\\FM20.DLL"
+        }
+      ],
+      "file.ole.clsid": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "00020810-0000-0000-C000-000000000046"
+        }
+      ],
       "file.ole.dde_link": [
         {
           "heur_id": 15,
@@ -240,6 +418,87 @@
           "heur_id": 20,
           "signatures": [],
           "value": "f36d490372e1ef33bbf02c4f72d8aedebf0ac3f4292e288de6162cbc20a7b3c4"
+        }
+      ],
+      "file.ole.summary.codepage": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": -535
+        }
+      ],
+      "file.ole.summary.create_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "1601-01-01 00:00:00"
+        }
+      ],
+      "file.ole.summary.last_printed": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "1601-01-01 00:00:00"
+        }
+      ],
+      "file.ole.summary.last_saved_time": [
+        {
+          "heur_id": null,
+          "signatures": [],
+          "value": "2023-11-22 21:56:09"
+        }
+      ],
+      "file.powershell.cmdlet": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AppData"
+        }
+      ],
+      "file.string.api": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "OpenFile"
+        }
+      ],
+      "file.string.blacklisted": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AppData"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "AppData\\Local"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Enable Content"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "Manufacturer"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "completed"
+        },
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "compression"
+        }
+      ],
+      "network.email.address": [
+        {
+          "heur_id": 9,
+          "signatures": [],
+          "value": "warranty@pmcav.com"
         }
       ],
       "technique.macro": [

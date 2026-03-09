@@ -955,7 +955,7 @@ class Oletools(ServiceBase):
                 if isinstance(value, bytes):
                     try:
                         value = value.decode(codec)
-                    except ValueError:
+                    except (ValueError, LookupError):
                         self.log.warning("Failed to decode %r with %s", value, codec)
                 meta_sec.set_item(prop, safe_str(value, force_str=True))
                 # Add Tags
@@ -1366,6 +1366,7 @@ class Oletools(ServiceBase):
                 else:
                     unknown.append((res_txt, res_alert))
 
+                extract_unknown = bool(streams_res.heuristic and streams_res.heuristic.score >= 1000)
                 # Write object content to extracted file
                 i = rtfp.objects.index(rtf_object)
                 if rtf_object.is_package:
@@ -1373,7 +1374,9 @@ class Oletools(ServiceBase):
                         fname = "_" + self._sanitize_filename(rtf_object.filename)
                     else:
                         fname = f"_object_{rtf_object.start}.noname"
-                    self._extract_file(rtf_object.olepkgdata, fname, f"OLE Package in object #{i}:")
+                    self._extract_file(
+                        rtf_object.olepkgdata, fname, f"OLE Package in object #{i}:", extract_unknown=extract_unknown
+                    )
 
                 # When format_id=TYPE_LINKED, oledata_size=None
                 elif rtf_object.is_ole and rtf_object.oledata_size is not None:
@@ -1386,11 +1389,15 @@ class Oletools(ServiceBase):
                     else:
                         ext = "bin"
                     fname = f"_object_{hex(rtf_object.start)}.{ext}"
-                    self._extract_file(rtf_object.oledata, fname, f"Embedded in OLE object #{i}:")
+                    self._extract_file(
+                        rtf_object.oledata, fname, f"Embedded in OLE object #{i}:", extract_unknown=extract_unknown
+                    )
 
                 else:
                     fname = f"_object_{hex(rtf_object.start)}.raw"
-                    self._extract_file(rtf_object.rawdata, fname, f"Raw data in object #{i}:")
+                    self._extract_file(
+                        rtf_object.rawdata, fname, f"Raw data in object #{i}:", extract_unknown=extract_unknown
+                    )
             except Exception:
                 self.log.warning("Failed to process an RTF object for sample %s:", self.sha, exc_info=True)
         if embedded:
@@ -2113,7 +2120,14 @@ class Oletools(ServiceBase):
 
     # -- Helper methods --
 
-    def _extract_file(self, data: bytes, file_name: str, description: str) -> str | None:
+    def _is_unknown(self, file_info: dict) -> bool:
+        return (file_info["magic"] == "data" or file_info["mime"] == "application/octet-stream") and file_info[
+            "type"
+        ] == "unknown"
+
+    def _extract_file(
+        self, data: bytes, file_name: str, description: str, *, extract_unknown: object = False
+    ) -> str | None:
         """Add data as an extracted file.
 
         Checks that there the service hasn't hit the extraction limit before extracting.
@@ -2131,11 +2145,11 @@ class Oletools(ServiceBase):
             file_path = os.path.join(self.working_directory, file_name)
             with open(file_path, "wb") as f:
                 f.write(data)
-            if self.identify.fileinfo(file_path, generate_hashes=False)["type"] == "unknown":
-                self.log.debug("Skipping extracting %s because it's type is unknown", file_name)
-            else:
+            if extract_unknown or not self._is_unknown(self.identify.fileinfo(file_path, generate_hashes=False)):
                 self._extracted_files[file_name] = description
                 return file_path
+            else:
+                self.log.debug("Skipping extracting %s because it's type is unknown", file_name)
         except Exception:
             self.log.exception("Error extracting %s for sample %s:", file_name, self.sha)
         return None
