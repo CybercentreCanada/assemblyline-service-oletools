@@ -61,7 +61,7 @@ heuristics:
 
   - heur_id: 3
     name: Too Large
-    score: 0
+    score: 5
     filetype: document/office
     description: >-
       File contains parts which are too large to be scanned.
@@ -86,8 +86,7 @@ heuristics:
 
   - heur_id: 7
     name: IOC in XML
-    score: 1
-    max_score: 100
+    score: 0
     filetype: document/office/.*|document/odt/.*
     description: IOC content discovered in compressed XML.
 
@@ -99,8 +98,7 @@ heuristics:
 
   - heur_id: 9
     name: IOC in OLE
-    score: 1
-    max_score: 100
+    score: 0
     filetype: document/(office|installer/windows)
     description: IOC content discovered in OLE Object.
 
@@ -159,7 +157,7 @@ heuristics:
 
   - heur_id: 20
     name: Packed or obfuscated macro
-    score: 100
+    score: 20
     filetype: document/office
     description: Macro may be packed or obfuscated.
 
@@ -191,7 +189,8 @@ heuristics:
 
   - heur_id: 25
     name: Suspicious string found
-    score: 50
+    score: 75
+    max_score: 150
     filetype: document/(office|installer/windows)
     description: Suspicious string found in the stream
 
@@ -224,8 +223,8 @@ heuristics:
 
   - heur_id: 30
     name: Suspicious strings or functions
-    score: 50
-    max_score: 100
+    score: 5
+    max_score: 5
     signature_score_map:
       base64_strings: 0
       call: 0
@@ -242,8 +241,8 @@ heuristics:
 
   - heur_id: 32
     name: Autoexecution strings
-    score: 50
-    max_score: 100
+    score: 10
+    max_score: 10
     filetype: document/office
     description: Autoexecution strings
 
@@ -255,7 +254,7 @@ heuristics:
 
   - heur_id: 34
     name: OleID Indicator Found
-    score: 10
+    score: 1
     filetype: document/(office|installer/windows)|document/odt/.*
     description: OleID indicator object found
 
