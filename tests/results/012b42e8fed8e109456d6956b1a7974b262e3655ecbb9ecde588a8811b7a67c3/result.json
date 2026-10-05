@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 233,
+    "score": 77,
     "sections": [
       {
         "auto_collapse": false,
@@ -14,7 +14,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {
             "VBA Macros": 1
@@ -36,7 +36,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {
             "VBA Macros": 1
@@ -162,7 +162,7 @@
           "attack_ids": [],
           "frequency": 13,
           "heur_id": 9,
-          "score": 13,
+          "score": 0,
           "score_map": {},
           "signatures": {}
         },
@@ -218,7 +218,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 20,
-          "score": 100,
+          "score": 20,
           "score_map": {},
           "signatures": {}
         },
@@ -260,7 +260,7 @@
           "attack_ids": [],
           "frequency": 0,
           "heur_id": 30,
-          "score": 50,
+          "score": 5,
           "score_map": {},
           "signatures": {
             "base64_strings": 1,
