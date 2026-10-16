@@ -21,4 +21,4 @@ docker run \
     -v $(pwd)/tests/:/opt/al_service/tests/ \
     $MOUNT_SAMPLES \
     ${PWD##*/}:gentests \
-    bash -c "pip install -U -r tests/requirements.txt; python /opt/al_service/tests/gentests.py"
+    bash -c "pip install -r tests/requirements.txt; python /opt/al_service/tests/gentests.py"
