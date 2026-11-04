@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 276,
+    "score": 37,
     "sections": [
       {
         "auto_collapse": false,
@@ -14,7 +14,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {
             "VBA Macros": 1
@@ -36,7 +36,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {
             "VBA Macros": 1
@@ -145,7 +145,7 @@
           "attack_ids": [],
           "frequency": 6,
           "heur_id": 9,
-          "score": 6,
+          "score": 0,
           "score_map": {},
           "signatures": {}
         },
@@ -182,7 +182,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 20,
-          "score": 100,
+          "score": 20,
           "score_map": {},
           "signatures": {}
         },
@@ -223,7 +223,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 32,
-          "score": 50,
+          "score": 10,
           "score_map": {},
           "signatures": {}
         },
@@ -243,7 +243,7 @@
           "attack_ids": [],
           "frequency": 0,
           "heur_id": 30,
-          "score": 100,
+          "score": 5,
           "score_map": {},
           "signatures": {
             "adodb.stream": 1,

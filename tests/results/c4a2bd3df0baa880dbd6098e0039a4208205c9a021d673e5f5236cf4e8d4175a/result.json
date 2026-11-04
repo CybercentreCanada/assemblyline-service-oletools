@@ -1,7 +1,7 @@
 {
   "extra": {
     "drop_file": false,
-    "score": 320,
+    "score": 302,
     "sections": [
       {
         "auto_collapse": false,
@@ -14,7 +14,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {}
         },
@@ -34,7 +34,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 34,
-          "score": 10,
+          "score": 1,
           "score_map": {},
           "signatures": {}
         },
@@ -151,7 +151,7 @@
           "attack_ids": [],
           "frequency": 353,
           "heur_id": 9,
-          "score": 100,
+          "score": 0,
           "score_map": {},
           "signatures": {}
         },
@@ -549,7 +549,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 25,
-          "score": 50,
+          "score": 75,
           "score_map": {},
           "signatures": {}
         },
@@ -595,7 +595,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 25,
-          "score": 50,
+          "score": 75,
           "score_map": {},
           "signatures": {}
         },
@@ -641,7 +641,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 25,
-          "score": 50,
+          "score": 75,
           "score_map": {},
           "signatures": {}
         },
@@ -687,7 +687,7 @@
           "attack_ids": [],
           "frequency": 1,
           "heur_id": 25,
-          "score": 50,
+          "score": 75,
           "score_map": {},
           "signatures": {}
         },
@@ -823,10 +823,6 @@
       {
         "name": "5e22ed25.ole_stream",
         "sha256": "5e22ed253e2f2acd1132ff43a2c5c52143fe1e7891ee5177f0f6c24c9bc0b79b"
-      },
-      {
-        "name": "6b264117.ole_stream",
-        "sha256": "6b264117bbc3cd7dbad68978dca3fc1060fb02c981f33c28c44ef3e7cb6f7ef1"
       },
       {
         "name": "6be34f9c.ole_stream",
