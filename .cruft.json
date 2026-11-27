@@ -1,13 +1,13 @@
 {
   "template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-  "commit": "082ca0fe29887851cad1b54ddfbf37163b45a9cb",
+  "commit": "24299fcb746a598cca6e6b4e1dcffe93e8e57215",
   "checkout": null,
   "context": {
     "cookiecutter": {
       "service_name": "oletools",
       "__svc_name": "oletools",
       "__repository": "assemblyline-service-oletools",
-      "__pkg_name": "oletools_",
+      "__pkg_name": "oletools",
       "class_name": "Oletools",
       "short_description": "This Assemblyline service extracts metadata and network information, and reports on anomalies in Microsoft OLE and XML documents using the Python library py-oletools and hachoir.",
       "short_description_fr": "Ce service Assemblyline extrait des métadonnées et des informations sur le réseau, et signale les anomalies dans les documents Microsoft OLE et XML à l'aide des bibliothèques Python py-oletools et hachoir.",
@@ -17,10 +17,10 @@
       "org_name_short": "cccs",
       "license": "mit",
       "_extensions": [
-        "local_extensions.github_maintainer.Ext"
+        "local_extensions.maintainer.Ext"
       ],
       "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-      "_commit": "082ca0fe29887851cad1b54ddfbf37163b45a9cb",
+      "_commit": "24299fcb746a598cca6e6b4e1dcffe93e8e57215",
       "_github_maintainer": "cccs-jh"
     }
   },
